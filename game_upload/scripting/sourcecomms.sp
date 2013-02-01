@@ -9,16 +9,13 @@
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 #define DATABASE "sourcecomms"
 
-// Uncomment next line, if you using SourceMod 1.5.0-hg3761 or LATER //
-//#define BUG_FIXED
-
 //#define DEBUG
 //#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.7.114"
+#define VERSION "0.7.115"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -133,7 +130,7 @@ public Plugin:myinfo =
 	author = "Alex",
 	description = "Advanced punishments management for the Source engine in SourceBans style.",
 	version = VERSION,
-//	url = "http://www.sourcebans.net"
+	url = "https://forums.alliedmods.net/showthread.php?t=207176"
 };
 
 #if SOURCEMOD_V_MAJOR >= 1 && SOURCEMOD_V_MINOR >= 3
@@ -186,7 +183,7 @@ public OnPluginStart()
 		LogToFile(logFile, "Plugin loading. Version %s", VERSION);
 	#endif
 	
-	// Catch config error and show link to FAQ
+	// Catch config error
 	if (!SQL_CheckConfig(DATABASE))
 	{
 		LogToFile(logFile, "Database failure: Could not find Database conf %s", DATABASE);
@@ -368,7 +365,6 @@ public Action:Event_OnPlayerName(Handle:event, const String:name[], bool:dontBro
 		GetEventString(event, "newname", g_sName[client], sizeof(g_sName[]));
 }
 
-#if defined BUG_FIXED
 public BaseComm_OnClientMute(client, bool:muteState)
 {
 	if (client > 0 && client <= MaxClients)
@@ -498,7 +494,6 @@ public BaseComm_OnClientGag(client, bool:gagState)
 		}
 	}
 }
-#endif
 
 // COMMAND CODE //
 
