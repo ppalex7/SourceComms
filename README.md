@@ -110,9 +110,8 @@ or you could import `sb_comms.sql` file **(please check table prefix in file!)**
 * If your `extendedcomm` table is in the different database - replace in code below (or in `import.sql` file) `extendedcomm` to `'database_with_table'.'name_of_extendedcomm_table'`
 * Execute folowing queries on your sourcebans database (or import `import.sql` file)
 
-
-			INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, mute_time, mute_length, mute_time+mute_length, mute_reason, 1 FROM extendedcomm WHERE (mute_type='1' OR mute_type='2');
-			INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, gag_time, gag_length, gag_time+gag_length, gag_reason, 2 FROM extendedcomm WHERE (gag_type='1' OR gag_type='2');
+		INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, mute_time, mute_length, mute_time+mute_length, mute_reason, 1 FROM extendedcomm WHERE (mute_type='1' OR mute_type='2');
+		INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, gag_time, gag_length, gag_time+gag_length, gag_reason, 2 FROM extendedcomm WHERE (gag_type='1' OR gag_type='2');
 
 ### Installation of Web part
 1. Upload all the contents of `web_upload` directory from the zip file to your webserver into root sourcebans folder (which contains such files as index.php, config.php, getdemo.php).
@@ -127,8 +126,7 @@ Add BEFORE
 		$page = TEMPLATES_PATH ."/page.commslist.php";
 		break;</code></pre>
 This means, that you need to open file `<sourcebans_web_folder>\includes\page-builder.php` from your webserver, find in it `case "servers":` on 38th line (or near from it) and add **before** this line next code:
-<pre><code>
-	case "commslist":
+<pre><code>case "commslist":
 		RewritePageTitle("Communications Block List");
 		$page = TEMPLATES_PATH ."/page.commslist.php";
 		break;</code></pre>
