@@ -1,0 +1,18 @@
+"Updater"
+{
+	"Information"
+	{
+		"Version"
+		{
+			"Latest"	"0.7.111"
+		}
+
+		"Notes"	"More info @ "
+	}
+
+	"Files"
+	{
+		"Plugin"	"Path_SM/plugins/sourcecomms.smx"
+		"Plugin"	"Path_SM/translations/sourcecomms.phrases.txt"
+	}
+}

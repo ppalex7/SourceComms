@@ -1,0 +1,2 @@
+INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, mute_time, mute_length, mute_time+mute_length, mute_reason, 1 FROM extendedcomm WHERE (mute_type='1' OR mute_type='2');
+INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, gag_time, gag_length, gag_time+gag_length, gag_reason, 2 FROM extendedcomm WHERE (gag_type='1' OR gag_type='2');
