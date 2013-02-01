@@ -40,7 +40,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * Admin-page *'Comms'* for adding new punishments.
 * Command *'Block comms'* in player context menu on servers page
 
-**Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass *test*/*test*)
+**Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login / pass *test* / *test*)
 
 ##Commands:
 * `sm_mute <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice.
