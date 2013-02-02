@@ -133,7 +133,7 @@ This means, that you need to open file `<sourcebans_web_folder>\includes\page-bu
 
 ## Known bugs
 ### Server plugin
-* has no known bugs.
+* Rarely a player's name in the database is a part of another "sql-query". Enabled sql-queries log in build 117 to catch this bug.
 
 ### Web part
 * Sometimes blocking/unblocking from web may work not properly. (The *search players on the servers* box "hangs" and doesn't respond.)

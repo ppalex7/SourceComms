@@ -10,12 +10,12 @@
 #define DATABASE "sourcecomms"
 
 //#define DEBUG
-//#define LOG_QUERIES
+#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.7.115"
+#define VERSION "0.7.117"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -2064,10 +2064,9 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	}
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
 
-	//SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason,
-	//	c.aid, a.user, if (a.immunity>0, a.immunity, IFNULL(g.immunity,0)) as immunity FROM %s_comms c
-	//	LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
-	//	WHERE authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
+	//SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user,
+	//if (a.immunity>0, a.immunity, IFNULL(g.immunity,0)) as immunity FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
+	//WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
 	if (SQL_GetRowCount(hndl) > 0)
 	{
 		while(SQL_FetchRow(hndl))
