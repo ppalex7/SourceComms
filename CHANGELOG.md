@@ -1,4 +1,5 @@
 #Changelog
+* **0.7.117** - Enabled sql-queries log
 * **0.7.114** - Fixed some flaws in the sql queries. Small code improvements.
 * **0.7.111** - First release on AlliedMods.
 * **0.7.97** - Minor bugs fixed. DEBUG info now disabled by default. Now plugin is "beta".
