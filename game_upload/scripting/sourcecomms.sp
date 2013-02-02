@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.7.119"
+#define VERSION "0.7.121"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -410,8 +410,6 @@ public BaseComm_OnClientMute(client, bool:muteState)
 				new Handle:dataPack = CreateDataPack();
 				new Handle:reasonPack = CreateDataPack();
 				WritePackString(reasonPack, g_sMuteReason[client]);
-				WritePackCell(dataPack, 0);
-				WritePackCell(dataPack, client);
 				WritePackCell(dataPack, -1);	
 				WritePackCell(dataPack, TYPE_MUTE);
 				WritePackCell(dataPack, _:reasonPack);
@@ -475,8 +473,6 @@ public BaseComm_OnClientGag(client, bool:gagState)
 				new Handle:dataPack = CreateDataPack();
 				new Handle:reasonPack = CreateDataPack();
 				WritePackString(reasonPack, g_sGagReason[client]);
-				WritePackCell(dataPack, 0);
-				WritePackCell(dataPack, client);
 				WritePackCell(dataPack, -1);	
 				WritePackCell(dataPack, TYPE_MUTE);
 				WritePackCell(dataPack, _:reasonPack);
@@ -1613,7 +1609,7 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 	{
 		LogToFile(logFile, "Verify Insert Query Failed: %s", error);
 
-		SetPackPosition(dataPack, 16);
+		ResetPack(dataPack);
 		new time = ReadPackCell(dataPack);
 		new type = ReadPackCell(dataPack);
 		new Handle:reasonPack = Handle:ReadPackCell(dataPack);
@@ -2217,9 +2213,6 @@ public Action:ProcessQueue(Handle:timer, any:data)
 {
 	decl String:buffer[512];
 	Format(buffer, sizeof(buffer), "SELECT steam_id, time, start_time, reason, name, admin_id, admin_ip, type FROM queue");
-	#if defined LOG_QUERIES
-		LogToFile(logQuery, "Select from queue. QUERY: %s", buffer);
-	#endif
 	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, buffer);
 }
 
@@ -2414,8 +2407,6 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	new Handle:dataPack = CreateDataPack();
 	new Handle:reasonPack = CreateDataPack();
 	WritePackString(reasonPack, reason);
-	WritePackCell(dataPack, admin);
-	WritePackCell(dataPack, target);
 	WritePackCell(dataPack, time);	
 	WritePackCell(dataPack, type);
 	WritePackCell(dataPack, _:reasonPack);
@@ -2637,8 +2628,6 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					new Handle:dataPack2 = CreateDataPack();
 					new Handle:reasonPack2 = CreateDataPack();
 					WritePackString(reasonPack2, reason);
-					WritePackCell(dataPack2, admin);
-					WritePackCell(dataPack2, target);
 					WritePackCell(dataPack2, time);	
 					WritePackCell(dataPack2, type);
 					WritePackCell(dataPack2, _:reasonPack2);
