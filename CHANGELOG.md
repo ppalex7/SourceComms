@@ -1,4 +1,5 @@
 #Changelog
+* **0.7.119** - Fixed bug with wrong logging comms actions in SM logs.
 * **0.7.117** - Enabled sql-queries log
 * **0.7.114** - Fixed some flaws in the sql queries. Small code improvements.
 * **0.7.111** - First release on AlliedMods.
