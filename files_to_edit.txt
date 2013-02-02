@@ -446,29 +446,6 @@ function UnMute(id, key, page, name, popup)
 	}
 }
 
-function UnSilence(id, key, page, name, popup)
-{
-	if(popup==1) {
-		ShowBox('UnSilence Reason', '<b>Please give a short comment, why you are going to unmute&ungag '+"\'"+ name +"\'"+'!</b><br><textarea rows="3" cols="40" name="ureason" id="ureason" style="overflow:auto;"></textarea><br><div id="ureason.msg" class="badentry"></div>', 'blue', '', true);
-		$('dialog-control').setHTML('<input type="button" onclick="UnSilence(\''+id+'\', \''+key+'\', \''+page+'\', \''+addslashes(name.replace(/\'/g,'\\\''))+'\', \'0\''+');" name="uban" class="btn ok" onmouseover="ButtonOver(\'uban\')" onmouseout="ButtonOver(\'uban\')" id="uban" value="UnSilence Player" />&nbsp;<input type="button" onclick="closeMsg(\'\');" name="astop" class="btn cancel" onmouseover="ButtonOver(\'astop\')" onmouseout="ButtonOver(\'astop\')" id="astop" value="Cancel" />');
-	} else if(popup==0) {
-		if(page != "")
-			var pagelink = page;
-		else
-			var pagelink = "";
-		reason = $('ureason').value;
-		if(reason == "") {
-			$('ureason.msg').setHTML("Please leave a comment.");
-			$('ureason.msg').setStyle('display', 'block');
-			return;
-		} else {
-			$('ureason.msg').setHTML('');
-			$('ureason.msg').setStyle('display', 'none');
-		}
-		window.location = "index.php?p=commslist" + pagelink + "&a=unsilence&id="+ id +"&key="+ key +"&ureason="+ reason;
-	}
-}
-
 function search_blocks()
 {
 	var type = "";
