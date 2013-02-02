@@ -158,7 +158,7 @@
                   {if empty($ban.steamid)}
                     <i><font color="#677882">no Steam ID present</font></i>
                   {else}
-	 				 <a href="/redirect.php?srv={$ban.server_id}&type=2&authid={$ban.steamid}" target="_blank">{$ban.steamid}</a>
+                  {$ban.steamid}
                   {/if}
                 </td>
               </tr>
