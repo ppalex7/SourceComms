@@ -4,7 +4,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 
 ## Requirements
 * Working sourcebans system *(yes, you need MySQL server and web server with PHP)*
-* SourceMod 1.4.1 or newer; SourceMod **1.5.0-hg3761** or **newer** is required if you want to *store history of punishments from another plugins*
+* SourceMod **1.5.0-hg3761** or **newer** is required.
 
 ##Compatibility:
 * In theory - all games on the Source 2009 engine.
@@ -14,7 +14,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 ### Server plugin
 * Provides a straightforward category in the sm_admin menu where administrators can punish players as well as view current comm punishments.
 	* The original BaseComm menu option still exist, and will still function.
-		* SourceComms plugin has optional support (not by default) storing history of punishments from BaseComm and another plugins if you are having **SM 1.5.0-hg3761** or **newer**
+	* SourceComms plugin support toring history of punishments from BaseComm and another plugins.
 	* The category provides options for issuing new punishments, removing and viewing current punishments (categorized based on the punishment), as well as a List feature that provides information about current punishments.
 	* The category also modifies the player's names in all of the options to show what their current punishment is. [ ] = None, [G] = Gagged, [M] = Muted, [S] = Silenced. *I used Twisted|Panda menu code :)*
 * All punishments (temporary, extended or permanent) are saved in MySQL database and are automatically reapplied (except temporary) when the punished player connects to the server. This allows punishments to be applied across multiple servers.
@@ -40,7 +40,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * Admin-page *'Comms'* for adding new punishments.
 * Command *'Block comms'* in player context menu on servers page
 
-**Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login / pass *test* / *test*)
+**Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)
 
 ##Commands:
 * `sm_mute <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice.
@@ -71,7 +71,6 @@ First of all, download this repository as a zip file.
 			//"timeout"			"0"
 			"port"				"your_database_port(default_3306)"
 		}
-3. *(Optional)* If you have **SourceMod 1.5.0-hg3761** or **newer**. Edit `game_upload/scripting/sourcecomms.sp` and uncomment line 13 `//#define BUG_FIXED` (remove `//` in the begin of the line). Then, compile plugin and upload to your server with other files as usual.
 
 ### Installation of database part
 1. **Check your sourcebans tables prefix!** Replace in query bellow prefix `sb` to yours, if you use another. Execute the following query on your sourcebans database:
