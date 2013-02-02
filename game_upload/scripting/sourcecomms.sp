@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.7.117"
+#define VERSION "0.7.119"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -263,6 +263,22 @@ public OnLibraryRemoved(const String:name[])
 public OnMapStart()
 {
 	ReadConfig();
+
+	g_sName[0][0] = '\0';
+
+	g_MuteType[0] = bNot;
+	g_iMuteTime[0] = 0;
+	g_iMuteLength[0] = 0;
+	g_iMuteLevel[0] = -1;
+	g_sMuteAdmin[0][0] = '\0';
+	g_sMuteReason[0][0] = '\0';
+
+	g_GagType[0] = bNot;
+	g_iGagTime[0] = 0;
+	g_iGagLength[0] = 0;
+	g_iGagLevel[0] = -1;
+	g_sGagAdmin[0][0] = '\0';
+	g_sGagReason[0][0] = '\0';
 }
 
 // CLIENT CONNECTION FUNCTIONS //
@@ -2460,7 +2476,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					else
 						ShowActivity2(admin, Prefix, "%t", "Temp muted player reason", g_sName[target], reason);
 				}
-				LogAction(admin, client, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", admin, client, time, reason);
+				LogAction(admin, client, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
 
 				// pass move forward with the block
 				if (Database != INVALID_HANDLE)
@@ -2528,7 +2544,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					else
 						ShowActivity2(admin, Prefix, "%t", "Temp gagged player reason", g_sName[target], reason);		
 				}
-				LogAction(admin, client, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", admin, client, time, reason);
+				LogAction(admin, client, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
 
 				// pass move forward with the block
 				if (Database != INVALID_HANDLE)
@@ -2610,7 +2626,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					else
 						ShowActivity2(admin, Prefix, "%t", "Temp silenced player reason", g_sName[target], reason);		
 				}
-				LogAction(admin, client, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", admin, client, time, reason);
+				LogAction(admin, client, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
 
 				// pass move forward with the block
 				if (Database != INVALID_HANDLE)
