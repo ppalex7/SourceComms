@@ -1,5 +1,6 @@
 #Changelog
-* **0.7.121**
+* **0.7.122**
+	* Fixed bug: punishments were recorded into the database twice.
 	* Removed "select from queue" query from logging.
 	* Fixed bug with wrong logging comms actions in SM logs.
 	* Enabled sql-queries log.
