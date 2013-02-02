@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.7.121"
+#define VERSION "0.7.122"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -575,7 +575,7 @@ public Action:FWBlock(args)
 					g_sMuteReason[i][0] = '\0';
 					PrintToChat(i, "%t", "Muted on connect");
 					LogToFile(logFile, "%s is muted from web", clientAuth);
-					BaseComm_SetClientMute(i, true);
+					
 					if (length > 0)
 					{
 						g_MuteType[i] = bTime;
@@ -586,6 +586,8 @@ public Action:FWBlock(args)
 					}
 					else
 						g_MuteType[i] = bPerm;
+
+					BaseComm_SetClientMute(i, true);
 				}
 				if (g_GagType[i] == bNot && (type == 2 || type == 3))
 				{
@@ -595,7 +597,7 @@ public Action:FWBlock(args)
 					g_sGagAdmin[i] = "CONSOLE";
 					g_sGagReason[i][0] = '\0';
 					PrintToChat(i, "%t", "Gagged on connect");
-					BaseComm_SetClientGag(i, true);
+					
 					LogToFile(logFile, "%s is gagged from web", clientAuth);
 					if (length > 0)
 					{
@@ -607,6 +609,8 @@ public Action:FWBlock(args)
 					}
 					else
 						g_GagType[i] = bPerm;
+
+					BaseComm_SetClientGag(i, true);
 				}
 				break;
 			}			
@@ -2106,7 +2110,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					#endif
 
 					PrintToChat(client, "%t", "Muted on connect");
-					BaseComm_SetClientMute(client, true);
+					
 					if (length > 0)
 					{
 						g_MuteType[client] = bTime;
@@ -2117,6 +2121,8 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					}
 					else
 						g_MuteType[client] = bPerm;
+
+					BaseComm_SetClientMute(client, true);
 				}
 				case TYPE_GAG:
 				{
@@ -2130,7 +2136,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 						LogToFile(logFile, "%s is gagged on connect", clientAuth);
 					#endif						
 					PrintToChat(client, "%t", "Gagged on connect");
-					BaseComm_SetClientGag(client, true);
+					
 					if (length > 0)
 					{
 						g_GagType[client] = bTime;
@@ -2141,6 +2147,8 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					}
 					else
 						g_GagType[client] = bPerm;
+
+					BaseComm_SetClientGag(client, true);
 				}
 			}
 		}
@@ -2179,8 +2187,7 @@ public Action:Timer_MuteExpire(Handle:timer, any:client)
 		LogToFile(logFile, "Mute expired for %s", clientAuth);
 	#endif
 	PrintToChat(client, "%t", "Mute expired");
-	if (IsClientInGame(client))
-		BaseComm_SetClientMute(client, false);
+	
 	g_hMuteExpireTimer[client] = INVALID_HANDLE;
 	g_MuteType[client] = bNot;
 	g_iMuteTime[client] = 0;
@@ -2188,6 +2195,9 @@ public Action:Timer_MuteExpire(Handle:timer, any:client)
 	g_iMuteLevel[client] = -1;
 	g_sMuteAdmin[client][0] = '\0';
 	g_sMuteReason[client][0] = '\0';
+
+	if (IsClientInGame(client))
+		BaseComm_SetClientMute(client, false);
 }
 
 public Action:Timer_GagExpire(Handle:timer, any:client)
@@ -2198,8 +2208,7 @@ public Action:Timer_GagExpire(Handle:timer, any:client)
 		LogToFile(logFile, "Gag expired for %s", clientAuth);
 	#endif
 	PrintToChat(client, "%t", "Gag expired");
-	if (IsClientInGame(client))
-		BaseComm_SetClientGag(client, false);
+	
 	g_hGagExpireTimer[client] = INVALID_HANDLE;
 	g_GagType[client] = bNot;
 	g_iGagTime[client] = 0;
@@ -2207,6 +2216,9 @@ public Action:Timer_GagExpire(Handle:timer, any:client)
 	g_iGagLevel[client] = -1;
 	g_sGagAdmin[client][0] = '\0';
 	g_sGagReason[client][0] = '\0';
+
+	if (IsClientInGame(client))
+		BaseComm_SetClientGag(client, false);
 }
 
 public Action:ProcessQueue(Handle:timer, any:data)
@@ -2437,7 +2449,6 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				g_iMuteLevel[target] = AdmImmunity;
 				g_sMuteAdmin[target] = AdmName;
 				Format(g_sMuteReason[target], sizeof(g_sMuteReason[]), "%s", reason);
-				BaseComm_SetClientMute(target, true);
 
 				if (time > 0)
 				{
@@ -2467,6 +2478,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					else
 						ShowActivity2(admin, Prefix, "%t", "Temp muted player reason", g_sName[target], reason);
 				}
+				BaseComm_SetClientMute(target, true);
 				LogAction(admin, client, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
 
 				// pass move forward with the block
@@ -2505,8 +2517,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				g_iGagLevel[target] = AdmImmunity;
 				g_sGagAdmin[target] = AdmName;
 				Format(g_sGagReason[target], sizeof(g_sGagReason[]), "%s", reason);
-				BaseComm_SetClientGag(target, true);
-
+				
 				if (time > 0)
 				{
 					g_GagType[target] = bTime;
@@ -2535,6 +2546,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					else
 						ShowActivity2(admin, Prefix, "%t", "Temp gagged player reason", g_sName[target], reason);		
 				}
+				BaseComm_SetClientGag(target, true);
 				LogAction(admin, client, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
 
 				// pass move forward with the block
@@ -2573,13 +2585,12 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				g_iMuteLevel[target] = AdmImmunity;
 				g_sMuteAdmin[target] = AdmName;
 				Format(g_sMuteReason[target], sizeof(g_sMuteReason[]), "%s", reason);
-				BaseComm_SetClientGag(target, true);
+				
 				g_iGagTime[target] = GetTime();
 				g_iGagLength[target] = time;
 				g_iGagLevel[target] = AdmImmunity;
 				g_sGagAdmin[target] = AdmName;
 				Format(g_sGagReason[target], sizeof(g_sGagReason[]), "%s", reason);
-				BaseComm_SetClientMute(target, true);
 
 				if (time > 0)
 				{
@@ -2617,6 +2628,8 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					else
 						ShowActivity2(admin, Prefix, "%t", "Temp silenced player reason", g_sName[target], reason);		
 				}
+				BaseComm_SetClientMute(target, true);
+				BaseComm_SetClientGag(target, true);
 				LogAction(admin, client, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
 
 				// pass move forward with the block

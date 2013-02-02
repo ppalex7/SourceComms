@@ -4,12 +4,13 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.7.121"
+			"Latest"	"0.7.122"
 		}
 
 		"Notes"	"Enabled SQL queries log :("
 		"Notes"	"Fixed bug with wrong logging comms actions in SM logs"
 		"Notes"	"Removed _select from queue_ query from logging"
+		"Notes" "Fixed bug: punishments were recorded into the database twice."
 	}
 
 	"Files"
