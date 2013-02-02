@@ -10,12 +10,12 @@
 #define DATABASE "sourcecomms"
 
 //#define DEBUG
-#define LOG_QUERIES
+//#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.7.122"
+#define VERSION "0.8.1"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -1619,7 +1619,7 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 		new Handle:reasonPack = Handle:ReadPackCell(dataPack);
 		decl String:reason[128];
 		ReadPackString(reasonPack, reason, sizeof(reason));
-		decl String:name[MAX_NAME_LENGTH];
+		new String:name[MAX_NAME_LENGTH];
 		ReadPackString(dataPack, name, sizeof(name));
 		decl String:auth[64];
 		ReadPackString(dataPack, auth, sizeof(auth));
@@ -1645,7 +1645,8 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 
 public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	decl String:adminAuth[30], String:targetAuth[30], String:unbanReason[256], String:reason[128];
+	decl String:adminAuth[30], String:targetAuth[30], String:reason[128];
+	new String:unbanReason[256];
 	ResetPack(data);
 	new adminUserID = ReadPackCell(data);
 	new targetUserID = ReadPackCell(data);
@@ -1924,7 +1925,7 @@ public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 {
 	// if the pack is good unpack it and close the handle
 	new admin, target, type;
-	decl String:clientName[MAX_NAME_LENGTH];
+	new String:clientName[MAX_NAME_LENGTH];
 	if (data != INVALID_HANDLE)
 	{
 		ResetPack(data);
@@ -1984,11 +1985,13 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		return;
 	}
 
-	decl String:auth[64], String:name[MAX_NAME_LENGTH];
+	decl String:auth[64];
+	new String:name[MAX_NAME_LENGTH];
 	decl String:reason[128];
 	decl String:adminAuth[64], String:adminIp[20];
 	decl String:query[1024];
-	decl String:banName[MAX_NAME_LENGTH], String:banReason[256];
+	decl String:banReason[256];
+	new String:banName[MAX_NAME_LENGTH * 2  + 1];
 	while(SQL_MoreRows(hndl))
 	{
 		// Oh noes! What happened?!
@@ -2388,7 +2391,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 
 	decl String:adminIp[24];
 	decl String:adminAuth[64];
-	decl String:AdmName[MAX_NAME_LENGTH];
+	new String:AdmName[MAX_NAME_LENGTH];
 	new admin = client;
 	new AdmImmunity;
 	
@@ -2747,8 +2750,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 	WritePackString(dataPack, targetAuth);
 	ResetPack(dataPack);
 
-	decl String:query[1024];
-
+	decl String:query[1024];	
 	Format(query, sizeof(query),
 		"SELECT c.bid, IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, c.aid, if (a.immunity>0, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type FROM %s_comms c \
 		LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') AND %s",
@@ -2766,9 +2768,10 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], const String:Reason[], const String:AdminAuthid[], const String:AdminIp[], Handle:Pack)
 {
 	// Принимает время - в минутах, а в базу пишет уже в секундах! Во всех остальных местах время - в минутах.
-	decl String:banName[MAX_NAME_LENGTH];
-	decl String:banReason[256];
+	new String:banName[MAX_NAME_LENGTH * 2 + 1];
+	new String:banReason[512];
 	decl String:Query[1024];
+
 	SQL_EscapeString(Database, Name, banName, sizeof(banName));
 	SQL_EscapeString(Database, Reason, banReason, sizeof(banReason));
 
@@ -2795,8 +2798,8 @@ stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], c
 
 stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
 {		
-	decl String:banName[MAX_NAME_LENGTH];
-	decl String:banReason[256];
+	new String:banName[MAX_NAME_LENGTH * 2 + 1];
+	new String:banReason[512];
 	decl String:query[512];
 	SQL_EscapeString(SQLiteDB, name, banName, sizeof(banName));
 	SQL_EscapeString(SQLiteDB, reason, banReason, sizeof(banReason));

@@ -4,17 +4,17 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.7.122"
+			"Latest"	"0.8.1"
 		}
 
-		"Notes"	"Enabled SQL queries log :("
-		"Notes"	"Fixed bug with wrong logging comms actions in SM logs"
-		"Notes"	"Removed _select from queue_ query from logging"
-		"Notes" "Fixed bug: punishments were recorded into the database twice."
+		"Notes"	"More info @ https://forums.alliedmods.net/showthread.php?t=207176 "
+		"Notes"	"Fixed bug with *player's name in the database sometimes was a part of another _sql-query_*"
+		"Notes"	"Disabled sql-queries log"
 	}
 
 	"Files"
 	{
 		"Plugin"	"Path_SM/plugins/sourcecomms.smx"
+		"Plugin"	"Path_SM/translations/sourcecomms.phrases.txt"
 	}
 }

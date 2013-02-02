@@ -1,4 +1,8 @@
 #Changelog
+* **0.8.1**
+	* Fixed bug with *player's name in the database sometimes was a part of another "sql-query"*
+	* Code improvements to avoid similar bugs in the future.
+	* Disabled sql-queries log.
 * **0.7.122**
 	* Fixed bug: punishments were recorded into the database twice.
 	* Remove "select from queue" query from logging.
