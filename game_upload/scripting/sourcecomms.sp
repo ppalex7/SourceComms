@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.1"
+#define VERSION "0.8.23"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -1083,7 +1083,7 @@ AdminMenu_Target(client, type)
 	{
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (IsClientInGame(i))
+			if (IsClientInGame(i) && !IsFakeClient(i))
 			{
 				strcopy(Title, sizeof(Title), g_sName[i]);
 				AdminMenu_GetPunishPhrase(client, i, Title, sizeof(Title));
@@ -1314,7 +1314,7 @@ AdminMenu_List(client, index)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && (g_MuteType[i] > bNot || g_GagType[i] > bNot))
+		if (IsClientInGame(i) && !IsFakeClient(i) && (g_MuteType[i] > bNot || g_GagType[i] > bNot))
 		{
 			iClients++;
 			strcopy(sTitle, sizeof(sTitle), g_sName[i]);
