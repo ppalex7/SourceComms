@@ -59,7 +59,7 @@ The **time** parameter controls how long the player is punished. (< 0 == Tempora
 First of all, download this repository as a zip file.
 ###Installation of server part
 1. Upload all the contents of `game_upload` directory from the zip file to your gameserver into `/addons/sourcemod` folder.
-2. Edit addons/sourcemod/configs/databases.cfg and add an entry for SourceComms. It should have the following general format:
+2. Edit `addons/sourcemod/configs/databases.cfg` on your gameserver and add an entry for SourceComms. It should have the following general format:
 
 		"sourcecomms"
 		{
@@ -71,6 +71,18 @@ First of all, download this repository as a zip file.
 			//"timeout"			"0"
 			"port"				"your_database_port(default_3306)"
 		}
+3. (Optional) Edit `/addons/sourcemod/configs/adminmenu_sorting.txt`. Find `}` at the end of file and add **before**:
+
+		"sourcecomm_cmds" 
+		{ 
+			"item" "sourcecomm_gag" 
+			"item" "sourcecomm_mute" 
+			"item" "sourcecomm_silence" 
+			"item" "sourcecomm_ungag" 
+			"item" "sourcecomm_unmute" 
+			"item" "sourcecomm_unsilence" 
+			"item" "sourcecomm_list" 
+		} 
 
 ### Installation of database part
 1. **Check your sourcebans tables prefix!** Replace in query bellow prefix `sb` to yours, if you use another. Execute the following query on your sourcebans database:
