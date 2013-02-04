@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.23"
+#define VERSION "0.8.27"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -1097,7 +1097,7 @@ AdminMenu_Target(client, type)
 		new iClients;
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (IsClientInGame(i))
+			if (IsClientInGame(i) && !IsFakeClient(i))
 			{
 				switch(type)
 				{
