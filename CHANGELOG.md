@@ -1,8 +1,9 @@
 #Changelog
-* **0.8.65** - Code improvements in _FW_ commands.
-* **0.8.63** - Fixed bug with unicode arguments in punishment commands.
-* **0.8.43** - Added command `sm_comms` for players, which provides viewing communications status of himself.
-* **0.8.23** - Bots are now removed from menu targets list.
+* **0.8.65**
+	* Code improvements.
+	* Fixed bug with unicode arguments in punishment commands.
+	* Added command `sm_comms` for players, which provides viewing communications status of himself.
+	* Bots are now removed from menu targets list.
 * **0.8.1**
 	* Fixed bug with *player's name in the database sometimes was a part of another "sql-query"*
 	* Code improvements to avoid similar bugs in the future.
@@ -18,7 +19,7 @@
 * **0.7.111** - First release on AlliedMods.
 * **0.7.97**
 	* Minor bugs fixed.
-	* DEBUG info now disabled by default. 
+	* DEBUG info now disabled by default.
 	* Now plugin is "beta".
 * **0.7.60**
 	* Changed internal data structure.

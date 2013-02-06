@@ -8,7 +8,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 
 ##Compatibility:
 * In theory - all games on the Source 2009 engine.
-* But plugin tested only on TF2 servers.
+* Plugin tested on TF2 and CS:S servers.
 
 ## Features
 ### Server plugin
@@ -23,11 +23,11 @@ Also includes files and instructions to integration to existing sourcebans web-p
 	* If the server has problems with access to the database, the punishments will store in SQLite database and would be added in the main database when connection is restored. *(like in sourcebans plugin, yes)*
 * SourceComms has support for protecting current punishments based on immunity levels.
 	* When a punishment is issued, the administrator responsible has their immunity level attached to the punishment. In order to remove that punishment, the second administrator must have **higher** immunity level or special admin flag (*ADMFLAG_CUSTOM2* by default. You may change it in sourcecode). Also, punishment can be removed by console or his author.
-	* Punishments issued by *CONSOLE* has some immunity level (which is set in config, option "ConsoleImmunity").
+	* Punishments issued by *CONSOLE* has some immunity level (which is set in config, option *"ConsoleImmunity"*).
 	* Immunity checking system could be disabled by setting option *"DisableUnblockImmunityCheck"* to value 1 in config file.
 	* One more **important** moment. When somebody removes punishment - plugin retrieves *"punishment issuer admin id"* from database. If the request fails - punishment could be temporary removed (on server, not in database) only by console, admin with special flag or with higher immunity.
 * Punishments reasons and times stored in config.
-* Config has another usefull setting - *"DefaultTime"*. When admin run sm_gag (mute, silence) command only with player name - he will be gagged on "DefaultTime" value minutes. (if *"DefaultTime"* setted in -1 -> player will be blocked only on session (until reconnect)).
+* Config has another usefull setting - *"DefaultTime"*. When admin run sm_gag (mute, silence) command only with player name - he will be gagged on *"DefaultTime"* value minutes. (if *"DefaultTime"* setted in -1 -> player will be blocked only on session (until reconnect)).
 * SourceComms supports [auto-update](https://forums.alliedmods.net/showthread.php?p=1570806).
 
 ### Web part provides the following functionality:
@@ -51,7 +51,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * `sm_ungag <player> <optional:reason>` - Restores a player's ability to use in-game chat.
 * `sm_unsilence <player> <optional:reason>` - Restores a player's ability to use in-game voice and chat.
 
-The parameter **player** could be Name *(only as single word, without whitespaces)* or UserID.<br/>
+The **player** parameter could be Name *(only as single word, without whitespaces)* or UserID.<br/>
 The **time** parameter controls how long the player is punished. (< 0 == Temporary, 0 == Permanent, # == Minutes). If not specified it will be *"DefaultTime"* minutes (30 by default).
 
 ##Cvars:

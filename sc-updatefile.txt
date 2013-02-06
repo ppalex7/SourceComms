@@ -4,12 +4,14 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.8.1"
+			"Latest"	"0.8.65"
 		}
 
 		"Notes"	"More info @ https://forums.alliedmods.net/showthread.php?t=207176 "
-		"Notes"	"Fixed bug with *player's name in the database sometimes was a part of another _sql-query_*"
-		"Notes"	"Disabled sql-queries log"
+		"Notes"	"Fixed bug with unicode arguments in punishment commands."
+		"Notes"	"Added command *sm_comms* for players, which provides viewing communications status of himself."
+		"Notes"	"Bots are now removed from menu targets list."
+		"Notes"	"Code improvements."
 	}
 
 	"Files"
