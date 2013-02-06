@@ -51,6 +51,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * `sm_ungag <player> <optional:reason>` - Restores a player's ability to use in-game chat.
 * `sm_unsilence <player> <optional:reason>` - Restores a player's ability to use in-game voice and chat.
 
+The parameter **player** could be Name *(only as single word, without whitespaces)* or UserID.<br/>
 The **time** parameter controls how long the player is punished. (< 0 == Temporary, 0 == Permanent, # == Minutes). If not specified it will be *"DefaultTime"* minutes (30 by default).
 
 ##Cvars:

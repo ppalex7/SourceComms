@@ -1,4 +1,5 @@
 #Changelog
+* **0.8.63** - Fixed bug with unicode arguments in punishment commands.
 * **0.8.43** - Added command `sm_comms` for players, which provides viewing communications status of himself.
 * **0.8.23** - Bots are now removed from menu targets list.
 * **0.8.1**

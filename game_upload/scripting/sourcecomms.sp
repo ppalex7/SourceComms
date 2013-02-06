@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.43"
+#define VERSION "0.8.63"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -518,7 +518,7 @@ public Action:CommandComms(client, args)
 		return Plugin_Continue;
 	}
 
-	if (g_MuteType[client] > bNot && g_GagType[client] > bNot)
+	if (g_MuteType[client] > bNot || g_GagType[client] > bNot)
 		AdminMenu_ListTarget(client, client, 0);
 	else
 		ReplyToCommand(client,  "%t", "CommandComms_nb");
@@ -886,14 +886,16 @@ public Action:PrepareBlock(client, type_block, args)
 		LogToFile(logFile, "PrepareBlock(type %d)", type_block);
 	#endif
 	
+	new String:sBuffer[256], String:sArg[3][192];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	ExplodeString(sBuffer, " ", sArg, 3, 192, true);
+
 	// Get the target, find target returns a message on failure so we do not
-	decl String:buffer[100];
-	GetCmdArg(1, buffer, sizeof(buffer));
-	new target = FindTarget(client, buffer, true);
+	new target = FindTarget(client, sArg[0], true);
 	if (target == -1)
 	{
 		#if defined DEBUG
-			LogToFile(logFile, "target == -1. wtf?!");
+			LogToFile(logFile, "target not found (-1)");
 		#endif
 
 		return Plugin_Stop;
@@ -901,33 +903,14 @@ public Action:PrepareBlock(client, type_block, args)
 
 	// Get the ban time
 	new time;
-	if (args < 2)
+	if(!StringToIntEx(sArg[1], time))	// not valid number in second argument
 		time = DefaultTime;
-	else
-	{
-		GetCmdArg(2, buffer, sizeof(buffer));
-		time = StringToInt(buffer);
-	}
-	
-	// Get the reason
-	new String:reason[128];
-	if (args >= 3)
-	{
-		for (new i=3;i<=args;i++)
-		{
-			GetCmdArg(i, buffer, sizeof(buffer));
-			Format(reason, sizeof(reason), "%s %s", reason, buffer);
-		}
-	}
-	else
-	{
-		reason[0] = '\0';
-	}
 
 	#if defined DEBUG
-		LogToFile(logFile, "Calling CreateBlock");
+		LogToFile(logFile, "Calling CreateBlock cl %d, target %d, time %d, type %d, reason %s", client, target, time, type_block, sArg[2]);
 	#endif
-	CreateBlock(client, target, time, type_block, reason);
+
+	CreateBlock(client, target, time, type_block, sArg[2]);
 	return Plugin_Stop;
 }
 
@@ -936,44 +919,27 @@ public Action:PrepareUnBlock(client, type_block, args)
 	#if defined DEBUG
 		LogToFile(logFile, "PrepareUnBlock(type %d)", type_block);
 	#endif
-
-	// This is mainly for me sanity since client used to be called admin and target used to be called client
-	new admin = client;
 	
-	// Get the target, find target returns a message on failure so we do not
-	decl String:buffer[100];
+	new String:sBuffer[256], String:sArg[2][192];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	ExplodeString(sBuffer, " ", sArg, 2, 192, true);
 
-	GetCmdArg(1, buffer, sizeof(buffer));
-	new target = FindTarget(admin, buffer, true);
+	// Get the target, find target returns a message on failure so we do not
+	new target = FindTarget(client, sArg[0], true);
 	if (target == -1)
 	{
 		#if defined DEBUG
-			LogToFile(logFile, "target == -1. wtf?!");
+			LogToFile(logFile, "target not found (-1)");
 		#endif
 
 		return Plugin_Stop;
 	}
-	
-	// Get the reason
-	new String:reason[128];
-	if (args >= 2)
-	{
-		for (new i=2;i<=args;i++)
-		{
-			GetCmdArg(i, buffer, sizeof(buffer));
-			Format(reason, sizeof(reason), "%s %s", reason, buffer);
-		}
-	}
-	else
-	{
-		reason[0] = '\0';
-	}
 
 	#if defined DEBUG
-		LogToFile(logFile, "Calling ProcessUnBlock");
+		LogToFile(logFile, "Calling ProcessUnBlock cl %d, target %d, type %d, reason %s", client, target, type_block, sArg[1]);
 	#endif
 
-	ProcessUnBlock(admin, target, type_block, reason);
+	ProcessUnBlock(client, target, type_block, sArg[1]);
 	return Plugin_Stop;
 }
 
