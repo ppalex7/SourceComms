@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.63"
+#define VERSION "0.8.65"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -528,48 +528,17 @@ public Action:CommandComms(client, args)
 
 public Action:FWBlock(args)
 {
-	if (args != 7)
+	new String:arg_string[256], String:sArg[3][64];
+	GetCmdArgString(arg_string, sizeof(arg_string));
+
+	new type, length;
+	if(ExplodeString(arg_string, " ", sArg, 3, 64) != 3 || !StringToIntEx(sArg[0], type) || type < 1 || type > 3 || !StringToIntEx(sArg[1], length))
 	{
 		LogToFile(logFile, "Wrong usage of sc_fw_block");
 		return Plugin_Stop;
 	}
 
-	decl String:steam[32], String:typeBuff[8], String:lengthBuff[16];
-
-	decl String:arg_string[256];
-	GetCmdArgString(arg_string, sizeof(arg_string));
-	
-	new len, total_len;
-	
-	/* Get type */
-	if ((len = BreakString(arg_string, typeBuff, sizeof(typeBuff))) == -1)
-	{
-		return Plugin_Handled;
-	}	
-	total_len += len;
-
-	/* Get time */
-	if ((len = BreakString(arg_string[total_len], lengthBuff, sizeof(lengthBuff))) == -1)
-	{
-		return Plugin_Handled;
-	}	
-	total_len += len;
-	
-	/* Get steamid */
-	if ((len = BreakString(arg_string[total_len], steam, sizeof(steam))) != -1)
-	{
-		total_len += len;
-	}
-	else
-	{
-		total_len = 0;
-		arg_string[0] = '\0';
-	}
-	
-	new type = StringToInt(typeBuff);
-	new length = StringToInt(lengthBuff);
-
-	LogToFile(logFile, "Received block command from web: steam %s, type %d, length %d", steam, type, length);
+	LogToFile(logFile, "Received block command from web: steam %s, type %d, length %d", sArg[2], type, length);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -577,7 +546,7 @@ public Action:FWBlock(args)
 		{
 			decl String:clientAuth[64];
 			GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-			if (strcmp(clientAuth, steam, false) == 0)
+			if (strcmp(clientAuth, sArg[2], false) == 0)
 			{
 				#if defined DEBUG
 				LogToFile(logFile, "Catched %s for blocking from web", clientAuth);
@@ -639,31 +608,15 @@ public Action:FWBlock(args)
 
 public Action:FWUngag(args)
 {
-	if (args != 5)
+	new String:arg_string[256], String:sArg[1][64];
+	GetCmdArgString(arg_string, sizeof(arg_string));
+	if(!ExplodeString(arg_string, " ", sArg, 1, 64))
 	{
 		LogToFile(logFile, "Wrong usage of sc_fw_ungag");
-		return Plugin_Stop;
+		return Plugin_Stop;		
 	}
 
-	decl String:steam[32];
-
-	decl String:arg_string[256];
-	GetCmdArgString(arg_string, sizeof(arg_string));
-	
-	new len, total_len;
-
-	/* Get steamid */
-	if ((len = BreakString(arg_string, steam, sizeof(steam))) != -1)
-	{
-		total_len += len;
-	}
-	else
-	{
-		total_len = 0;
-		arg_string[0] = '\0';
-	}
-
-	LogToFile(logFile, "Received ungag command from web: steam %s", steam);
+	LogToFile(logFile, "Received ungag command from web: steam %s", sArg[0]);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -671,7 +624,7 @@ public Action:FWUngag(args)
 		{
 			decl String:clientAuth[64];
 			GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-			if (strcmp(clientAuth, steam, false) == 0)
+			if (strcmp(clientAuth, sArg[0], false) == 0)
 			{
 				#if defined DEBUG
 				LogToFile(logFile, "Catched %s for ungagging from web", clientAuth);
@@ -702,31 +655,15 @@ public Action:FWUngag(args)
 
 public Action:FWUnmute(args)
 {
-	if (args != 5)
-	{
-		LogToFile(logFile, "Wrong usage of sc_fw_unmute");
-		return Plugin_Stop;
-	}
-
-	decl String:steam[32];
-
-	decl String:arg_string[256];
+	new String:arg_string[256], String:sArg[1][64];
 	GetCmdArgString(arg_string, sizeof(arg_string));
-	
-	new len, total_len;
-
-	/* Get steamid */
-	if ((len = BreakString(arg_string, steam, sizeof(steam))) != -1)
+	if(!ExplodeString(arg_string, " ", sArg, 1, 64))
 	{
-		total_len += len;
-	}
-	else
-	{
-		total_len = 0;
-		arg_string[0] = '\0';
+		LogToFile(logFile, "Wrong usage of sc_fw_ungag");
+		return Plugin_Stop;		
 	}
 
-	LogToFile(logFile, "Received unmute command from web: steam %s", steam);
+	LogToFile(logFile, "Received unmute command from web: steam %s", sArg[0]);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -734,7 +671,7 @@ public Action:FWUnmute(args)
 		{
 			decl String:clientAuth[64];
 			GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-			if (strcmp(clientAuth, steam, false) == 0)
+			if (strcmp(clientAuth, sArg[0], false) == 0)
 			{
 				#if defined DEBUG
 				LogToFile(logFile, "Catched %s for unmuting from web", clientAuth);
