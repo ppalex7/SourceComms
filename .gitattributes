@@ -1,6 +1,21 @@
 # Auto detect text files and perform LF normalization
 * text=auto
 
+# Explicitly declare text files we want to always be normalized and converted
+# to native line endings on checkout.
+*.txt text
+*.sp text
+*.inc text
+*.php text
+*.tpl text
+*.sql text
+*.cfg text
+*.md text
+
+# Denote all files that are truly binary and should not be modified.
+*.png binary
+*.smx binary
+
 # Standard to msysgit
 *.doc	 diff=astextplain
 *.DOC	 diff=astextplain
