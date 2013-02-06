@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.27"
+#define VERSION "0.8.43"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -170,6 +170,7 @@ public OnPluginStart()
 	RegServerCmd("sc_fw_block", FWBlock, "Blocking player comms by command from sourceban web site", FCVAR_PLUGIN);
 	RegServerCmd("sc_fw_ungag", FWUngag, "Ungagging player by command from sourceban web site", FCVAR_PLUGIN);
 	RegServerCmd("sc_fw_unmute",FWUnmute, "Unmuting player by command from sourceban web site", FCVAR_PLUGIN);
+	RegConsoleCmd("sm_comms", CommandComms, "Shows current player communications status", FCVAR_PLUGIN);
 	
 	HookEvent("player_changename", Event_OnPlayerName, EventHookMode_Post);
 	
@@ -508,6 +509,22 @@ public BaseComm_OnClientGag(client, bool:gagState)
 }
 
 // COMMAND CODE //
+
+public Action:CommandComms(client, args)
+{
+	if (!client)
+	{
+		ReplyToCommand(client, "%t", "CommandComms_na");
+		return Plugin_Continue;
+	}
+
+	if (g_MuteType[client] > bNot && g_GagType[client] > bNot)
+		AdminMenu_ListTarget(client, client, 0);
+	else
+		ReplyToCommand(client,  "%t", "CommandComms_nb");
+
+	return Plugin_Continue;
+}
 
 public Action:FWBlock(args)
 {
@@ -1503,7 +1520,7 @@ public MenuHandler_MenuListTarget(Handle:menu, MenuAction:action, param1, param2
 			ExplodeString(sOption, " ", sTemp, 5, 8);
 
 			new target = GetClientOfUserId(StringToInt(sTemp[1]));
-			if (Bool_ValidMenuTarget(param1, target))
+			if (param1 == target || Bool_ValidMenuTarget(param1, target))
 			{
 				switch(StringToInt(sTemp[0]))
 				{

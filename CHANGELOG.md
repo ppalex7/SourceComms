@@ -1,4 +1,5 @@
 #Changelog
+* **0.8.43** - Added command `sm_comms` for players, which provides viewing communications status of himself.
 * **0.8.23** - Bots are now removed from menu targets list.
 * **0.8.1**
 	* Fixed bug with *player's name in the database sometimes was a part of another "sql-query"*

@@ -49,19 +49,19 @@
 	"Player already muted"
 	{
 		"#format"		"{1:s}"
-		"en"			"Player {1} already muted!"	
+		"en"			"Player {1} already muted!"
 		"ru"			"У игрока {1} уже отключен микрофон!"
 	}
 	"Player already gagged"
 	{
 		"#format"		"{1:s}"
-		"en"			"Player {1} already gagged!"	
+		"en"			"Player {1} already gagged!"
 		"ru"			"У игрока {1} уже отключен чат!"
-	}	
+	}
 	"Player already silenced"
 	{
 		"#format"		"{1:s}"
-		"en"			"Player {1} already gagged or muted!"	
+		"en"			"Player {1} already gagged or muted!"
 		"ru"			"У игрока {1} уже отключен чат или микрофон!"
 	}
 	//--------------------------------------------------------------------------------
@@ -84,13 +84,13 @@
 	"Permagagged player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Issued a permanent gag on {1}."		
+		"en"			"Issued a permanent gag on {1}."
 		"ru"			"Игроку {1} навсегда отключен чат."
-	}	
+	}
 	"Permagagged player reason"
 	{
 		"#format"		"{1:s},{2:s}"
-		"en"			"Issued a permanent gag on {1} (reason: {2})."	
+		"en"			"Issued a permanent gag on {1} (reason: {2})."
 		"ru"			"Игроку {1} навсегда отключен чат (причина: {2})."
 	}
 	"Gagged player"
@@ -109,13 +109,13 @@
 	"Permamuted player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Issued a permanent mute on {1}."		
+		"en"			"Issued a permanent mute on {1}."
 		"ru"			"Игроку {1} навсегда отключен микрофон."
 	}
 	"Permamuted player reason"
 	{
 		"#format"		"{1:s},{2:s}"
-		"en"			"Issued a permanent mute on {1} (reason: {2})."	
+		"en"			"Issued a permanent mute on {1} (reason: {2})."
 		"ru"			"Игроку {1} навсегда отключен микрофон (причина: {2})."
 	}
 	"Muted player"
@@ -134,13 +134,13 @@
 	"Permasilenced player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Issued a permanent silence on {1}."		
+		"en"			"Issued a permanent silence on {1}."
 		"ru"			"Игроку {1} навсегда отключен чат и микрофон."
-	}	
+	}
 	"Permasilenced player reason"
 	{
 		"#format"		"{1:s},{2:s}"
-		"en"			"Issued a permanent silence on {1} (reason: {2})."	
+		"en"			"Issued a permanent silence on {1} (reason: {2})."
 		"ru"			"Игроку {1} навсегда отключен чат и микрофон (причина: {2})."
 	}
 	"Silenced player"
@@ -159,19 +159,19 @@
 	"Temp unmuted player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Temporary removed mute from {1}."		
+		"en"			"Temporary removed mute from {1}."
 		"ru"			"Игроку {1} временно включен микрофон."
 	}
 	"Temp ungagged player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Temporary removed gag from {1}."		
+		"en"			"Temporary removed gag from {1}."
 		"ru"			"Игроку {1} временно включен чат."
 	}
 	"Temp unsilenced player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Temporary removed silence from {1}."		
+		"en"			"Temporary removed silence from {1}."
 		"ru"			"Игроку {1} временно включен чат и микрофон."
 	}
 	"Unblock Select Failed"
@@ -185,7 +185,7 @@
 		"#format"		"{1:s}"
 		"en"			"No active blocks found in DB for {1}."
 		"ru"			"В базе не найдено действующих блокировок для {1}."
-	}	
+	}
 	"No db error unlock perm"
 	{
 		"en"			"You lack the permission to unblocking with DB errors."
@@ -206,30 +206,30 @@
 	"Unmuted player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Removed an extended mute from {1}."		
+		"en"			"Removed an extended mute from {1}."
 		"ru"			"Игроку {1} включен микрофон."
 	}
 	"Ungagged player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Removed an extended gag from {1}."		
+		"en"			"Removed an extended gag from {1}."
 		"ru"			"Игроку {1} включен чат."
 	}
 	"Unblock insert failed"
 	{
-		"en"			"Failed to remove block from DB."		
+		"en"			"Failed to remove block from DB."
 		"ru"			"Не удалось удалить блокировку из базы."
 	}
 	"successfully unmuted"
 	{
 		"#format"		"{1:s}"
-		"en"			"Successfully removed mute for {1} from DB."		
+		"en"			"Successfully removed mute for {1} from DB."
 		"ru"			"Успешно удалена блокировка микрофона для {1} из базы."
 	}
 	"successfully ungagged"
 	{
 		"#format"		"{1:s}"
-		"en"			"Successfully removed gag for {1} from DB."		
+		"en"			"Successfully removed gag for {1} from DB."
 		"ru"			"Успешно удалена блокировка чата для {1} из базы."
 	}
 	//--------------------------------------------------------------------------------
@@ -256,7 +256,7 @@
 		"#format"	"{1:s}"
 		"en"		"[S] {1}"
 		"ru"		"[S] {1}"
-	}	
+	}
 	"AdminMenu_Main"
 	{
 		"en"		"Comm Commands"
@@ -495,37 +495,48 @@
 	"Temp muted player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Muted {1}."		
+		"en"			"Muted {1}."
 		"ru"			"Игроку {1} отключен микрофон."
 	}
 	"Temp muted player reason"
 	{
 		"#format"		"{1:s},{2:s}"
-		"en"			"Muted {1} (reason: {2})."		
+		"en"			"Muted {1} (reason: {2})."
 		"ru"			"Игроку {1} отключен микрофон (причина: {2})."
 	}
 	"Temp gagged player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Gagged {1}."		
+		"en"			"Gagged {1}."
 		"ru"			"Игроку {1} отключен чат."
 	}
 	"Temp gagged player reason"
 	{
 		"#format"		"{1:s},{2:s}"
-		"en"			"Gagged {1} (reason: {2})."		
+		"en"			"Gagged {1} (reason: {2})."
 		"ru"			"Игроку {1} отключен чат (причина: {2})."
 	}
 	"Temp silenced player"
 	{
 		"#format"		"{1:s}"
-		"en"			"Silenced {1}."		
+		"en"			"Silenced {1}."
 		"ru"			"Игроку {1} отключен чат и микрофон."
 	}
 	"Temp silenced player reason"
 	{
 		"#format"		"{1:s},{2:s}"
-		"en"			"Silenced {1} (reason: {2})."		
+		"en"			"Silenced {1} (reason: {2})."
 		"ru"			"Игроку {1} отключен чат и микрофон (причина: {2})."
+	}
+	//---------------------------------------------------------------------------------
+	"CommandComms_na"
+	{
+		"en"		"Available only for players on server."
+		"ru"		"Доступно только для игроков на сервере."
+	}
+	"CommandComms_nb"
+	{
+		"en"		"Your chat and voice hasn't blocked."
+		"ru"		"У вас не заблокированы чат и микрофон."
 	}
 }

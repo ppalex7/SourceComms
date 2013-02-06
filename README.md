@@ -43,6 +43,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 **Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)
 
 ##Commands:
+* `sm_comms` - Shows to player their communications status. *(Also may used in chat)*
 * `sm_mute <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice.
 * `sm_gag <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game chat.
 * `sm_silence <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice and chat.
