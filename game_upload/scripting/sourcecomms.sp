@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.1"
+#define VERSION "0.8.65"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -170,6 +170,7 @@ public OnPluginStart()
 	RegServerCmd("sc_fw_block", FWBlock, "Blocking player comms by command from sourceban web site", FCVAR_PLUGIN);
 	RegServerCmd("sc_fw_ungag", FWUngag, "Ungagging player by command from sourceban web site", FCVAR_PLUGIN);
 	RegServerCmd("sc_fw_unmute",FWUnmute, "Unmuting player by command from sourceban web site", FCVAR_PLUGIN);
+	RegConsoleCmd("sm_comms", CommandComms, "Shows current player communications status", FCVAR_PLUGIN);
 	
 	HookEvent("player_changename", Event_OnPlayerName, EventHookMode_Post);
 	
@@ -509,50 +510,35 @@ public BaseComm_OnClientGag(client, bool:gagState)
 
 // COMMAND CODE //
 
+public Action:CommandComms(client, args)
+{
+	if (!client)
+	{
+		ReplyToCommand(client, "%t", "CommandComms_na");
+		return Plugin_Continue;
+	}
+
+	if (g_MuteType[client] > bNot || g_GagType[client] > bNot)
+		AdminMenu_ListTarget(client, client, 0);
+	else
+		ReplyToCommand(client,  "%t", "CommandComms_nb");
+
+	return Plugin_Continue;
+}
+
 public Action:FWBlock(args)
 {
-	if (args != 7)
+	new String:arg_string[256], String:sArg[3][64];
+	GetCmdArgString(arg_string, sizeof(arg_string));
+
+	new type, length;
+	if(ExplodeString(arg_string, " ", sArg, 3, 64) != 3 || !StringToIntEx(sArg[0], type) || type < 1 || type > 3 || !StringToIntEx(sArg[1], length))
 	{
 		LogToFile(logFile, "Wrong usage of sc_fw_block");
 		return Plugin_Stop;
 	}
 
-	decl String:steam[32], String:typeBuff[8], String:lengthBuff[16];
-
-	decl String:arg_string[256];
-	GetCmdArgString(arg_string, sizeof(arg_string));
-	
-	new len, total_len;
-	
-	/* Get type */
-	if ((len = BreakString(arg_string, typeBuff, sizeof(typeBuff))) == -1)
-	{
-		return Plugin_Handled;
-	}	
-	total_len += len;
-
-	/* Get time */
-	if ((len = BreakString(arg_string[total_len], lengthBuff, sizeof(lengthBuff))) == -1)
-	{
-		return Plugin_Handled;
-	}	
-	total_len += len;
-	
-	/* Get steamid */
-	if ((len = BreakString(arg_string[total_len], steam, sizeof(steam))) != -1)
-	{
-		total_len += len;
-	}
-	else
-	{
-		total_len = 0;
-		arg_string[0] = '\0';
-	}
-	
-	new type = StringToInt(typeBuff);
-	new length = StringToInt(lengthBuff);
-
-	LogToFile(logFile, "Received block command from web: steam %s, type %d, length %d", steam, type, length);
+	LogToFile(logFile, "Received block command from web: steam %s, type %d, length %d", sArg[2], type, length);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -560,7 +546,7 @@ public Action:FWBlock(args)
 		{
 			decl String:clientAuth[64];
 			GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-			if (strcmp(clientAuth, steam, false) == 0)
+			if (strcmp(clientAuth, sArg[2], false) == 0)
 			{
 				#if defined DEBUG
 				LogToFile(logFile, "Catched %s for blocking from web", clientAuth);
@@ -622,31 +608,15 @@ public Action:FWBlock(args)
 
 public Action:FWUngag(args)
 {
-	if (args != 5)
+	new String:arg_string[256], String:sArg[1][64];
+	GetCmdArgString(arg_string, sizeof(arg_string));
+	if(!ExplodeString(arg_string, " ", sArg, 1, 64))
 	{
 		LogToFile(logFile, "Wrong usage of sc_fw_ungag");
-		return Plugin_Stop;
+		return Plugin_Stop;		
 	}
 
-	decl String:steam[32];
-
-	decl String:arg_string[256];
-	GetCmdArgString(arg_string, sizeof(arg_string));
-	
-	new len, total_len;
-
-	/* Get steamid */
-	if ((len = BreakString(arg_string, steam, sizeof(steam))) != -1)
-	{
-		total_len += len;
-	}
-	else
-	{
-		total_len = 0;
-		arg_string[0] = '\0';
-	}
-
-	LogToFile(logFile, "Received ungag command from web: steam %s", steam);
+	LogToFile(logFile, "Received ungag command from web: steam %s", sArg[0]);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -654,7 +624,7 @@ public Action:FWUngag(args)
 		{
 			decl String:clientAuth[64];
 			GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-			if (strcmp(clientAuth, steam, false) == 0)
+			if (strcmp(clientAuth, sArg[0], false) == 0)
 			{
 				#if defined DEBUG
 				LogToFile(logFile, "Catched %s for ungagging from web", clientAuth);
@@ -685,31 +655,15 @@ public Action:FWUngag(args)
 
 public Action:FWUnmute(args)
 {
-	if (args != 5)
-	{
-		LogToFile(logFile, "Wrong usage of sc_fw_unmute");
-		return Plugin_Stop;
-	}
-
-	decl String:steam[32];
-
-	decl String:arg_string[256];
+	new String:arg_string[256], String:sArg[1][64];
 	GetCmdArgString(arg_string, sizeof(arg_string));
-	
-	new len, total_len;
-
-	/* Get steamid */
-	if ((len = BreakString(arg_string, steam, sizeof(steam))) != -1)
+	if(!ExplodeString(arg_string, " ", sArg, 1, 64))
 	{
-		total_len += len;
-	}
-	else
-	{
-		total_len = 0;
-		arg_string[0] = '\0';
+		LogToFile(logFile, "Wrong usage of sc_fw_ungag");
+		return Plugin_Stop;		
 	}
 
-	LogToFile(logFile, "Received unmute command from web: steam %s", steam);
+	LogToFile(logFile, "Received unmute command from web: steam %s", sArg[0]);
 	
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -717,7 +671,7 @@ public Action:FWUnmute(args)
 		{
 			decl String:clientAuth[64];
 			GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-			if (strcmp(clientAuth, steam, false) == 0)
+			if (strcmp(clientAuth, sArg[0], false) == 0)
 			{
 				#if defined DEBUG
 				LogToFile(logFile, "Catched %s for unmuting from web", clientAuth);
@@ -869,14 +823,16 @@ public Action:PrepareBlock(client, type_block, args)
 		LogToFile(logFile, "PrepareBlock(type %d)", type_block);
 	#endif
 	
+	new String:sBuffer[256], String:sArg[3][192];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	ExplodeString(sBuffer, " ", sArg, 3, 192, true);
+
 	// Get the target, find target returns a message on failure so we do not
-	decl String:buffer[100];
-	GetCmdArg(1, buffer, sizeof(buffer));
-	new target = FindTarget(client, buffer, true);
+	new target = FindTarget(client, sArg[0], true);
 	if (target == -1)
 	{
 		#if defined DEBUG
-			LogToFile(logFile, "target == -1. wtf?!");
+			LogToFile(logFile, "target not found (-1)");
 		#endif
 
 		return Plugin_Stop;
@@ -884,33 +840,14 @@ public Action:PrepareBlock(client, type_block, args)
 
 	// Get the ban time
 	new time;
-	if (args < 2)
+	if(!StringToIntEx(sArg[1], time))	// not valid number in second argument
 		time = DefaultTime;
-	else
-	{
-		GetCmdArg(2, buffer, sizeof(buffer));
-		time = StringToInt(buffer);
-	}
-	
-	// Get the reason
-	new String:reason[128];
-	if (args >= 3)
-	{
-		for (new i=3;i<=args;i++)
-		{
-			GetCmdArg(i, buffer, sizeof(buffer));
-			Format(reason, sizeof(reason), "%s %s", reason, buffer);
-		}
-	}
-	else
-	{
-		reason[0] = '\0';
-	}
 
 	#if defined DEBUG
-		LogToFile(logFile, "Calling CreateBlock");
+		LogToFile(logFile, "Calling CreateBlock cl %d, target %d, time %d, type %d, reason %s", client, target, time, type_block, sArg[2]);
 	#endif
-	CreateBlock(client, target, time, type_block, reason);
+
+	CreateBlock(client, target, time, type_block, sArg[2]);
 	return Plugin_Stop;
 }
 
@@ -919,44 +856,27 @@ public Action:PrepareUnBlock(client, type_block, args)
 	#if defined DEBUG
 		LogToFile(logFile, "PrepareUnBlock(type %d)", type_block);
 	#endif
-
-	// This is mainly for me sanity since client used to be called admin and target used to be called client
-	new admin = client;
 	
-	// Get the target, find target returns a message on failure so we do not
-	decl String:buffer[100];
+	new String:sBuffer[256], String:sArg[2][192];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	ExplodeString(sBuffer, " ", sArg, 2, 192, true);
 
-	GetCmdArg(1, buffer, sizeof(buffer));
-	new target = FindTarget(admin, buffer, true);
+	// Get the target, find target returns a message on failure so we do not
+	new target = FindTarget(client, sArg[0], true);
 	if (target == -1)
 	{
 		#if defined DEBUG
-			LogToFile(logFile, "target == -1. wtf?!");
+			LogToFile(logFile, "target not found (-1)");
 		#endif
 
 		return Plugin_Stop;
 	}
-	
-	// Get the reason
-	new String:reason[128];
-	if (args >= 2)
-	{
-		for (new i=2;i<=args;i++)
-		{
-			GetCmdArg(i, buffer, sizeof(buffer));
-			Format(reason, sizeof(reason), "%s %s", reason, buffer);
-		}
-	}
-	else
-	{
-		reason[0] = '\0';
-	}
 
 	#if defined DEBUG
-		LogToFile(logFile, "Calling ProcessUnBlock");
+		LogToFile(logFile, "Calling ProcessUnBlock cl %d, target %d, type %d, reason %s", client, target, type_block, sArg[1]);
 	#endif
 
-	ProcessUnBlock(admin, target, type_block, reason);
+	ProcessUnBlock(client, target, type_block, sArg[1]);
 	return Plugin_Stop;
 }
 
@@ -1083,7 +1003,7 @@ AdminMenu_Target(client, type)
 	{
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (IsClientInGame(i))
+			if (IsClientInGame(i) && !IsFakeClient(i))
 			{
 				strcopy(Title, sizeof(Title), g_sName[i]);
 				AdminMenu_GetPunishPhrase(client, i, Title, sizeof(Title));
@@ -1097,7 +1017,7 @@ AdminMenu_Target(client, type)
 		new iClients;
 		for (new i = 1; i <= MaxClients; i++)
 		{
-			if (IsClientInGame(i))
+			if (IsClientInGame(i) && !IsFakeClient(i))
 			{
 				switch(type)
 				{
@@ -1314,7 +1234,7 @@ AdminMenu_List(client, index)
 
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && (g_MuteType[i] > bNot || g_GagType[i] > bNot))
+		if (IsClientInGame(i) && !IsFakeClient(i) && (g_MuteType[i] > bNot || g_GagType[i] > bNot))
 		{
 			iClients++;
 			strcopy(sTitle, sizeof(sTitle), g_sName[i]);
@@ -1503,7 +1423,7 @@ public MenuHandler_MenuListTarget(Handle:menu, MenuAction:action, param1, param2
 			ExplodeString(sOption, " ", sTemp, 5, 8);
 
 			new target = GetClientOfUserId(StringToInt(sTemp[1]));
-			if (Bool_ValidMenuTarget(param1, target))
+			if (param1 == target || Bool_ValidMenuTarget(param1, target))
 			{
 				switch(StringToInt(sTemp[0]))
 				{
