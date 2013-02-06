@@ -22,7 +22,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 	* Permanent punishments remain on the player until an administrator removes them.
 	* If the server has problems with access to the database, the punishments will store in SQLite database and would be added in the main database when connection is restored. *(like in sourcebans plugin, yes)*
 * SourceComms has support for protecting current punishments based on immunity levels.
-	* When a punishment is issued, the administrator responsible has their immunity level attached to the punishment. In order to remove that punishment, the second administrator must have **higher** immunity level or special admin flag (*ADMFLAG_CUSTOM2* by default. You may change it in sourcecode). Also, punishment can be removed by console or his author.
+	* When a punishment is issued, the administrator responsible has their immunity level attached to the punishment. In order to remove that punishment, the second administrator must have **higher** immunity level or special admin flag (<i>ADMFLAG\_CUSTOM2</i> by default. You may change it in sourcecode). Also, punishment can be removed by console or his author.
 	* Punishments issued by *CONSOLE* has some immunity level (which is set in config, option *"ConsoleImmunity"*).
 	* Immunity checking system could be disabled by setting option *"DisableUnblockImmunityCheck"* to value 1 in config file.
 	* One more **important** moment. When somebody removes punishment - plugin retrieves *"punishment issuer admin id"* from database. If the request fails - punishment could be temporary removed (on server, not in database) only by console, admin with special flag or with higher immunity.
