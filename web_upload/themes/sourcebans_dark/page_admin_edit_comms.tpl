@@ -42,14 +42,14 @@
   			  <tr>
     		<td valign="top" width="35%">
     			<div class="rowdesc">
-    				-{help_icon title="Block Type" message="Choose what to block - chat or voice"}-Block Type 
+    				-{help_icon title="Block Type" message="Choose what to block - chat or voice"}-Block Type
     			</div>
     		</td>
     		<td>
     			<div align="left">
     				<select id="type" name="type" TABINDEX=2 class="submit-fields">
-						<option value="1">Микрофон</option>
-						<option value="2">Чат</option>
+						<option value="1">Voice</option>
+						<option value="2">Chat</option>
 					</select>
     			</div>
     		</td>
@@ -64,7 +64,7 @@
     			<div align="left">
     				<select id="listReason" name="listReason" TABINDEX=4 class="submit-fields" onChange="changeReason(this[this.selectedIndex].value);">
     					<option value="" selected> -- Select Reason -- </option>
-					<optgroup label="Violatio">
+					<optgroup label="Violation">
 						<option value="Obscene language">Obscene language</option>
 						<option value="Insult players">Insult players</option>
                         <option value="Admin disrespect">Admin disrespect</option>
@@ -82,11 +82,11 @@
     			</div>
     			<div id="reason.msg" class="badentry"></div>
     		</td>
-      </tr>	
+      </tr>
       <tr>
 			    <td valign="top" width="35%"><div class="rowdesc">-{help_icon title="Block Length" message="Select how long you want to block this person for."}-Block Length</div></td>
 			    <td><div align="left">
-			      <select id="banlength" name="banlength" TABINDEX=4 class="submit-fields">			      	
+			      <select id="banlength" name="banlength" TABINDEX=4 class="submit-fields">
 									 <option value="0">Permanent</option>
                         <optgroup label="minutes">
                             <option value="1">1 minute</option>
@@ -131,7 +131,7 @@
 			    <td>&nbsp;</td>
 			    <td>
 			      <input type="hidden" name="did" id="did" value="" />
-			      <input type="hidden" name="dname" id="dname" value="" /> 
+			      <input type="hidden" name="dname" id="dname" value="" />
 			      	-{sb_button text="Save changes" class="ok" id="editban" submit=true}-
 			     	 &nbsp;
 			     	 -{sb_button text="Back" onclick="history.go(-1)" class="cancel" id="back" submit=false}-
@@ -142,4 +142,3 @@
 		</div>
 	</div>
 </form>
-	
