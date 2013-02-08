@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.65"
+#define VERSION "0.8.72"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -140,7 +140,7 @@ public bool:AskPluginLoad(Handle:myself, bool:late, String:error[], err_max)
 #endif
 {
 	LateLoaded = late;
-	
+
 	#if SOURCEMOD_V_MAJOR >= 1 && SOURCEMOD_V_MINOR >= 3
 		return APLRes_Success;
 	#else
@@ -156,7 +156,7 @@ public OnPluginStart()
 	new Handle:hTemp = INVALID_HANDLE;
 	if (LibraryExists("adminmenu") && ((hTemp = GetAdminTopMenu()) != INVALID_HANDLE))
 		OnAdminMenuReady(hTemp);
-	
+
 	CvarHostIp = FindConVar("hostip");
 	CvarPort = FindConVar("hostport");
 
@@ -171,11 +171,11 @@ public OnPluginStart()
 	RegServerCmd("sc_fw_ungag", FWUngag, "Ungagging player by command from sourceban web site", FCVAR_PLUGIN);
 	RegServerCmd("sc_fw_unmute",FWUnmute, "Unmuting player by command from sourceban web site", FCVAR_PLUGIN);
 	RegConsoleCmd("sm_comms", CommandComms, "Shows current player communications status", FCVAR_PLUGIN);
-	
+
 	HookEvent("player_changename", Event_OnPlayerName, EventHookMode_Post);
-	
+
 	BuildPath(Path_SM, logFile, sizeof(logFile), "logs/sourcecomms.log");
-	
+
 	#if defined LOG_QUERIES
 	BuildPath(Path_SM, logQuery, sizeof(logQuery), "logs/sourcecomms-q.log");
 	#endif
@@ -183,7 +183,7 @@ public OnPluginStart()
 	#if defined DEBUG
 		LogToFile(logFile, "Plugin loading. Version %s", VERSION);
 	#endif
-	
+
 	// Catch config error
 	if (!SQL_CheckConfig(DATABASE))
 	{
@@ -192,14 +192,14 @@ public OnPluginStart()
 		return;
 	}
 	SQL_TConnect(GotDatabase, DATABASE);
-		
+
 	InitializeBackupDB();
 
 	ServerInfo();
-	
+
 	// This timer is what processes the SQLite queue when the database is unavailable
 	CreateTimer(float(ProcessQueueTime * 60), ProcessQueue);
-	
+
 	/* Account for late loading */
 	if (LateLoaded)
 	{
@@ -217,7 +217,7 @@ public OnPluginStart()
 					LogToFile(logFile, "Set PlayerStatus = false for %s", clientAuth);
 				}
 				#endif
-				g_bPlayerStatus[i] = false;				
+				g_bPlayerStatus[i] = false;
 			}
 			if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
 			{
@@ -251,7 +251,7 @@ public OnLibraryAdded(const String:name[])
 public Updater_OnPluginUpdated()
 {
 	LogToFile(logFile, "Plugin updated. Now reloading.");
-	
+
 	ReloadPlugin();
 }
 
@@ -360,7 +360,7 @@ public OnClientPostAdminCheck(client)
 		g_bPlayerStatus[client] = true;
 		return;
 	}
-	
+
 	if (client > 0 && !IsFakeClient(client))
 	{
 		decl String:Query[512];
@@ -402,7 +402,7 @@ public BaseComm_OnClientMute(client, bool:muteState)
 				// setup dummy adminAuth and adminIp for server
 				strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
 				strcopy(adminIp, sizeof(adminIp), ServerIp);
-		
+
 				// target information
 				decl String:auth[64];
 				GetClientAuthString(client, auth, sizeof(auth));
@@ -411,7 +411,7 @@ public BaseComm_OnClientMute(client, bool:muteState)
 				new Handle:dataPack = CreateDataPack();
 				new Handle:reasonPack = CreateDataPack();
 				WritePackString(reasonPack, g_sMuteReason[client]);
-				WritePackCell(dataPack, -1);	
+				WritePackCell(dataPack, -1);
 				WritePackCell(dataPack, TYPE_MUTE);
 				WritePackCell(dataPack, _:reasonPack);
 				WritePackString(dataPack, g_sName[client]);
@@ -452,7 +452,7 @@ public BaseComm_OnClientGag(client, bool:gagState)
 		if (gagState)
 		{
 			if (g_GagType[client] == bNot)
-			{				
+			{
 				g_GagType[client] = bSess;
 				g_iGagTime[client] = GetTime();
 				g_iGagLength[client] = -1;
@@ -465,7 +465,7 @@ public BaseComm_OnClientGag(client, bool:gagState)
 				// setup dummy adminAuth and adminIp for server
 				strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
 				strcopy(adminIp, sizeof(adminIp), ServerIp);
-		
+
 				// target information
 				decl String:auth[64];
 				GetClientAuthString(client, auth, sizeof(auth));
@@ -474,7 +474,7 @@ public BaseComm_OnClientGag(client, bool:gagState)
 				new Handle:dataPack = CreateDataPack();
 				new Handle:reasonPack = CreateDataPack();
 				WritePackString(reasonPack, g_sGagReason[client]);
-				WritePackCell(dataPack, -1);	
+				WritePackCell(dataPack, -1);
 				WritePackCell(dataPack, TYPE_MUTE);
 				WritePackCell(dataPack, _:reasonPack);
 				WritePackString(dataPack, g_sName[client]);
@@ -539,7 +539,7 @@ public Action:FWBlock(args)
 	}
 
 	LogToFile(logFile, "Received block command from web: steam %s, type %d, length %d", sArg[2], type, length);
-	
+
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
@@ -561,7 +561,7 @@ public Action:FWBlock(args)
 					g_sMuteReason[i][0] = '\0';
 					PrintToChat(i, "%t", "Muted on connect");
 					LogToFile(logFile, "%s is muted from web", clientAuth);
-					
+
 					if (length > 0)
 					{
 						g_MuteType[i] = bTime;
@@ -583,7 +583,7 @@ public Action:FWBlock(args)
 					g_sGagAdmin[i] = "CONSOLE";
 					g_sGagReason[i][0] = '\0';
 					PrintToChat(i, "%t", "Gagged on connect");
-					
+
 					LogToFile(logFile, "%s is gagged from web", clientAuth);
 					if (length > 0)
 					{
@@ -599,10 +599,10 @@ public Action:FWBlock(args)
 					BaseComm_SetClientGag(i, true);
 				}
 				break;
-			}			
+			}
 		}
 	}
-	
+
 	return Plugin_Handled;
 }
 
@@ -613,11 +613,11 @@ public Action:FWUngag(args)
 	if(!ExplodeString(arg_string, " ", sArg, 1, 64))
 	{
 		LogToFile(logFile, "Wrong usage of sc_fw_ungag");
-		return Plugin_Stop;		
+		return Plugin_Stop;
 	}
 
 	LogToFile(logFile, "Received ungag command from web: steam %s", sArg[0]);
-	
+
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
@@ -647,7 +647,7 @@ public Action:FWUngag(args)
 				else
 					LogToFile(logFile, "Can't ungag %s from web, isn't gagged", clientAuth);
 				break;
-			}			
+			}
 		}
 	}
 	return Plugin_Handled;
@@ -660,11 +660,11 @@ public Action:FWUnmute(args)
 	if(!ExplodeString(arg_string, " ", sArg, 1, 64))
 	{
 		LogToFile(logFile, "Wrong usage of sc_fw_ungag");
-		return Plugin_Stop;		
+		return Plugin_Stop;
 	}
 
 	LogToFile(logFile, "Received unmute command from web: steam %s", sArg[0]);
-	
+
 	for (new i = 1; i <= MaxClients; i++)
 	{
 		if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
@@ -694,7 +694,7 @@ public Action:FWUnmute(args)
 				else
 					LogToFile(logFile, "Can't unmute %s from web, isn't muted", clientAuth);
 				break;
-			}			
+			}
 		}
 	}
 	return Plugin_Handled;
@@ -822,8 +822,8 @@ public Action:PrepareBlock(client, type_block, args)
 	#if defined DEBUG
 		LogToFile(logFile, "PrepareBlock(type %d)", type_block);
 	#endif
-	
-	new String:sBuffer[256], String:sArg[3][192];
+
+	new String:sBuffer[256], String:sArg[3][192], String:sReason[256];
 	GetCmdArgString(sBuffer, sizeof(sBuffer));
 	ExplodeString(sBuffer, " ", sArg, 3, 192, true);
 
@@ -841,13 +841,18 @@ public Action:PrepareBlock(client, type_block, args)
 	// Get the ban time
 	new time;
 	if(!StringToIntEx(sArg[1], time))	// not valid number in second argument
+	{
 		time = DefaultTime;
+		Format(sReason, sizeof(sReason), "%s %s", sArg[1], sArg[2]);
+	}
+	else
+		strcopy(sReason, sizeof(sReason), sArg[2]);
 
 	#if defined DEBUG
 		LogToFile(logFile, "Calling CreateBlock cl %d, target %d, time %d, type %d, reason %s", client, target, time, type_block, sArg[2]);
 	#endif
 
-	CreateBlock(client, target, time, type_block, sArg[2]);
+	CreateBlock(client, target, time, type_block, sReason);
 	return Plugin_Stop;
 }
 
@@ -856,7 +861,7 @@ public Action:PrepareUnBlock(client, type_block, args)
 	#if defined DEBUG
 		LogToFile(logFile, "PrepareUnBlock(type %d)", type_block);
 	#endif
-	
+
 	new String:sBuffer[256], String:sArg[2][192];
 	GetCmdArgString(sBuffer, sizeof(sBuffer));
 	ExplodeString(sBuffer, " ", sArg, 2, 192, true);
@@ -1143,7 +1148,7 @@ public MenuHandler_MenuDuration(Handle:menu, MenuAction:action, param1, param2)
 		case MenuAction_Cancel:
 		{
 			if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
-				DisplayTopMenu(hTopMenu, param1, TopMenuPosition_LastCategory); 
+				DisplayTopMenu(hTopMenu, param1, TopMenuPosition_LastCategory);
 		}
 		case MenuAction_Select:
 		{
@@ -1243,13 +1248,13 @@ AdminMenu_List(client, index)
 			AddMenuItem(hMenu, sOption, sTitle);
 		}
 	}
-	
+
 	if (!iClients)
 	{
 		Format(sTitle, sizeof(sTitle), "%T", "ListMenu_Option_Empty", client);
 		AddMenuItem(hMenu, "0", sTitle, ITEMDRAW_DISABLED);
 	}
-	
+
 	DisplayMenuAtItem(hMenu, client, index, MENU_TIME_FOREVER);
 }
 
@@ -1259,7 +1264,7 @@ public MenuHandler_MenuList(Handle:menu, MenuAction:action, param1, param2)
 	{
 		case MenuAction_End:
 			CloseHandle(menu);
-		case MenuAction_Cancel: 
+		case MenuAction_Cancel:
 		{
 			if (!g_iPeskyPanels[param1][viewingList])
 				if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
@@ -1287,11 +1292,11 @@ AdminMenu_ListTarget(client, target, index, viewMute = 0, viewGag = 0)
 	SetMenuPagination(hMenu, MENU_NO_PAGINATION);
 	SetMenuExitButton(hMenu, true);
 	SetMenuExitBackButton(hMenu, false);
-	
+
 	if (g_MuteType[target] > bNot)
 	{
 		Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Mute", client);
-		Format(sOption, sizeof(sOption), "0 %d %d %b %b", userid, index, viewMute, viewGag); 
+		Format(sOption, sizeof(sOption), "0 %d %d %b %b", userid, index, viewMute, viewGag);
 		AddMenuItem(hMenu, sOption, sBuffer);
 
 		if (viewMute)
@@ -1332,7 +1337,7 @@ AdminMenu_ListTarget(client, target, index, viewMute = 0, viewGag = 0)
 			if (strlen(g_sMuteReason[target]) > 0)
 			{
 				Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Reason", client);
-				Format(sOption, sizeof(sOption), "1 %d %d %b %b", userid, index, viewMute, viewGag); 
+				Format(sOption, sizeof(sOption), "1 %d %d %b %b", userid, index, viewMute, viewGag);
 				AddMenuItem(hMenu, sOption, sBuffer);
 			}
 			else
@@ -1346,14 +1351,14 @@ AdminMenu_ListTarget(client, target, index, viewMute = 0, viewGag = 0)
 	if (g_GagType[target] > bNot)
 	{
 		Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Gag", client);
-		Format(sOption, sizeof(sOption), "2 %d %d %b %b", userid, index, viewMute, viewGag); 
+		Format(sOption, sizeof(sOption), "2 %d %d %b %b", userid, index, viewMute, viewGag);
 		AddMenuItem(hMenu, sOption, sBuffer);
 
 		if (viewGag)
 		{
 			Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Admin", client, g_sGagAdmin[target]);
 			AddMenuItem(hMenu, "", sBuffer, ITEMDRAW_DISABLED);
-		
+
 			decl String:sGagTemp[192], String:_sGagTime[192];
 			Format(sGagTemp, sizeof(sGagTemp), "%T", "ListMenu_Option_Duration", client);
 			if (g_GagType[target] == bPerm)
@@ -1383,11 +1388,11 @@ AdminMenu_ListTarget(client, target, index, viewMute = 0, viewGag = 0)
 			else
 				Format(sBuffer, sizeof(sBuffer), "error");
 			AddMenuItem(hMenu, "", sBuffer, ITEMDRAW_DISABLED);
-			
+
 			if (strlen(g_sGagReason[target]) > 0)
 			{
 				Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Reason", client);
-				Format(sOption, sizeof(sOption), "3 %d %d %b %b", userid, index, viewMute, viewGag); 
+				Format(sOption, sizeof(sOption), "3 %d %d %b %b", userid, index, viewMute, viewGag);
 				AddMenuItem(hMenu, sOption, sBuffer);
 			}
 			else
@@ -1411,7 +1416,7 @@ public MenuHandler_MenuListTarget(Handle:menu, MenuAction:action, param1, param2
 	{
 		case MenuAction_End:
 			CloseHandle(menu);
-		case MenuAction_Cancel: 
+		case MenuAction_Cancel:
 		{
 			if (param2 == MenuCancel_ExitBack)
 				AdminMenu_List(param1, g_iPeskyPanels[param1][curIndex]);
@@ -1437,7 +1442,7 @@ public MenuHandler_MenuListTarget(Handle:menu, MenuAction:action, param1, param2
 			}
 			else
 				AdminMenu_List(param1, StringToInt(sTemp[2]));
-			
+
 		}
 	}
 }
@@ -1528,7 +1533,7 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 		LogToFile(logFile, "Block Failed: %s", error);
 		return;
 	}
-	
+
 	if (hndl == INVALID_HANDLE || error[0])
 	{
 		LogToFile(logFile, "Verify Insert Query Failed: %s", error);
@@ -1586,7 +1591,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(admin));
 		AdmHasFlag = CheckCommandAccess(admin, "", UNBLOCK_FLAG, true) ;
 	}
-	else 
+	else
 		AdmImmunity = 0;
 	new bool:AdmImCheck = (DisUBImCheck == 0 && ((type == TYPE_MUTE && AdmImmunity > g_iMuteLevel[target]) || (type == TYPE_GAG && AdmImmunity > g_iGagLevel[target]) || (type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target] && AdmImmunity > g_iGagLevel[target]) ) );
 
@@ -1605,7 +1610,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		}
 		errorCheck = true;
 	}
-	
+
 	// If there was no results then a ban does not exist for that id
 	if (hndl == INVALID_HANDLE || !SQL_GetRowCount(hndl))
 	{
@@ -1668,7 +1673,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 						g_hGagExpireTimer[target] = INVALID_HANDLE;
 						#if defined DEBUG
 							LogToFile(logFile, "GagExpireTimer killed on temporary ungag (DB problems)");
-						#endif						
+						#endif
 					}
 					ShowActivity2(admin, Prefix, "%t", "Temp ungagged player", g_sName[target]);
 					LogAction(admin, target, "\"%L\" temporary (DB problems) ungagged \"%L\" (reason \"%s\")", admin, target, reason);
@@ -1702,7 +1707,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 						g_hGagExpireTimer[target] = INVALID_HANDLE;
 						#if defined DEBUG
 							LogToFile(logFile, "GagExpireTimer killed on temporary unsilence (DB problems)");
-						#endif						
+						#endif
 					}
 					ShowActivity2(admin, Prefix, "%t", "Temp unsilenced player", g_sName[target]);
 					LogAction(admin, target, "\"%L\" temporary (DB problems) unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
@@ -1720,7 +1725,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		}
 		return;
 	}
-	
+
 	// There is blocks
 	if (hndl != INVALID_HANDLE)
 	{
@@ -1728,7 +1733,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 			LogToFile(logFile, "Processing unblock. Type: %d, admin %s, target %s,", type, adminAuth, targetAuth);
 		#endif
 
-		// Get the values from the founded blocks. 
+		// Get the values from the founded blocks.
 		while(SQL_MoreRows(hndl))
 		{
 			// Oh noes! What happened?!
@@ -1758,7 +1763,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 			if (iAID == cAID || AdmHasFlag || !admin || (DisUBImCheck == 0 && (AdmImmunity > cImmunity)))
 			{
 				// Ok! we have rights to unblock
-				
+
 				// UnMute/UnGag, Show & log activity
 				switch(cType)
 				{
@@ -1800,7 +1805,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 						}
 						ShowActivity2(admin, Prefix, "%t", "Ungagged player", g_sName[target]);
 						LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
-					}				
+					}
 				}
 
 				// Packing data for next callback
@@ -1825,7 +1830,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				switch(cType)
 				{
 					case TYPE_MUTE:
-					{					
+					{
 						ShowActivity2(admin, Prefix, "%t", "No permission unmute", g_sName[target]);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute \"%L\" (reason \"%s\")", admin, target, reason);
 					}
@@ -1834,7 +1839,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					{
 						ShowActivity2(admin, Prefix, "%t", "No permission ungag", g_sName[target]);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag \"%L\" (reason \"%s\")", admin, target, reason);
-					}				
+					}
 				}
 			}
 		}
@@ -1858,7 +1863,7 @@ public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		// Technically this should not be possible
 		ThrowError("Invalid Handle in InsertUnBlockCallback");
 	}
-	
+
 	// If error is not an empty string the query failed
 	if (error[0] != '\0')
 	{
@@ -1873,7 +1878,7 @@ public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	switch(type)
 	{
 		case TYPE_MUTE:
-		{			
+		{
 			LogAction(admin, -1, "\"%L\" removed mute for \"%L\" from DB", admin, target);
 			if (admin && IsClientInGame(admin))
 			{
@@ -1917,7 +1922,7 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		// Oh noes! What happened?!
 		if (!SQL_FetchRow(hndl))
 			continue;
-		
+
 		// if we get to here then there are rows in the queue pending processing
 		//steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER
 		SQL_FetchString(hndl, 0, auth, sizeof(auth));
@@ -1933,25 +1938,25 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		// all blocks should be entered into db!
 		if ( serverID == -1 )
 		{
-			FormatEx(query, sizeof(query), 
+			FormatEx(query, sizeof(query),
 					"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 					('%s', '%s', %d, %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), '%s', \
-					(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)", 
+					(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)",
 					DatabasePrefix, auth, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, adminAuth, adminAuth[8], adminIp, DatabasePrefix, ServerIp, ServerPort, type);
 		}
 		else
 		{
-			FormatEx(query, sizeof(query), 
+			FormatEx(query, sizeof(query),
 					"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 					('%s', '%s', %d, %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), '%s', \
-					%d, %d)", 
+					%d, %d)",
 					DatabasePrefix, auth, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, adminAuth, adminAuth[8], adminIp, serverID, type);
 		}
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in ProcessQueueCallbackB: Insert to db. QUERY: %s", query);
 		#endif
 		new Handle:authPack = CreateDataPack();
-		WritePackString(authPack, auth);			
+		WritePackString(authPack, auth);
 		WritePackCell(authPack, type);
 		ResetPack(authPack);
 		SQL_TQuery(Database, AddedFromSQLiteCallbackB, query, authPack);
@@ -1973,7 +1978,7 @@ public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[],
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in AddedFromSQLiteCallbackB: DELETE FROM QUEUE. QUERY: %s", buffer);
 		#endif
-		SQL_TQuery(SQLiteDB, ErrorCheckCallback, buffer);		
+		SQL_TQuery(SQLiteDB, ErrorCheckCallback, buffer);
 	}
 	CloseHandle(data);
 }
@@ -1990,10 +1995,10 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 {
 	decl String:clientAuth[64];
 	new client = GetClientOfUserId(userid);
-	
+
 	if (!client)
 		return;
-	
+
 	/* Failure happen. Do retry with delay */
 	if (hndl == INVALID_HANDLE)
 	{
@@ -2033,7 +2038,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					#endif
 
 					PrintToChat(client, "%t", "Muted on connect");
-					
+
 					if (length > 0)
 					{
 						g_MuteType[client] = bTime;
@@ -2057,9 +2062,9 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 
 					#if defined DEBUG
 						LogToFile(logFile, "%s is gagged on connect", clientAuth);
-					#endif						
+					#endif
 					PrintToChat(client, "%t", "Gagged on connect");
-					
+
 					if (length > 0)
 					{
 						g_GagType[client] = bTime;
@@ -2082,7 +2087,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 			LogToFile(logFile, "%s is NOT blocked.", clientAuth);
 		#endif
 	}
-		
+
 	g_bPlayerStatus[client] = true;
 }
 
@@ -2110,7 +2115,7 @@ public Action:Timer_MuteExpire(Handle:timer, any:client)
 		LogToFile(logFile, "Mute expired for %s", clientAuth);
 	#endif
 	PrintToChat(client, "%t", "Mute expired");
-	
+
 	g_hMuteExpireTimer[client] = INVALID_HANDLE;
 	g_MuteType[client] = bNot;
 	g_iMuteTime[client] = 0;
@@ -2131,7 +2136,7 @@ public Action:Timer_GagExpire(Handle:timer, any:client)
 		LogToFile(logFile, "Gag expired for %s", clientAuth);
 	#endif
 	PrintToChat(client, "%t", "Gag expired");
-	
+
 	g_hGagExpireTimer[client] = INVALID_HANDLE;
 	g_GagType[client] = bNot;
 	g_iGagTime[client] = 0;
@@ -2205,7 +2210,7 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 	{
 		case ConfigStateConfig:
 		{
-			if (strcmp("DatabasePrefix", key, false) == 0) 
+			if (strcmp("DatabasePrefix", key, false) == 0)
 			{
 				strcopy(DatabasePrefix, sizeof(DatabasePrefix), value);
 
@@ -2213,8 +2218,8 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 				{
 					DatabasePrefix = "sb";
 				}
-			} 
-			else if (strcmp("RetryTime", key, false) == 0) 
+			}
+			else if (strcmp("RetryTime", key, false) == 0)
 			{
 				RetryTime	= StringToFloat(value);
 				if (RetryTime < 15.0)
@@ -2223,8 +2228,8 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 				} else if (RetryTime > 60.0) {
 					RetryTime = 60.0;
 				}
-			} 
-			else if (strcmp("ProcessQueueTime", key, false) == 0) 
+			}
+			else if (strcmp("ProcessQueueTime", key, false) == 0)
 			{
 				ProcessQueueTime = StringToInt(value);
 			}
@@ -2234,7 +2239,7 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 				if (serverID == 0)
 					serverID = -1;
 			}
-			else if (strcmp("DefaultTime", key, false) == 0) 
+			else if (strcmp("DefaultTime", key, false) == 0)
 			{
 				DefaultTime	= StringToInt(value);
 				if (DefaultTime < 0)
@@ -2242,13 +2247,13 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 				if (DefaultTime == 0)
 					DefaultTime = 30;
 			}
-			else if (strcmp("DisableUnblockImmunityCheck", key, false) == 0) 
+			else if (strcmp("DisableUnblockImmunityCheck", key, false) == 0)
 			{
 				DisUBImCheck = StringToInt(value);
 				if (DisUBImCheck != 1)
 					DisUBImCheck = 0;
 			}
-			else if (strcmp("ConsoleImmunity", key, false) == 0) 
+			else if (strcmp("ConsoleImmunity", key, false) == 0)
 			{
 				ConsoleImmunity = StringToInt(value);
 			}
@@ -2288,7 +2293,7 @@ public InitializeBackupDB()
 	SQLiteDB = SQLite_UseDatabase("sourcecomms-queue", error, sizeof(error));
 	if (SQLiteDB == INVALID_HANDLE)
 		SetFailState(error);
-	
+
 	SQL_LockDatabase(SQLiteDB);
 	SQL_FastQuery(SQLiteDB, "CREATE TABLE IF NOT EXISTS queue (steam_id TEXT PRIMARY KEY ON CONFLICT REPLACE, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
 	SQL_UnlockDatabase(SQLiteDB);
@@ -2299,7 +2304,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	#if defined DEBUG
 		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s)", client, target, time, type, reason);
 		if (type > 3 || type < 1)
-			LogToFile(logFile, "WOW! How do you do that?!");					
+			LogToFile(logFile, "WOW! How do you do that?!");
 	#endif
 
 	if (!g_bPlayerStatus[target])
@@ -2314,7 +2319,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	new String:AdmName[MAX_NAME_LENGTH];
 	new admin = client;
 	new AdmImmunity;
-	
+
 	// The server is the one calling the block
 	if (!admin)
 	{
@@ -2342,7 +2347,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	new Handle:dataPack = CreateDataPack();
 	new Handle:reasonPack = CreateDataPack();
 	WritePackString(reasonPack, reason);
-	WritePackCell(dataPack, time);	
+	WritePackCell(dataPack, time);
 	WritePackCell(dataPack, type);
 	WritePackCell(dataPack, _:reasonPack);
 	WritePackString(dataPack, g_sName[target]);
@@ -2420,7 +2425,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				#endif
 				ReplyToCommand(client, "%s%t", Prefix, "Player already muted", g_sName[target]);
 				return false;
-			}			
+			}
 		}
 		//-------------------------------------------------------------------------------------------------
 		case TYPE_GAG:
@@ -2440,7 +2445,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				g_iGagLevel[target] = AdmImmunity;
 				g_sGagAdmin[target] = AdmName;
 				Format(g_sGagReason[target], sizeof(g_sGagReason[]), "%s", reason);
-				
+
 				if (time > 0)
 				{
 					g_GagType[target] = bTime;
@@ -2467,7 +2472,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					if (reason[0] == '\0')
 						ShowActivity2(admin, Prefix, "%t", "Temp gagged player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Temp gagged player reason", g_sName[target], reason);		
+						ShowActivity2(admin, Prefix, "%t", "Temp gagged player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientGag(target, true);
 				LogAction(admin, client, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
@@ -2475,7 +2480,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				// pass move forward with the block
 				if (Database != INVALID_HANDLE)
 				{
-					UTIL_InsertBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp, dataPack); 
+					UTIL_InsertBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp, dataPack);
 				} else {
 					UTIL_InsertTempBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp);
 					LogToFile(logFile, "We need insert to queue (calling UTIL_InsertTempBlock)");
@@ -2508,7 +2513,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				g_iMuteLevel[target] = AdmImmunity;
 				g_sMuteAdmin[target] = AdmName;
 				Format(g_sMuteReason[target], sizeof(g_sMuteReason[]), "%s", reason);
-				
+
 				g_iGagTime[target] = GetTime();
 				g_iGagLength[target] = time;
 				g_iGagLevel[target] = AdmImmunity;
@@ -2549,7 +2554,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					if (reason[0] == '\0')
 						ShowActivity2(admin, Prefix, "%t", "Temp silenced player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Temp silenced player reason", g_sName[target], reason);		
+						ShowActivity2(admin, Prefix, "%t", "Temp silenced player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientMute(target, true);
 				BaseComm_SetClientGag(target, true);
@@ -2564,7 +2569,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					new Handle:dataPack2 = CreateDataPack();
 					new Handle:reasonPack2 = CreateDataPack();
 					WritePackString(reasonPack2, reason);
-					WritePackCell(dataPack2, time);	
+					WritePackCell(dataPack2, time);
 					WritePackCell(dataPack2, type);
 					WritePackCell(dataPack2, _:reasonPack2);
 					WritePackString(dataPack2, g_sName[target]);
@@ -2611,7 +2616,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 	} else {
 		GetClientAuthString(client, adminAuth, sizeof(adminAuth));
 	}
-	
+
 	if (IsClientInGame(target))
 		GetClientAuthString(target, targetAuth, sizeof(targetAuth));
 
@@ -2670,12 +2675,12 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 	WritePackString(dataPack, targetAuth);
 	ResetPack(dataPack);
 
-	decl String:query[1024];	
+	decl String:query[1024];
 	Format(query, sizeof(query),
 		"SELECT c.bid, IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, c.aid, if (a.immunity>0, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type FROM %s_comms c \
 		LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') AND %s",
 		DatabasePrefix, adminAuth, adminAuth[8], DatabasePrefix, DatabasePrefix, DatabasePrefix, targetAuth, targetAuth[8], typeWHERE);
-	
+
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "Unblocking select. QUERY: %s", query);
 	#endif
@@ -2700,15 +2705,15 @@ stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], c
 	{
 		FormatEx(Query, sizeof(Query), "INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 						('%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'),'0'), '%s', \
-						(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)", 
+						(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)",
 						DatabasePrefix, Authid, banName, (time*60), (time*60), banReason, DatabasePrefix, AdminAuthid, AdminAuthid[8], AdminIp, DatabasePrefix, ServerIp, ServerPort, type);
 	}else{
 		FormatEx(Query, sizeof(Query), "INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 						('%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'),'0'), '%s', \
-						%d, %d)", 
+						%d, %d)",
 						DatabasePrefix, Authid, banName, (time*60), (time*60), banReason, DatabasePrefix, AdminAuthid, AdminAuthid[8], AdminIp, serverID, type);
 	}
-	
+
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "UTIL_InsertBlock. QUERY: %s", Query);
 	#endif
@@ -2717,13 +2722,13 @@ stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], c
 }
 
 stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
-{		
+{
 	new String:banName[MAX_NAME_LENGTH * 2 + 1];
 	new String:banReason[512];
 	decl String:query[512];
 	SQL_EscapeString(SQLiteDB, name, banName, sizeof(banName));
 	SQL_EscapeString(SQLiteDB, reason, banReason, sizeof(banReason));
-	FormatEx(	query, sizeof(query), "INSERT INTO queue VALUES ('%s', %i, %i, '%s', '%s', '%s', '%s', %i)", 
+	FormatEx(	query, sizeof(query), "INSERT INTO queue VALUES ('%s', %i, %i, '%s', '%s', '%s', '%s', %i)",
 				auth, time, GetTime(), banReason, banName, adminAuth, adminIp, type);
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", query);
