@@ -1,4 +1,8 @@
 #Changelog
+* **0.8.73**
+	* Fixed some bugs in actions logging.
+	* Improved console commands parsing.
+	* Code improvements.
 * **0.8.65**
 	* Code improvements.
 	* Fixed bug with unicode arguments in punishment commands.

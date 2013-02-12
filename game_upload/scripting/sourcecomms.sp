@@ -15,7 +15,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.72"
+#define VERSION "0.8.73"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -208,17 +208,6 @@ public OnPluginStart()
 		#endif
 		for (new i = 1; i <= GetMaxClients(); i++)
 		{
-			if (IsClientConnected(i) && !IsFakeClient(i))
-			{
-			#if defined DEBUG
-				{
-					decl String:clientAuth[64];
-					GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-					LogToFile(logFile, "Set PlayerStatus = false for %s", clientAuth);
-				}
-				#endif
-				g_bPlayerStatus[i] = false;
-			}
 			if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
 			{
 				#if defined DEBUG
@@ -229,7 +218,7 @@ public OnPluginStart()
 				}
 				#endif
 				GetClientName(i, g_sName[i], sizeof(g_sName[]));
-				g_hPlayerRecheck[i] = CreateTimer(RetryTime + i, ClientRecheck, i);
+				g_hPlayerRecheck[i] = CreateTimer(RetryTime + i, ClientRecheck, GetClientUserId(i));
 			}
 		}
 	}
@@ -264,22 +253,6 @@ public OnLibraryRemoved(const String:name[])
 public OnMapStart()
 {
 	ReadConfig();
-
-	g_sName[0][0] = '\0';
-
-	g_MuteType[0] = bNot;
-	g_iMuteTime[0] = 0;
-	g_iMuteLength[0] = 0;
-	g_iMuteLevel[0] = -1;
-	g_sMuteAdmin[0][0] = '\0';
-	g_sMuteReason[0][0] = '\0';
-
-	g_GagType[0] = bNot;
-	g_iGagTime[0] = 0;
-	g_iGagLength[0] = 0;
-	g_iGagLevel[0] = -1;
-	g_sGagAdmin[0][0] = '\0';
-	g_sGagReason[0][0] = '\0';
 }
 
 // CLIENT CONNECTION FUNCTIONS //
@@ -568,7 +541,7 @@ public Action:FWBlock(args)
 						#if defined DEBUG
 							LogToFile(logFile, "Creating MuteExpire timer");
 						#endif
-						g_hMuteExpireTimer[i] = CreateTimer(float(length), Timer_MuteExpire, i, TIMER_FLAG_NO_MAPCHANGE);
+						g_hMuteExpireTimer[i] = CreateTimer(float(length), Timer_MuteExpire, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
 					}
 					else
 						g_MuteType[i] = bPerm;
@@ -591,7 +564,7 @@ public Action:FWBlock(args)
 						#if defined DEBUG
 							LogToFile(logFile, "Creating GagExpire timer");
 						#endif
-						g_hGagExpireTimer[i] = CreateTimer(float(length), Timer_GagExpire, i, TIMER_FLAG_NO_MAPCHANGE);
+						g_hGagExpireTimer[i] = CreateTimer(float(length), Timer_GagExpire, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
 					}
 					else
 						g_GagType[i] = bPerm;
@@ -687,7 +660,7 @@ public Action:FWUnmute(args)
 					g_sMuteReason[i][0] = '\0';
 					PrintToChat(i, "%t", "FWUnmute");
 					BaseComm_SetClientMute(i, false);
-					LogToFile(logFile, "%s is ungagged from web", clientAuth);
+					LogToFile(logFile, "%s is unmuted from web", clientAuth);
 					if (g_hMuteExpireTimer[i] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[i]))
 						g_hMuteExpireTimer[i] = INVALID_HANDLE;
 				}
@@ -2003,7 +1976,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	if (hndl == INVALID_HANDLE)
 	{
 		LogToFile(logFile, "Verify Blocks Query Failed: %s", error);
-		g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, client);
+		g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, GetClientUserId(client));
 		return;
 	}
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
@@ -2045,7 +2018,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 						#if defined DEBUG
 							LogToFile(logFile, "Creating MuteExpire timer");
 						#endif
-						g_hMuteExpireTimer[client] = CreateTimer(float(remaining_time), Timer_MuteExpire, client, TIMER_FLAG_NO_MAPCHANGE);
+						g_hMuteExpireTimer[client] = CreateTimer(float(remaining_time), Timer_MuteExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 					}
 					else
 						g_MuteType[client] = bPerm;
@@ -2071,7 +2044,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 						#if defined DEBUG
 							LogToFile(logFile, "Creating GagExpire timer");
 						#endif
-						g_hGagExpireTimer[client] = CreateTimer(float(remaining_time), Timer_GagExpire, client, TIMER_FLAG_NO_MAPCHANGE);
+						g_hGagExpireTimer[client] = CreateTimer(float(remaining_time), Timer_GagExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
 					}
 					else
 						g_GagType[client] = bPerm;
@@ -2094,11 +2067,15 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 
 // TIMER CALL BACKS //
 
-public Action:ClientRecheck(Handle:timer, any:client)
+public Action:ClientRecheck(Handle:timer, any:userid)
 {
 	#if defined DEBUG
 		LogToFile(logFile, "ClientRecheck()");
 	#endif
+
+	new client = GetClientOfUserId(userid);
+	if (!client)
+		return;
 
 	if (!g_bPlayerStatus[client] && IsClientConnected(client))
 		OnClientPostAdminCheck(client);
@@ -2107,8 +2084,12 @@ public Action:ClientRecheck(Handle:timer, any:client)
 	return Plugin_Stop;
 }
 
-public Action:Timer_MuteExpire(Handle:timer, any:client)
+public Action:Timer_MuteExpire(Handle:timer, any:userid)
 {
+	new client = GetClientOfUserId(userid);
+	if (!client)
+		return;
+
 	decl String:clientAuth[64];
 	GetClientAuthString(client, clientAuth,sizeof(clientAuth));
 	#if defined DEBUG
@@ -2128,8 +2109,12 @@ public Action:Timer_MuteExpire(Handle:timer, any:client)
 		BaseComm_SetClientMute(client, false);
 }
 
-public Action:Timer_GagExpire(Handle:timer, any:client)
+public Action:Timer_GagExpire(Handle:timer, any:userid)
 {
+	new client = GetClientOfUserId(userid);
+	if (!client)
+		return;
+
 	decl String:clientAuth[64];
 	GetClientAuthString(client, clientAuth,sizeof(clientAuth));
 	#if defined DEBUG
@@ -2317,11 +2302,11 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	decl String:adminIp[24];
 	decl String:adminAuth[64];
 	new String:AdmName[MAX_NAME_LENGTH];
-	new admin = client;
+	//	!!	client - is Admin  !! 	//
 	new AdmImmunity;
 
 	// The server is the one calling the block
-	if (!admin)
+	if (!client)
 	{
 		// setup dummy adminAuth and adminIp for server
 		strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
@@ -2329,10 +2314,10 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 		AdmImmunity = ConsoleImmunity;
 		AdmName = "CONSOLE";
 	} else {
-		GetClientIP(admin, adminIp, sizeof(adminIp));
-		GetClientAuthString(admin, adminAuth, sizeof(adminAuth));
-		AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(admin));
-		AdmName = g_sName[admin];
+		GetClientIP(client, adminIp, sizeof(adminIp));
+		GetClientAuthString(client, adminAuth, sizeof(adminAuth));
+		AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(client));
+		AdmName = g_sName[client];
 	}
 
 	// target information
@@ -2384,30 +2369,30 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					#if defined DEBUG
 						LogToFile(logFile, "Creating MuteExpire timer");
 					#endif
-					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, target, TIMER_FLAG_NO_MAPCHANGE);
+					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Muted player", g_sName[target], time);
+						ShowActivity2(client, Prefix, "%t", "Muted player", g_sName[target], time);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Muted player reason", g_sName[target], time, reason);
+						ShowActivity2(client, Prefix, "%t", "Muted player reason", g_sName[target], time, reason);
 				}
 				else if (time == 0)
 				{
 					g_MuteType[target] = bPerm;
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Permamuted player", g_sName[target]);
+						ShowActivity2(client, Prefix, "%t", "Permamuted player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Permamuted player reason", g_sName[target], reason);
+						ShowActivity2(client, Prefix, "%t", "Permamuted player reason", g_sName[target], reason);
 				}
 				else	// temp block
 				{
 					g_MuteType[target] = bSess;
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Temp muted player", g_sName[target]);
+						ShowActivity2(client, Prefix, "%t", "Temp muted player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Temp muted player reason", g_sName[target], reason);
+						ShowActivity2(client, Prefix, "%t", "Temp muted player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientMute(target, true);
-				LogAction(admin, client, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
+				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
 				// pass move forward with the block
 				if (Database != INVALID_HANDLE)
@@ -2452,30 +2437,30 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					#if defined DEBUG
 						LogToFile(logFile, "Creating GagExpire timer");
 					#endif
-					g_hGagExpireTimer[target] = CreateTimer(float(time*60), Timer_GagExpire, target, TIMER_FLAG_NO_MAPCHANGE);
+					g_hGagExpireTimer[target] = CreateTimer(float(time*60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Gagged player", g_sName[target], time);
+						ShowActivity2(client, Prefix, "%t", "Gagged player", g_sName[target], time);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Gagged player reason", g_sName[target], time, reason);
+						ShowActivity2(client, Prefix, "%t", "Gagged player reason", g_sName[target], time, reason);
 				}
 				else if (time == 0)
 				{
 					g_GagType[target] = bPerm;
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Permagagged player", g_sName[target]);
+						ShowActivity2(client, Prefix, "%t", "Permagagged player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Permagagged player reason", g_sName[target], reason);
+						ShowActivity2(client, Prefix, "%t", "Permagagged player reason", g_sName[target], reason);
 				}
 				else	//temp block
 				{
 					g_GagType[target] = bSess;
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Temp gagged player", g_sName[target]);
+						ShowActivity2(client, Prefix, "%t", "Temp gagged player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Temp gagged player reason", g_sName[target], reason);
+						ShowActivity2(client, Prefix, "%t", "Temp gagged player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientGag(target, true);
-				LogAction(admin, client, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
+				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
 				// pass move forward with the block
 				if (Database != INVALID_HANDLE)
@@ -2527,38 +2512,38 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					#if defined DEBUG
 						LogToFile(logFile, "Creating GagExpire timer");
 					#endif
-					g_hGagExpireTimer[target] = CreateTimer(float(time*60), Timer_GagExpire, target, TIMER_FLAG_NO_MAPCHANGE);
+					g_hGagExpireTimer[target] = CreateTimer(float(time*60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 
 					#if defined DEBUG
 						LogToFile(logFile, "Creating MuteExpire timer");
 					#endif
-					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, target, TIMER_FLAG_NO_MAPCHANGE);
+					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Silenced player", g_sName[target], time);
+						ShowActivity2(client, Prefix, "%t", "Silenced player", g_sName[target], time);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Silenced player reason", g_sName[target], time, reason);
+						ShowActivity2(client, Prefix, "%t", "Silenced player reason", g_sName[target], time, reason);
 				}
 				else if (time == 0)
 				{
 					g_MuteType[target] = bPerm;
 					g_GagType[target] = bPerm;
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Permasilenced player", g_sName[target]);
+						ShowActivity2(client, Prefix, "%t", "Permasilenced player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Permasilenced player reason", g_sName[target], reason);
+						ShowActivity2(client, Prefix, "%t", "Permasilenced player reason", g_sName[target], reason);
 				}
 				else	//temp block
 				{
 					g_MuteType[target] = bSess;
 					g_GagType[target] = bSess;
 					if (reason[0] == '\0')
-						ShowActivity2(admin, Prefix, "%t", "Temp silenced player", g_sName[target]);
+						ShowActivity2(client, Prefix, "%t", "Temp silenced player", g_sName[target]);
 					else
-						ShowActivity2(admin, Prefix, "%t", "Temp silenced player reason", g_sName[target], reason);
+						ShowActivity2(client, Prefix, "%t", "Temp silenced player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientMute(target, true);
 				BaseComm_SetClientGag(target, true);
-				LogAction(admin, client, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", admin, target, time, reason);
+				LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
 				// pass move forward with the block
 				if (Database != INVALID_HANDLE)
