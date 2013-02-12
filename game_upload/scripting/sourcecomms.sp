@@ -1,4 +1,5 @@
 #pragma semicolon 1
+
 #include <sourcemod>
 #include <basecomm>
 
@@ -15,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.73"
+#define VERSION "0.8.75"
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
@@ -1976,7 +1977,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	if (hndl == INVALID_HANDLE)
 	{
 		LogToFile(logFile, "Verify Blocks Query Failed: %s", error);
-		g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, GetClientUserId(client));
+		g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, userid);
 		return;
 	}
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
@@ -2081,7 +2082,6 @@ public Action:ClientRecheck(Handle:timer, any:userid)
 		OnClientPostAdminCheck(client);
 
 	g_hPlayerRecheck[client] =  INVALID_HANDLE;
-	return Plugin_Stop;
 }
 
 public Action:Timer_MuteExpire(Handle:timer, any:userid)
