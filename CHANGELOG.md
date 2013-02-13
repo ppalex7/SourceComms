@@ -1,4 +1,5 @@
 #Changelog
+* **0.8.79** - Added colored prefix to all output messages.
 * **0.8.75**
 	* Code improvements.
 	* Fixed some mistakes in actions logging.
