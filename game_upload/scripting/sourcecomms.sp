@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.78"
+#define VERSION "0.8.79"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -236,7 +236,7 @@ public OnLibraryAdded(const String:name[])
 
 public Updater_OnPluginUpdated()
 {
-	LogToFile(logFile, "Plugin updated. Now reloading.");
+	LogToFile(logFile, "Plugin updated. Old version was %s. Now reloading.", VERSION);
 
 	ReloadPlugin();
 }
