@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.81"
+#define VERSION "0.8.82"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1100,8 +1100,6 @@ AdminMenu_Duration(client, target, type)
 
 	for (new i = 0; i <= iNumTimes; i++)
 	{
-		if (!g_iTimeMinutes[i] && !CheckCommandAccess(client, "", UNBLOCK_FLAG|ADMFLAG_ROOT, true))
-			continue;	// skip permanent if we haven't access
 		Format(sTemp, sizeof(sTemp), "%d %d %d", GetClientUserId(target), type, i);	// TargetID TYPE_BLOCK index_of_Time
 		AddMenuItem(hMenu, sTemp, g_sTimeDisplays[i]);
 	}
