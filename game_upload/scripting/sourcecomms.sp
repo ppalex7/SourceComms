@@ -16,12 +16,10 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.75"
+#define VERSION "0.8.78"
+#define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
-
-#define NAMECOLOR			0x02
-#define GREEN				0x04
 
 #define TYPE_MUTE 1
 #define TYPE_GAG 2
@@ -56,8 +54,6 @@ new Handle:hTopMenu = INVALID_HANDLE;
 /* Cvar handle*/
 new Handle:CvarHostIp;
 new Handle:CvarPort;
-
-new const String:Prefix[] = "[SourceComms] ";
 
 new String:ServerIp[24];
 new String:ServerPort[7];
@@ -488,14 +484,14 @@ public Action:CommandComms(client, args)
 {
 	if (!client)
 	{
-		ReplyToCommand(client, "%t", "CommandComms_na");
+		ReplyToCommand(client, "%s%t", PREFIX, "CommandComms_na");
 		return Plugin_Continue;
 	}
 
 	if (g_MuteType[client] > bNot || g_GagType[client] > bNot)
 		AdminMenu_ListTarget(client, client, 0);
 	else
-		ReplyToCommand(client,  "%t", "CommandComms_nb");
+		ReplyToCommand(client,  "%s%t", PREFIX, "CommandComms_nb");
 
 	return Plugin_Continue;
 }
@@ -533,7 +529,7 @@ public Action:FWBlock(args)
 					g_iMuteLevel[i] = 99;
 					g_sMuteAdmin[i] = "CONSOLE";
 					g_sMuteReason[i][0] = '\0';
-					PrintToChat(i, "%t", "Muted on connect");
+					PrintToChat(i, "%s%t", PREFIX, "Muted on connect");
 					LogToFile(logFile, "%s is muted from web", clientAuth);
 
 					if (length > 0)
@@ -556,7 +552,7 @@ public Action:FWBlock(args)
 					g_iGagLevel[i] = 99;
 					g_sGagAdmin[i] = "CONSOLE";
 					g_sGagReason[i][0] = '\0';
-					PrintToChat(i, "%t", "Gagged on connect");
+					PrintToChat(i, "%s%t", PREFIX, "Gagged on connect");
 
 					LogToFile(logFile, "%s is gagged from web", clientAuth);
 					if (length > 0)
@@ -612,7 +608,7 @@ public Action:FWUngag(args)
 					g_iGagLevel[i] = -1;
 					g_sGagAdmin[i][0] = '\0';
 					g_sGagReason[i][0] = '\0';
-					PrintToChat(i, "%t", "FWUngag");
+					PrintToChat(i, "%s%t", PREFIX, "FWUngag");
 					BaseComm_SetClientGag(i, false);
 					LogToFile(logFile, "%s is ungagged from web", clientAuth);
 					if (g_hGagExpireTimer[i] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[i]))
@@ -659,7 +655,7 @@ public Action:FWUnmute(args)
 					g_iMuteLevel[i] = -1;
 					g_sMuteAdmin[i][0] = '\0';
 					g_sMuteReason[i][0] = '\0';
-					PrintToChat(i, "%t", "FWUnmute");
+					PrintToChat(i, "%s%t", PREFIX, "FWUnmute");
 					BaseComm_SetClientMute(i, false);
 					LogToFile(logFile, "%s is unmuted from web", clientAuth);
 					if (g_hMuteExpireTimer[i] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[i]))
@@ -685,8 +681,8 @@ public Action:CommandGag(client, const String:command[], args)
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "%sUsage: sm_gag <#userid|name> [time|0] [reason]", Prefix);
-		ReplyToCommand(client, "%t", "Usage_time", DefaultTime);
+		ReplyToCommand(client, "%sUsage: sm_gag <#userid|name> [time|0] [reason]", PREFIX);
+		ReplyToCommand(client, "%s%t", PREFIX, "Usage_time", DefaultTime);
 		return Plugin_Stop;
 	}
 
@@ -705,8 +701,8 @@ public Action:CommandMute(client, const String:command[], args)
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "%sUsage: sm_mute <#userid|name> [time|0] [reason]", Prefix);
-		ReplyToCommand(client, "%t", "Usage_time", DefaultTime);
+		ReplyToCommand(client, "%sUsage: sm_mute <#userid|name> [time|0] [reason]", PREFIX);
+		ReplyToCommand(client, "%s%t", PREFIX, "Usage_time", DefaultTime);
 		return Plugin_Stop;
 	}
 
@@ -725,8 +721,8 @@ public Action:CommandSilence(client, const String:command[], args)
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "%sUsage: sm_silence <#userid|name> [time|0] [reason]", Prefix);
-		ReplyToCommand(client, "%t", "Usage_time", DefaultTime);
+		ReplyToCommand(client, "%sUsage: sm_silence <#userid|name> [time|0] [reason]", PREFIX);
+		ReplyToCommand(client, "%s%t", PREFIX, "Usage_time", DefaultTime);
 		return Plugin_Stop;
 	}
 
@@ -745,7 +741,7 @@ public Action:CommandUnGag(client, const String:command[], args)
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "%sUsage: sm_ungag <#userid|name> [reason]", Prefix);
+		ReplyToCommand(client, "%sUsage: sm_ungag <#userid|name> [reason]", PREFIX);
 		return Plugin_Stop;
 	}
 
@@ -764,7 +760,7 @@ public Action:CommandUnMute(client, const String:command[], args)
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "%sUsage: sm_unmute <#userid|name> [reason]", Prefix);
+		ReplyToCommand(client, "%sUsage: sm_unmute <#userid|name> [reason]", PREFIX);
 		return Plugin_Stop;
 	}
 
@@ -783,7 +779,7 @@ public Action:CommandUnSilence(client, const String:command[], args)
 
 	if (args < 1)
 	{
-		ReplyToCommand(client, "%sUsage: sm_unsilence <#userid|name> [reason]", Prefix);
+		ReplyToCommand(client, "%sUsage: sm_unsilence <#userid|name> [reason]", PREFIX);
 		return Plugin_Stop;
 	}
 
@@ -1576,11 +1572,11 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		LogToFile(logFile, "Unblock Select Query Failed: %s", error);
 		if (admin && IsClientInGame(admin))
 		{
-			PrintToChat(admin, "%s%T", Prefix, "Unblock Select Failed", admin, targetAuth);
+			PrintToChat(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
 		}
 		else
 		{
-			PrintToServer("%s%T", Prefix, "Unblock Select Failed", LANG_SERVER, targetAuth);
+			PrintToServer("%s%T", PREFIX, "Unblock Select Failed", LANG_SERVER, targetAuth);
 		}
 		errorCheck = true;
 	}
@@ -1590,9 +1586,9 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	{
 		if (admin && IsClientInGame(admin))
 		{
-			PrintToChat(admin, "%s%t", Prefix, "No blocks found", targetAuth);
+			PrintToChat(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
 		} else {
-			PrintToServer("%s%T", Prefix, "No blocks found", LANG_SERVER, targetAuth);
+			PrintToServer("%s%T", PREFIX, "No blocks found", LANG_SERVER, targetAuth);
 		}
 		errorCheck = true;
 	}
@@ -1629,7 +1625,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 							LogToFile(logFile, "MuteExpireTimer killed on temporary unmute (DB problems)");
 						#endif
 					}
-					ShowActivity2(admin, Prefix, "%t", "Temp unmuted player", g_sName[target]);
+					ShowActivity2(admin, PREFIX, "%t", "Temp unmuted player", g_sName[target]);
 					LogAction(admin, target, "\"%L\" temporary (DB problems) unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 				}
 				//-------------------------------------------------------------------------------------------------
@@ -1649,7 +1645,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 							LogToFile(logFile, "GagExpireTimer killed on temporary ungag (DB problems)");
 						#endif
 					}
-					ShowActivity2(admin, Prefix, "%t", "Temp ungagged player", g_sName[target]);
+					ShowActivity2(admin, PREFIX, "%t", "Temp ungagged player", g_sName[target]);
 					LogAction(admin, target, "\"%L\" temporary (DB problems) ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 				}
 				//-------------------------------------------------------------------------------------------------
@@ -1683,7 +1679,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 							LogToFile(logFile, "GagExpireTimer killed on temporary unsilence (DB problems)");
 						#endif
 					}
-					ShowActivity2(admin, Prefix, "%t", "Temp unsilenced player", g_sName[target]);
+					ShowActivity2(admin, PREFIX, "%t", "Temp unsilenced player", g_sName[target]);
 					LogAction(admin, target, "\"%L\" temporary (DB problems) unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
 				}
 			}
@@ -1692,9 +1688,9 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		{
 			if (admin && IsClientInGame(admin))
 			{
-				PrintToChat(admin, "%s%t", Prefix, "No db error unlock perm");
+				PrintToChat(admin, "%s%t", PREFIX, "No db error unlock perm");
 			} else {
-				PrintToServer("%s%T", Prefix, "No db error unlock perm", LANG_SERVER); //seriously? is it possible?
+				PrintToServer("%s%T", PREFIX, "No db error unlock perm", LANG_SERVER); //seriously? is it possible?
 			}
 		}
 		return;
@@ -1757,7 +1753,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 								LogToFile(logFile, "MuteExpireTimer killed on unmute");
 							#endif
 						}
-						ShowActivity2(admin, Prefix, "%t", "Unmuted player", g_sName[target]);
+						ShowActivity2(admin, PREFIX, "%t", "Unmuted player", g_sName[target]);
 						LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 					}
 					//-------------------------------------------------------------------------------------------------
@@ -1777,7 +1773,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 								LogToFile(logFile, "GagExpireTimer killed on ungag");
 							#endif
 						}
-						ShowActivity2(admin, Prefix, "%t", "Ungagged player", g_sName[target]);
+						ShowActivity2(admin, PREFIX, "%t", "Ungagged player", g_sName[target]);
 						LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 					}
 				}
@@ -1805,13 +1801,13 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				{
 					case TYPE_MUTE:
 					{
-						ShowActivity2(admin, Prefix, "%t", "No permission unmute", g_sName[target]);
+						ShowActivity2(admin, PREFIX, "%t", "No permission unmute", g_sName[target]);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute \"%L\" (reason \"%s\")", admin, target, reason);
 					}
 					//-------------------------------------------------------------------------------------------------
 					case TYPE_GAG:
 					{
-						ShowActivity2(admin, Prefix, "%t", "No permission ungag", g_sName[target]);
+						ShowActivity2(admin, PREFIX, "%t", "No permission ungag", g_sName[target]);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag \"%L\" (reason \"%s\")", admin, target, reason);
 					}
 				}
@@ -1844,7 +1840,7 @@ public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		LogToFile(logFile, "UnBlock Insert Query Failed: %s", error);
 		if (admin && IsClientInGame(admin))
 		{
-			PrintToChat(admin, "%s%t", Prefix, "Unblock insert failed");
+			PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
 		}
 		return;
 	}
@@ -1856,9 +1852,9 @@ public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 			LogAction(admin, -1, "\"%L\" removed mute for \"%L\" from DB", admin, target);
 			if (admin && IsClientInGame(admin))
 			{
-				PrintToChat(admin, "%s%t", Prefix, "successfully unmuted", clientName);
+				PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", clientName);
 			} else {
-				PrintToServer("%s%T", Prefix, "successfully unmuted", LANG_SERVER, clientName);
+				PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, clientName);
 			}
 		}
 		//-------------------------------------------------------------------------------------------------
@@ -1867,9 +1863,9 @@ public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 			LogAction(admin, -1, "\"%L\" removed gag for \"%L\" from DB", admin, target);
 			if (admin && IsClientInGame(admin))
 			{
-				PrintToChat(admin, "%s%t", Prefix, "successfully ungagged", clientName);
+				PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", clientName);
 			} else {
-				PrintToServer("%s%T", Prefix, "successfully ungagged", LANG_SERVER, clientName);
+				PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, clientName);
 			}
 		}
 	}
@@ -2011,7 +2007,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 						LogToFile(logFile, "%s is muted on connect", clientAuth);
 					#endif
 
-					PrintToChat(client, "%t", "Muted on connect");
+					PrintToChat(client, "%s%t", PREFIX, "Muted on connect");
 
 					if (length > 0)
 					{
@@ -2037,7 +2033,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					#if defined DEBUG
 						LogToFile(logFile, "%s is gagged on connect", clientAuth);
 					#endif
-					PrintToChat(client, "%t", "Gagged on connect");
+					PrintToChat(client, "%s%t", PREFIX, "Gagged on connect");
 
 					if (length > 0)
 					{
@@ -2095,7 +2091,7 @@ public Action:Timer_MuteExpire(Handle:timer, any:userid)
 	#if defined DEBUG
 		LogToFile(logFile, "Mute expired for %s", clientAuth);
 	#endif
-	PrintToChat(client, "%t", "Mute expired");
+	PrintToChat(client, "%s%t", PREFIX, "Mute expired");
 
 	g_hMuteExpireTimer[client] = INVALID_HANDLE;
 	g_MuteType[client] = bNot;
@@ -2120,7 +2116,7 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
 	#if defined DEBUG
 		LogToFile(logFile, "Gag expired for %s", clientAuth);
 	#endif
-	PrintToChat(client, "%t", "Gag expired");
+	PrintToChat(client, "%s%t", PREFIX, "Gag expired");
 
 	g_hGagExpireTimer[client] = INVALID_HANDLE;
 	g_GagType[client] = bNot;
@@ -2295,7 +2291,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	if (!g_bPlayerStatus[target])
 	{
 		// The target has not been blocks verify. It must be completed before you can block anyone.
-		ReplyToCommand(client, "%c[%cSourceComms%c]%c %t", GREEN, NAMECOLOR, GREEN, NAMECOLOR, "Player Comms Not Verified");
+		ReplyToCommand(client, "%s%t", PREFIX, "Player Comms Not Verified");
 		return false;
 	}
 
@@ -2371,25 +2367,25 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					#endif
 					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Muted player", g_sName[target], time);
+						ShowActivity2(client, PREFIX, "%t", "Muted player", g_sName[target], time);
 					else
-						ShowActivity2(client, Prefix, "%t", "Muted player reason", g_sName[target], time, reason);
+						ShowActivity2(client, PREFIX, "%t", "Muted player reason", g_sName[target], time, reason);
 				}
 				else if (time == 0)
 				{
 					g_MuteType[target] = bPerm;
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Permamuted player", g_sName[target]);
+						ShowActivity2(client, PREFIX, "%t", "Permamuted player", g_sName[target]);
 					else
-						ShowActivity2(client, Prefix, "%t", "Permamuted player reason", g_sName[target], reason);
+						ShowActivity2(client, PREFIX, "%t", "Permamuted player reason", g_sName[target], reason);
 				}
 				else	// temp block
 				{
 					g_MuteType[target] = bSess;
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Temp muted player", g_sName[target]);
+						ShowActivity2(client, PREFIX, "%t", "Temp muted player", g_sName[target]);
 					else
-						ShowActivity2(client, Prefix, "%t", "Temp muted player reason", g_sName[target], reason);
+						ShowActivity2(client, PREFIX, "%t", "Temp muted player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientMute(target, true);
 				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
@@ -2408,7 +2404,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				#if defined DEBUG
 					LogToFile(logFile, "%s already muted", auth);
 				#endif
-				ReplyToCommand(client, "%s%t", Prefix, "Player already muted", g_sName[target]);
+				ReplyToCommand(client, "%s%t", PREFIX, "Player already muted", g_sName[target]);
 				return false;
 			}
 		}
@@ -2439,25 +2435,25 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					#endif
 					g_hGagExpireTimer[target] = CreateTimer(float(time*60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Gagged player", g_sName[target], time);
+						ShowActivity2(client, PREFIX, "%t", "Gagged player", g_sName[target], time);
 					else
-						ShowActivity2(client, Prefix, "%t", "Gagged player reason", g_sName[target], time, reason);
+						ShowActivity2(client, PREFIX, "%t", "Gagged player reason", g_sName[target], time, reason);
 				}
 				else if (time == 0)
 				{
 					g_GagType[target] = bPerm;
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Permagagged player", g_sName[target]);
+						ShowActivity2(client, PREFIX, "%t", "Permagagged player", g_sName[target]);
 					else
-						ShowActivity2(client, Prefix, "%t", "Permagagged player reason", g_sName[target], reason);
+						ShowActivity2(client, PREFIX, "%t", "Permagagged player reason", g_sName[target], reason);
 				}
 				else	//temp block
 				{
 					g_GagType[target] = bSess;
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Temp gagged player", g_sName[target]);
+						ShowActivity2(client, PREFIX, "%t", "Temp gagged player", g_sName[target]);
 					else
-						ShowActivity2(client, Prefix, "%t", "Temp gagged player reason", g_sName[target], reason);
+						ShowActivity2(client, PREFIX, "%t", "Temp gagged player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientGag(target, true);
 				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
@@ -2476,7 +2472,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				#if defined DEBUG
 					LogToFile(logFile, "%s already gagged", auth);
 				#endif
-				ReplyToCommand(client, "%s%t", Prefix, "Player already gagged", g_sName[target]);
+				ReplyToCommand(client, "%s%t", PREFIX, "Player already gagged", g_sName[target]);
 				return false;
 			}
 		}
@@ -2519,27 +2515,27 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 					#endif
 					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Silenced player", g_sName[target], time);
+						ShowActivity2(client, PREFIX, "%t", "Silenced player", g_sName[target], time);
 					else
-						ShowActivity2(client, Prefix, "%t", "Silenced player reason", g_sName[target], time, reason);
+						ShowActivity2(client, PREFIX, "%t", "Silenced player reason", g_sName[target], time, reason);
 				}
 				else if (time == 0)
 				{
 					g_MuteType[target] = bPerm;
 					g_GagType[target] = bPerm;
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Permasilenced player", g_sName[target]);
+						ShowActivity2(client, PREFIX, "%t", "Permasilenced player", g_sName[target]);
 					else
-						ShowActivity2(client, Prefix, "%t", "Permasilenced player reason", g_sName[target], reason);
+						ShowActivity2(client, PREFIX, "%t", "Permasilenced player reason", g_sName[target], reason);
 				}
 				else	//temp block
 				{
 					g_MuteType[target] = bSess;
 					g_GagType[target] = bSess;
 					if (reason[0] == '\0')
-						ShowActivity2(client, Prefix, "%t", "Temp silenced player", g_sName[target]);
+						ShowActivity2(client, PREFIX, "%t", "Temp silenced player", g_sName[target]);
 					else
-						ShowActivity2(client, Prefix, "%t", "Temp silenced player reason", g_sName[target], reason);
+						ShowActivity2(client, PREFIX, "%t", "Temp silenced player reason", g_sName[target], reason);
 				}
 				BaseComm_SetClientMute(target, true);
 				BaseComm_SetClientGag(target, true);
@@ -2576,7 +2572,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				#if defined DEBUG
 					LogToFile(logFile, "%s already gagged or/and muted", auth);
 				#endif
-				ReplyToCommand(client, "%s%t", Prefix, "Player already silenced", g_sName[target]);
+				ReplyToCommand(client, "%s%t", PREFIX, "Player already silenced", g_sName[target]);
 				return false;
 			}
 		}
@@ -2614,7 +2610,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 		{
 			if (!BaseComm_IsClientMuted(target))
 			{
-				ReplyToCommand(client, "%c[%cSourceComms%c]%c %t", GREEN, NAMECOLOR, GREEN, NAMECOLOR, "Player not muted");
+				ReplyToCommand(client, "%s%t", PREFIX, "Player not muted");
 				return false;
 			}
 			else
@@ -2627,7 +2623,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 		{
 			if (!BaseComm_IsClientGagged(target))
 			{
-				ReplyToCommand(client, "%c[%cSourceComms%c]%c %t", GREEN, NAMECOLOR, GREEN, NAMECOLOR, "Player not gagged");
+				ReplyToCommand(client, "%s%t", PREFIX, "Player not gagged");
 				return false;
 			}
 			else
@@ -2640,7 +2636,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 		{
 			if (!BaseComm_IsClientMuted(target) || !BaseComm_IsClientGagged(target))
 			{
-				ReplyToCommand(client, "%c[%cSourceComms%c]%c %t", GREEN, NAMECOLOR, GREEN, NAMECOLOR, "Player not silenced");
+				ReplyToCommand(client, "%s%t", PREFIX, "Player not silenced");
 				return false;
 			}
 			else
@@ -2750,10 +2746,10 @@ stock ReadConfig()
 	if (FileExists(ConfigFile1))
 	{
 		InternalReadConfig(ConfigFile1);
-		PrintToServer("%sLoading configs/sourcebans/sourcebans.cfg config file", Prefix);
+		PrintToServer("%sLoading configs/sourcebans/sourcebans.cfg config file", PREFIX);
 	} else {
 		decl String:Error[PLATFORM_MAX_PATH + 64];
-		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", Prefix, ConfigFile1);
+		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", PREFIX, ConfigFile1);
 		LogToFile(logFile, "FATAL *** ERROR *** can not find %s", ConfigFile1);
 		SetFailState(Error);
 	}
@@ -2766,10 +2762,10 @@ stock ReadConfig()
 			iNumReasons--;
 		if (iNumTimes)
 			iNumTimes--;
-		PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", Prefix);
+		PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", PREFIX);
 	} else {
 		decl String:Error[PLATFORM_MAX_PATH + 64];
-		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", Prefix, ConfigFile2);
+		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", PREFIX, ConfigFile2);
 		LogToFile(logFile, "FATAL *** ERROR *** can not find %s", ConfigFile2);
 		SetFailState(Error);
 	}
@@ -2801,18 +2797,18 @@ Bool_ValidMenuTarget(client, target)
 	if (target <= 0)
 	{
 		if (client)
-			PrintToChat(client, "%s%t", Prefix, "AdminMenu_Not_Available");
+			PrintToChat(client, "%s%t", PREFIX, "AdminMenu_Not_Available");
 		else
-			ReplyToCommand(client, "%s%t", Prefix, "AdminMenu_Not_Available");
+			ReplyToCommand(client, "%s%t", PREFIX, "AdminMenu_Not_Available");
 
 		return false;
 	}
 	else if (!CanUserTarget(client, target))
 	{
 		if (client)
-			PrintToChat(client, "%s%t", Prefix, "Command_Target_Not_Targetable");
+			PrintToChat(client, "%s%t", PREFIX, "Command_Target_Not_Targetable");
 		else
-			ReplyToCommand(client, "%s%t", Prefix, "Command_Target_Not_Targetable");
+			ReplyToCommand(client, "%s%t", PREFIX, "Command_Target_Not_Targetable");
 
 		return false;
 	}
