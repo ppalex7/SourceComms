@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.79"
+#define VERSION "0.8.88"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -81,6 +81,7 @@ new Float:RetryTime = 15.0;
 new DefaultTime = 30;
 new DisUBImCheck = 0;
 new ConsoleImmunity = 0;
+new ConfigMaxLength = 0;
 new ProcessQueueTime = 5;
 new bool:LateLoaded;
 
@@ -334,7 +335,7 @@ public OnClientPostAdminCheck(client)
 	if (client > 0 && !IsFakeClient(client))
 	{
 		decl String:Query[512];
-		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, if (a.immunity>0, a.immunity, IFNULL(g.immunity,0)) as immunity FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
+		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
 				DatabasePrefix, DatabasePrefix, DatabasePrefix, clientAuth[8]);
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "Checking blocks for: %s. QUERY: %s", clientAuth, Query);
@@ -818,6 +819,12 @@ public Action:PrepareBlock(client, type_block, args)
 	else
 		strcopy(sReason, sizeof(sReason), sArg[2]);
 
+	if(IsAllowedBlockLength(client, time))
+	{
+		ReplyToCommand(client, "%s%t", PREFIX, "no access");
+		return Plugin_Stop;
+	}
+
 	#if defined DEBUG
 		LogToFile(logFile, "Calling CreateBlock cl %d, target %d, time %d, type %d, reason %s", client, target, time, type_block, sArg[2]);
 	#endif
@@ -1100,10 +1107,11 @@ AdminMenu_Duration(client, target, type)
 
 	for (new i = 0; i <= iNumTimes; i++)
 	{
-		if (!g_iTimeMinutes[i] && !CheckCommandAccess(client, "", UNBLOCK_FLAG|ADMFLAG_ROOT, true))
-			continue;	// skip permanent if we haven't access
-		Format(sTemp, sizeof(sTemp), "%d %d %d", GetClientUserId(target), type, i);	// TargetID TYPE_BLOCK index_of_Time
-		AddMenuItem(hMenu, sTemp, g_sTimeDisplays[i]);
+		if (IsAllowedBlockLength(client, g_iTimeMinutes[i]))
+		{
+			Format(sTemp, sizeof(sTemp), "%d %d %d", GetClientUserId(target), type, i);	// TargetID TYPE_BLOCK index_of_Time
+			AddMenuItem(hMenu, sTemp, g_sTimeDisplays[i]);
+		}
 	}
 
 	DisplayMenu(hMenu, client, MENU_TIME_FOREVER);
@@ -1979,7 +1987,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
 
 	//SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user,
-	//if (a.immunity>0, a.immunity, IFNULL(g.immunity,0)) as immunity FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
+	//IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
 	//WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
 	if (SQL_GetRowCount(hndl) > 0)
 	{
@@ -1988,6 +1996,12 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 			new remaining_time = SQL_FetchInt(hndl, 0);
 			new length = SQL_FetchInt(hndl, 1);
 			new type = SQL_FetchInt(hndl, 2);
+			new aid = SQL_FetchInt(hndl, 7);
+			new immunity = SQL_FetchInt(hndl, 6);
+
+			// Block from CONSOLE (aid=0) and we have `console immunity` value in config
+			if (!aid && ConsoleImmunity > immunity)
+				immunity = ConsoleImmunity;
 
 			#if defined DEBUG
 				LogToFile(logFile, "Fetched from DB: remaining %d, length %d, type %d", remaining_time, length, type);
@@ -2001,7 +2015,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					g_iMuteTime[client] = SQL_FetchInt(hndl, 3);
 					SQL_FetchString(hndl, 4, g_sMuteReason[client], sizeof(g_sMuteReason[]));
 					SQL_FetchString(hndl, 5, g_sMuteAdmin[client], sizeof(g_sMuteAdmin[]));
-					g_iMuteLevel[client]= SQL_FetchInt(hndl, 6);
+					g_iMuteLevel[client] = immunity;
 
 					#if defined DEBUG
 						LogToFile(logFile, "%s is muted on connect", clientAuth);
@@ -2028,7 +2042,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 					g_iGagTime[client] = SQL_FetchInt(hndl, 3);
 					SQL_FetchString(hndl, 4, g_sGagReason[client], sizeof(g_sGagReason[]));
 					SQL_FetchString(hndl, 5, g_sGagAdmin[client], sizeof(g_sGagAdmin[]));
-					g_iGagLevel[client]= SQL_FetchInt(hndl, 6);
+					g_iGagLevel[client] = immunity;
 
 					#if defined DEBUG
 						LogToFile(logFile, "%s is gagged on connect", clientAuth);
@@ -2237,6 +2251,10 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			else if (strcmp("ConsoleImmunity", key, false) == 0)
 			{
 				ConsoleImmunity = StringToInt(value);
+			}
+			else if (strcmp("MaxLength", key, false) == 0)
+			{
+				ConfigMaxLength = StringToInt(value);
 			}
 		}
 		case ConfigStateReasons:
@@ -2658,7 +2676,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 
 	decl String:query[1024];
 	Format(query, sizeof(query),
-		"SELECT c.bid, IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, c.aid, if (a.immunity>0, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type FROM %s_comms c \
+		"SELECT c.bid, IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, c.aid, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type FROM %s_comms c \
 		LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') AND %s",
 		DatabasePrefix, adminAuth, adminAuth[8], DatabasePrefix, DatabasePrefix, DatabasePrefix, targetAuth, targetAuth[8], typeWHERE);
 
@@ -2792,7 +2810,7 @@ AdminMenu_GetPunishPhrase(client, target, String:name[], length)
 	strcopy(name, length, Buffer);
 }
 
-Bool_ValidMenuTarget(client, target)
+bool:Bool_ValidMenuTarget(client, target)
 {
 	if (target <= 0)
 	{
@@ -2816,4 +2834,17 @@ Bool_ValidMenuTarget(client, target)
 	return true;
 }
 
+bool:IsAllowedBlockLength(admin, length)
+{
+	if (!ConfigMaxLength)
+		return true;	// Restriction disabled
+	if (!admin)
+		return true;	// all allowed for console
+	if (CheckCommandAccess(admin, "", UNBLOCK_FLAG|ADMFLAG_ROOT, true))
+		return true;	// all allowed for admins with special flag
+	if (!length || length > ConfigMaxLength)
+		return false;
+	else
+		return true;
+}
 //Yarr!
