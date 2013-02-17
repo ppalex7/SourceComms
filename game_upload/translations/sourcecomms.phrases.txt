@@ -539,4 +539,10 @@
 		"en"		"Your chat and voice hasn't blocked."
 		"ru"		"У вас не заблокированы чат и микрофон."
 	}
+	//---------------------------------------------------------------------------------
+	"no access"
+	{
+		"en"		"The punishment for the specified time is not allowed for you."
+		"ru"		"Блокировка на указанное время недоступна дял вас."
+	}
 }

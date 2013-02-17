@@ -1,4 +1,8 @@
 #Changelog
+* **0.8.88**
+	* Added `MaxLength` option to config. See plugin config for mor details.
+	* Fixed admin immunity determination in sql queries.
+	* Added setting up console immunity on block fetching.
 * **0.8.79** - Added colored prefix to all output messages.
 * **0.8.75**
 	* Code improvements.

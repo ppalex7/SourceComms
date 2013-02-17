@@ -26,8 +26,10 @@ Also includes files and instructions to integration to existing sourcebans web-p
 	* Punishments issued by *CONSOLE* has some immunity level (which is set in config, option *"ConsoleImmunity"*).
 	* Immunity checking system could be disabled by setting option *"DisableUnblockImmunityCheck"* to value 1 in config file.
 	* One more **important** moment. When somebody removes punishment - plugin retrieves *"punishment issuer admin id"* from database. If the request fails - punishment could be temporary removed (on server, not in database) only by console, admin with special flag or with higher immunity.
-* Punishments reasons and times stored in config.
-* Config has another usefull setting - *"DefaultTime"*. When admin run sm_gag (mute, silence) command only with player name - he will be gagged on *"DefaultTime"* value minutes. (if *"DefaultTime"* setted in -1 -> player will be blocked only on session (until reconnect)).
+* Plugin config:
+	* Punishments reasons and times stored in config.
+	* Config has another usefull setting - *"DefaultTime"*. When admin run sm_gag (mute, silence) command only with player name - he will be gagged on *"DefaultTime"* value minutes. (if *"DefaultTime"* setted in -1 -> player will be blocked only on session (until reconnect)).
+	* Config has setting *"MaxLength"*, which works following way: Plugin will hide (for admins without ADMFLAG_CUSTOM 2) from menu all durations more than MaxLength and restricts punishments commands with time > MaxLength argument (or permanent).
 * SourceComms supports [auto-update](https://forums.alliedmods.net/showthread.php?p=1570806).
 
 ### Web part provides the following functionality:
@@ -75,16 +77,16 @@ First of all, download this repository as a zip file.
 		}
 3. (Optional) Edit `/addons/sourcemod/configs/adminmenu_sorting.txt`. Find `}` at the end of file and add **before**:
 
-		"sourcecomm_cmds" 
-		{ 
-			"item" "sourcecomm_gag" 
-			"item" "sourcecomm_mute" 
-			"item" "sourcecomm_silence" 
-			"item" "sourcecomm_ungag" 
-			"item" "sourcecomm_unmute" 
-			"item" "sourcecomm_unsilence" 
-			"item" "sourcecomm_list" 
-		} 
+		"sourcecomm_cmds"
+		{
+			"item" "sourcecomm_gag"
+			"item" "sourcecomm_mute"
+			"item" "sourcecomm_silence"
+			"item" "sourcecomm_ungag"
+			"item" "sourcecomm_unmute"
+			"item" "sourcecomm_unsilence"
+			"item" "sourcecomm_list"
+		}
 
 ### Installation of database part
 1. **Check your sourcebans tables prefix!** Replace in query bellow prefix `sb` to yours, if you use another. Execute the following query on your sourcebans database:

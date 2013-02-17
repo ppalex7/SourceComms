@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.82"
+#define VERSION "0.8.88"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -81,6 +81,7 @@ new Float:RetryTime = 15.0;
 new DefaultTime = 30;
 new DisUBImCheck = 0;
 new ConsoleImmunity = 0;
+new ConfigMaxLength = 0;
 new ProcessQueueTime = 5;
 new bool:LateLoaded;
 
@@ -818,6 +819,12 @@ public Action:PrepareBlock(client, type_block, args)
 	else
 		strcopy(sReason, sizeof(sReason), sArg[2]);
 
+	if(IsAllowedBlockLength(client, time))
+	{
+		ReplyToCommand(client, "%s%t", PREFIX, "no access");
+		return Plugin_Stop;
+	}
+
 	#if defined DEBUG
 		LogToFile(logFile, "Calling CreateBlock cl %d, target %d, time %d, type %d, reason %s", client, target, time, type_block, sArg[2]);
 	#endif
@@ -1100,8 +1107,11 @@ AdminMenu_Duration(client, target, type)
 
 	for (new i = 0; i <= iNumTimes; i++)
 	{
-		Format(sTemp, sizeof(sTemp), "%d %d %d", GetClientUserId(target), type, i);	// TargetID TYPE_BLOCK index_of_Time
-		AddMenuItem(hMenu, sTemp, g_sTimeDisplays[i]);
+		if (IsAllowedBlockLength(client, g_iTimeMinutes[i]))
+		{
+			Format(sTemp, sizeof(sTemp), "%d %d %d", GetClientUserId(target), type, i);	// TargetID TYPE_BLOCK index_of_Time
+			AddMenuItem(hMenu, sTemp, g_sTimeDisplays[i]);
+		}
 	}
 
 	DisplayMenu(hMenu, client, MENU_TIME_FOREVER);
@@ -2242,6 +2252,10 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			{
 				ConsoleImmunity = StringToInt(value);
 			}
+			else if (strcmp("MaxLength", key, false) == 0)
+			{
+				ConfigMaxLength = StringToInt(value);
+			}
 		}
 		case ConfigStateReasons:
 		{
@@ -2796,7 +2810,7 @@ AdminMenu_GetPunishPhrase(client, target, String:name[], length)
 	strcopy(name, length, Buffer);
 }
 
-Bool_ValidMenuTarget(client, target)
+bool:Bool_ValidMenuTarget(client, target)
 {
 	if (target <= 0)
 	{
@@ -2820,4 +2834,17 @@ Bool_ValidMenuTarget(client, target)
 	return true;
 }
 
+bool:IsAllowedBlockLength(admin, length)
+{
+	if (!ConfigMaxLength)
+		return true;	// Restriction disabled
+	if (!admin)
+		return true;	// all allowed for console
+	if (CheckCommandAccess(admin, "", UNBLOCK_FLAG|ADMFLAG_ROOT, true))
+		return true;	// all allowed for admins with special flag
+	if (!length || length > ConfigMaxLength)
+		return false;
+	else
+		return true;
+}
 //Yarr!
