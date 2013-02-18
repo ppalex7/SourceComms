@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.88"
+#define VERSION "0.8.89"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -819,7 +819,7 @@ public Action:PrepareBlock(client, type_block, args)
 	else
 		strcopy(sReason, sizeof(sReason), sArg[2]);
 
-	if(IsAllowedBlockLength(client, time))
+	if(!IsAllowedBlockLength(client, time))
 	{
 		ReplyToCommand(client, "%s%t", PREFIX, "no access");
 		return Plugin_Stop;
