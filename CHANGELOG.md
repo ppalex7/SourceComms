@@ -1,4 +1,5 @@
 #Changelog
+* **0.8.89** - Fixed bug with MaxLength checking in console commands.
 * **0.8.88**
 	* Added `MaxLength` option to config. See plugin config for mor details.
 	* Fixed admin immunity determination in sql queries.

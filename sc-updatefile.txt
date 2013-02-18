@@ -4,13 +4,11 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.8.88"
+			"Latest"	"0.8.89"
 		}
 
 		"Notes"	"More info @ https://forums.alliedmods.net/showthread.php?t=207176 "
-		"Notes"	"Added `MaxLength` option to config. See plugin config for mor details."
-		"Notes"	"Fixed admin immunity determination in sql queries."
-		"Notes"	"Added setting up console immunity on block fetching."
+		"Notes"	"Fixed bug with MaxLength checking in console commands."
 	}
 
 	"Files"
