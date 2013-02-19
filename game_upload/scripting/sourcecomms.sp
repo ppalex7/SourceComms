@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.89"
+#define VERSION "0.8.90"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -494,7 +494,7 @@ public Action:CommandComms(client, args)
 	else
 		ReplyToCommand(client,  "%s%t", PREFIX, "CommandComms_nb");
 
-	return Plugin_Continue;
+	return Plugin_Handled;
 }
 
 public Action:FWBlock(args)
