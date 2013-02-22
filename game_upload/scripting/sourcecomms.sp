@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.101"
+#define VERSION "0.8.104"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -48,6 +48,7 @@ enum State /* ConfigState */
 enum DatabaseState /* Database connection state */
 {
 	DatabaseState_None = 0,
+	DatabaseState_Wait,
 	DatabaseState_Connecting,
 	DatabaseState_Connected
 }
@@ -2008,7 +2009,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	if (DB_Conn_Lost(hndl))
 	{
 		LogToFile(logFile, "Verify Blocks Query Failed: %s", error);
-		g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, userid);
+		g_hPlayerRecheck[client] = CreateTimer(RetryTime + 10, ClientRecheck, userid);
 		return;
 	}
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
@@ -2178,6 +2179,11 @@ public Action:ProcessQueue(Handle:timer, any:data)
 	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, buffer);
 }
 
+public Action:Timer_StopWait(Handle:timer, any:data)
+{
+	g_DatabaseState = DatabaseState_None;
+}
+
 // PARSER //
 
 static InitializeConfigParser()
@@ -2322,6 +2328,9 @@ public bool:DB_Connect()
 	if (g_hDatabase)
 		return true;
 
+	if (g_DatabaseState == DatabaseState_Wait) // 100500 connections in a minute is bad idea..
+		return false;
+
 	if(g_DatabaseState != DatabaseState_Connecting)
 	{
 		g_DatabaseState = DatabaseState_Connecting;
@@ -2340,7 +2349,8 @@ public bool:DB_Conn_Lost(Handle:query_hndl)
 		LogToFile(logFile, "Lost connection to DB. Reconnect at next query.");
 		CloseHandle(g_hDatabase);
 		g_hDatabase = INVALID_HANDLE;
-		g_DatabaseState = DatabaseState_None;
+		g_DatabaseState = DatabaseState_Wait;
+		CreateTimer(RetryTime, Timer_StopWait, _, TIMER_FLAG_NO_MAPCHANGE);
 		return true;
 	}
 	else
