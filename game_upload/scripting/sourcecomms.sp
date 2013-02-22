@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.106"
+#define VERSION "0.8.108"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -93,7 +93,6 @@ new DefaultTime = 30;
 new DisUBImCheck = 0;
 new ConsoleImmunity = 0;
 new ConfigMaxLength = 0;
-new ProcessQueueTime = 5;
 new bool:LateLoaded;
 
 new serverID = -1;
@@ -205,9 +204,6 @@ public OnPluginStart()
 	InitializeBackupDB();
 
 	ServerInfo();
-
-	// This timer is what processes the SQLite queue when the database is unavailable
-	CreateTimer(float(ProcessQueueTime * 60), ProcessQueue);
 
 	/* Account for late loading */
 	if (LateLoaded)
@@ -1529,6 +1525,9 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 		LogToFile(logQuery, "Set encoding. QUERY: %s", query);
 	#endif
 	SQL_TQuery(g_hDatabase, ErrorCheckCallback, query);
+
+	// Process queue
+	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, "SELECT id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type FROM queue2");
 }
 
 public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPack)
@@ -1965,8 +1964,6 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 
 		SQL_TQuery(g_hDatabase, AddedFromSQLiteCallbackB, query, id);
 	}
-	// We have finished processing the queue but should process again in ProcessQueueTime minutes
-	CreateTimer(float(ProcessQueueTime * 60), ProcessQueue);
 }
 
 public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[], any:data)
@@ -2166,11 +2163,6 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
 		BaseComm_SetClientGag(client, false);
 }
 
-public Action:ProcessQueue(Handle:timer, any:data)
-{
-	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, "SELECT id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type FROM queue2");
-}
-
 public Action:Timer_StopWait(Handle:timer, any:data)
 {
 	g_DatabaseState = DatabaseState_None;
@@ -2248,10 +2240,6 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 				} else if (RetryTime > 60.0) {
 					RetryTime = 60.0;
 				}
-			}
-			else if (strcmp("ProcessQueueTime", key, false) == 0)
-			{
-				ProcessQueueTime = StringToInt(value);
 			}
 			else if (strcmp("ServerID", key, false) == 0)
 			{
