@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.98"
+#define VERSION "0.8.101"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1538,9 +1538,10 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 		return;
 	}
 
-	if (hndl == INVALID_HANDLE || error[0])
+	if (DB_Conn_Lost(hndl) || error[0])
 	{
 		LogToFile(logFile, "Verify Insert Query Failed: %s", error);
+		LogToFile(logFile, "Handle was %d", hndl);
 
 		ResetPack(dataPack);
 		new time = ReadPackCell(dataPack);
@@ -1616,7 +1617,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	}
 
 	// If there was no results then a ban does not exist for that id
-	if (hndl == INVALID_HANDLE || !SQL_GetRowCount(hndl))
+	if (DB_Conn_Lost(hndl) || !SQL_GetRowCount(hndl))
 	{
 		if (admin && IsClientInGame(admin))
 		{
@@ -1731,7 +1732,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	}
 
 	// There is blocks
-	if (hndl != INVALID_HANDLE)
+	if (!DB_Conn_Lost(hndl))	// always true?
 	{
 		#if defined DEBUG
 			LogToFile(logFile, "Processing unblock. Type: %d, admin %s, target %s,", type, adminAuth, targetAuth);
@@ -2004,7 +2005,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 		return;
 
 	/* Failure happen. Do retry with delay */
-	if (hndl == INVALID_HANDLE)
+	if (DB_Conn_Lost(hndl))
 	{
 		LogToFile(logFile, "Verify Blocks Query Failed: %s", error);
 		g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, userid);
@@ -2330,6 +2331,20 @@ public bool:DB_Connect()
 	}
 
 	return false;
+}
+
+public bool:DB_Conn_Lost(Handle:query_hndl)
+{
+	if (query_hndl == INVALID_HANDLE)
+	{
+		LogToFile(logFile, "Lost connection to DB. Reconnect at next query.");
+		CloseHandle(g_hDatabase);
+		g_hDatabase = INVALID_HANDLE;
+		g_DatabaseState = DatabaseState_None;
+		return true;
+	}
+	else
+		return false;
 }
 
 public InitializeBackupDB()
