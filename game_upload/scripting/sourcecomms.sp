@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.104"
+#define VERSION "0.8.106"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1931,14 +1931,15 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 
 		// if we get to here then there are rows in the queue pending processing
 		//steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER
-		SQL_FetchString(hndl, 0, auth, sizeof(auth));
-		new time = SQL_FetchInt(hndl, 1);
-		new startTime = SQL_FetchInt(hndl, 2);
-		SQL_FetchString(hndl, 3, reason, sizeof(reason));
-		SQL_FetchString(hndl, 4, name, sizeof(name));
-		SQL_FetchString(hndl, 5, adminAuth, sizeof(adminAuth));
-		SQL_FetchString(hndl, 6, adminIp, sizeof(adminIp));
-		new type = SQL_FetchInt(hndl, 7);
+		new id = SQL_FetchInt(hndl, 0);
+		SQL_FetchString(hndl, 1, auth, sizeof(auth));
+		new time = SQL_FetchInt(hndl, 2);
+		new startTime = SQL_FetchInt(hndl, 3);
+		SQL_FetchString(hndl, 4, reason, sizeof(reason));
+		SQL_FetchString(hndl, 5, name, sizeof(name));
+		SQL_FetchString(hndl, 6, adminAuth, sizeof(adminAuth));
+		SQL_FetchString(hndl, 7, adminIp, sizeof(adminIp));
+		new type = SQL_FetchInt(hndl, 8);
 		SQL_EscapeString(g_hDatabase, name, banName, sizeof(banName));
 		SQL_EscapeString(g_hDatabase, reason, banReason, sizeof(banReason));
 		// all blocks should be entered into db!
@@ -1961,11 +1962,8 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in ProcessQueueCallbackB: Insert to db. QUERY: %s", query);
 		#endif
-		new Handle:authPack = CreateDataPack();
-		WritePackString(authPack, auth);
-		WritePackCell(authPack, type);
-		ResetPack(authPack);
-		SQL_TQuery(g_hDatabase, AddedFromSQLiteCallbackB, query, authPack);
+
+		SQL_TQuery(g_hDatabase, AddedFromSQLiteCallbackB, query, id);
 	}
 	// We have finished processing the queue but should process again in ProcessQueueTime minutes
 	CreateTimer(float(ProcessQueueTime * 60), ProcessQueue);
@@ -1973,20 +1971,16 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 
 public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	decl String:buffer[512];
-	decl String:auth[40];
-	ReadPackString(data, auth, sizeof(auth));
-	new type = ReadPackCell(data);
+	decl String:buffer[128];
 	if (error[0] == '\0')
 	{
 		// The insert was successful so delete the record from the queue
-		FormatEx(buffer, sizeof(buffer), "DELETE FROM queue WHERE steam_id = '%s' AND type = %d", auth, type);
+		FormatEx(buffer, sizeof(buffer), "DELETE FROM queue2 WHERE id = %d", data);
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in AddedFromSQLiteCallbackB: DELETE FROM QUEUE. QUERY: %s", buffer);
 		#endif
 		SQL_TQuery(SQLiteDB, ErrorCheckCallback, buffer);
 	}
-	CloseHandle(data);
 }
 
 public ErrorCheckCallback(Handle:owner, Handle:hndle, const String:error[], any:data)
@@ -2174,9 +2168,7 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
 
 public Action:ProcessQueue(Handle:timer, any:data)
 {
-	decl String:buffer[512];
-	Format(buffer, sizeof(buffer), "SELECT steam_id, time, start_time, reason, name, admin_id, admin_ip, type FROM queue");
-	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, buffer);
+	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, "SELECT id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type FROM queue2");
 }
 
 public Action:Timer_StopWait(Handle:timer, any:data)
@@ -2364,9 +2356,8 @@ public InitializeBackupDB()
 	if (SQLiteDB == INVALID_HANDLE)
 		SetFailState(error);
 
-	SQL_LockDatabase(SQLiteDB);
-	SQL_FastQuery(SQLiteDB, "CREATE TABLE IF NOT EXISTS queue (steam_id TEXT PRIMARY KEY ON CONFLICT REPLACE, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
-	SQL_UnlockDatabase(SQLiteDB);
+	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "DROP TABLE IF EXISTS queue;");
+	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
 }
 
 public bool:CreateBlock(client, target, time, type, String:reason[])
@@ -2798,7 +2789,7 @@ stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[],
 	decl String:query[512];
 	SQL_EscapeString(SQLiteDB, name, banName, sizeof(banName));
 	SQL_EscapeString(SQLiteDB, reason, banReason, sizeof(banReason));
-	FormatEx(	query, sizeof(query), "INSERT INTO queue VALUES ('%s', %i, %i, '%s', '%s', '%s', '%s', %i)",
+	FormatEx(	query, sizeof(query), "INSERT INTO queue2 (steam_id, time, start_time, reason, name, admin_id, admin_ip, type) VALUES ('%s', %i, %i, '%s', '%s', '%s', '%s', %i)",
 				auth, time, GetTime(), banReason, banName, adminAuth, adminIp, type);
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", query);
