@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.90"
+#define VERSION "0.8.92"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1893,7 +1893,7 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 	decl String:reason[128];
 	decl String:adminAuth[64], String:adminIp[20];
 	decl String:query[1024];
-	decl String:banReason[256];
+	decl String:banReason[128 * 2 + 1];
 	new String:banName[MAX_NAME_LENGTH * 2  + 1];
 	while(SQL_MoreRows(hndl))
 	{
@@ -1911,8 +1911,8 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		SQL_FetchString(hndl, 5, adminAuth, sizeof(adminAuth));
 		SQL_FetchString(hndl, 6, adminIp, sizeof(adminIp));
 		new type = SQL_FetchInt(hndl, 7);
-		SQL_EscapeString(SQLiteDB, name, banName, sizeof(banName));
-		SQL_EscapeString(SQLiteDB, reason, banReason, sizeof(banReason));
+		SQL_EscapeString(Database, name, banName, sizeof(banName));
+		SQL_EscapeString(Database, reason, banReason, sizeof(banReason));
 		// all blocks should be entered into db!
 		if ( serverID == -1 )
 		{
