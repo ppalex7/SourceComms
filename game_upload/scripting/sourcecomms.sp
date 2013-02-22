@@ -10,13 +10,13 @@
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 #define DATABASE "sourcecomms"
 
-//#define DEBUG
-//#define LOG_QUERIES
+#define DEBUG
+#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.92"
+#define VERSION "0.8.98"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -45,6 +45,16 @@ enum State /* ConfigState */
 	ConfigStateReasons,
 	ConfigStateTimes
 }
+enum DatabaseState /* Database connection state */
+{
+	DatabaseState_None = 0,
+	DatabaseState_Connecting,
+	DatabaseState_Connected
+}
+
+new DatabaseState:g_DatabaseState;
+new g_iConnectLock = 0;
+new g_iSequence    = 0;
 
 new State:ConfigState;
 new Handle:ConfigParser;
@@ -60,7 +70,7 @@ new String:ServerPort[7];
 new String:DatabasePrefix[10] = "sb";
 
 /* Database handle */
-new Handle:Database;
+new Handle:g_hDatabase;
 new Handle:SQLiteDB;
 
 /* Datapack and Timer handles */
@@ -189,7 +199,7 @@ public OnPluginStart()
 		SetFailState("Database failure: Could not find Database conf  %s", DATABASE);
 		return;
 	}
-	SQL_TConnect(GotDatabase, DATABASE);
+	DB_Connect();
 
 	InitializeBackupDB();
 
@@ -326,7 +336,7 @@ public OnClientPostAdminCheck(client)
 	GetClientName(client, g_sName[client], sizeof(g_sName[]));
 
 	/* Do not check bots nor check player with lan steamid. */
-	if (clientAuth[0] == 'B' || clientAuth[9] == 'L' || Database == INVALID_HANDLE) // || Database == INVALID_HANDLE ??
+	if (clientAuth[0] == 'B' || clientAuth[9] == 'L' || !DB_Connect())
 	{
 		g_bPlayerStatus[client] = true;
 		return;
@@ -340,7 +350,7 @@ public OnClientPostAdminCheck(client)
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "Checking blocks for: %s. QUERY: %s", clientAuth, Query);
 		#endif
-		SQL_TQuery(Database, VerifyBlocks, Query, GetClientUserId(client), DBPrio_High);
+		SQL_TQuery(g_hDatabase, VerifyBlocks, Query, GetClientUserId(client), DBPrio_High);
 	}
 }
 
@@ -392,7 +402,7 @@ public BaseComm_OnClientMute(client, bool:muteState)
 
 				ResetPack(dataPack);
 				ResetPack(reasonPack);
-				if (Database != INVALID_HANDLE)
+				if (DB_Connect())
 				{
 					UTIL_InsertBlock(-1, TYPE_MUTE, g_sName[client], auth, g_sMuteReason[client], adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
 				} else {
@@ -455,7 +465,7 @@ public BaseComm_OnClientGag(client, bool:gagState)
 
 				ResetPack(dataPack);
 				ResetPack(reasonPack);
-				if (Database != INVALID_HANDLE)
+				if (DB_Connect())
 				{
 					UTIL_InsertBlock(-1, TYPE_GAG, g_sName[client], auth, g_sGagReason[client], adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
 				} else {
@@ -1488,20 +1498,36 @@ public PanelHandler_ListTargetReason(Handle:menu, MenuAction:action, param1, par
 
 public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	if (hndl == INVALID_HANDLE)
+	#if defined DEBUG
+		LogToFile(logFile, "in GotDatabase: data %d, lock %d, g_h %d, hndl %d", data, g_iConnectLock, g_hDatabase, hndl);
+	#endif
+	// If this happens to be an old connection request, ignore it.
+	if(data != g_iConnectLock || g_hDatabase)
 	{
-		LogToFile(logFile, "Database failure: %s.", error);
+		if(hndl)
+			CloseHandle(hndl);
 		return;
 	}
 
-	Database = hndl;
+	g_iConnectLock   = 0;
+	g_DatabaseState = DatabaseState_Connected;
+	g_hDatabase      = hndl;
 
+	// See if the connection is valid.  If not, don't un-mark the caches
+	// as needing rebuilding, in case the next connection request works.
+	if(!g_hDatabase)
+	{
+		LogToFile(logFile, "Could not connect to database. Error: %s", error);
+		return;
+	}
+
+	// Set character set to UTF-8 in the database
 	decl String:query[128];
-	FormatEx(query, sizeof(query), "SET NAMES \"UTF8\"");
+	FormatEx(query, sizeof(query), "SET NAMES 'UTF8'");
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "Set encoding. QUERY: %s", query);
 	#endif
-	SQL_TQuery(Database, ErrorCheckCallback, query);
+	SQL_TQuery(g_hDatabase, ErrorCheckCallback, query);
 }
 
 public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPack)
@@ -1557,7 +1583,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	ReadPackString(data, reason, sizeof(reason));
 	ReadPackString(data, adminAuth, sizeof(adminAuth));
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
-	SQL_EscapeString(Database, reason, unbanReason, sizeof(unbanReason));
+	SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
 	CloseHandle(data);	// Need to close datapack
 
 	new admin = GetClientOfUserId(adminUserID);
@@ -1800,7 +1826,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				#if defined LOG_QUERIES
 					LogToFile(logQuery, "in SelectUnBlockCallback: Unblocking. QUERY: %s", query);
 				#endif
-				SQL_TQuery(Database, InsertUnBlockCallback, query, dataPack);
+				SQL_TQuery(g_hDatabase, InsertUnBlockCallback, query, dataPack);
 			}
 			else
 			{
@@ -1911,8 +1937,8 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		SQL_FetchString(hndl, 5, adminAuth, sizeof(adminAuth));
 		SQL_FetchString(hndl, 6, adminIp, sizeof(adminIp));
 		new type = SQL_FetchInt(hndl, 7);
-		SQL_EscapeString(Database, name, banName, sizeof(banName));
-		SQL_EscapeString(Database, reason, banReason, sizeof(banReason));
+		SQL_EscapeString(g_hDatabase, name, banName, sizeof(banName));
+		SQL_EscapeString(g_hDatabase, reason, banReason, sizeof(banReason));
 		// all blocks should be entered into db!
 		if ( serverID == -1 )
 		{
@@ -1937,7 +1963,7 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		WritePackString(authPack, auth);
 		WritePackCell(authPack, type);
 		ResetPack(authPack);
-		SQL_TQuery(Database, AddedFromSQLiteCallbackB, query, authPack);
+		SQL_TQuery(g_hDatabase, AddedFromSQLiteCallbackB, query, authPack);
 	}
 	// We have finished processing the queue but should process again in ProcessQueueTime minutes
 	CreateTimer(float(ProcessQueueTime * 60), ProcessQueue);
@@ -2286,6 +2312,26 @@ public SMCResult:ReadConfig_EndSection(Handle:smc)
 
 // STOCK FUNCTIONS //
 
+public bool:DB_Connect()
+{
+	#if defined DEBUG
+		LogToFile(logFile, "in DB_Connect, handle %d, state %d, lock %d", g_hDatabase, g_DatabaseState, g_iConnectLock);
+	#endif
+
+	if (g_hDatabase)
+		return true;
+
+	if(g_DatabaseState != DatabaseState_Connecting)
+	{
+		g_DatabaseState = DatabaseState_Connecting;
+		g_iConnectLock   = ++g_iSequence;
+		// Connect using the "sourcebans" section, or the "default" section if "sourcebans" does not exist
+		SQL_TConnect(GotDatabase, DATABASE, g_iConnectLock);
+	}
+
+	return false;
+}
+
 public InitializeBackupDB()
 {
 	decl String:error[255];
@@ -2409,7 +2455,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
 				// pass move forward with the block
-				if (Database != INVALID_HANDLE)
+				if (DB_Connect())
 				{
 					UTIL_InsertBlock(time, TYPE_MUTE, g_sName[target], auth, reason, adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
 				} else {
@@ -2477,7 +2523,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
 				// pass move forward with the block
-				if (Database != INVALID_HANDLE)
+				if (DB_Connect())
 				{
 					UTIL_InsertBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp, dataPack);
 				} else {
@@ -2560,7 +2606,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
 				// pass move forward with the block
-				if (Database != INVALID_HANDLE)
+				if (DB_Connect())
 				{
 					UTIL_InsertBlock(time, TYPE_MUTE, g_sName[target], auth, reason, adminAuth, adminIp, dataPack);
 					// Oh no... Looks very bad, but we need to do it again
@@ -2684,7 +2730,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 		LogToFile(logQuery, "Unblocking select. QUERY: %s", query);
 	#endif
 
-	SQL_TQuery(Database, SelectUnBlockCallback, query, dataPack);
+	SQL_TQuery(g_hDatabase, SelectUnBlockCallback, query, dataPack);
 
 	return true;
 }
@@ -2696,8 +2742,8 @@ stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], c
 	new String:banReason[512];
 	decl String:Query[1024];
 
-	SQL_EscapeString(Database, Name, banName, sizeof(banName));
-	SQL_EscapeString(Database, Reason, banReason, sizeof(banReason));
+	SQL_EscapeString(g_hDatabase, Name, banName, sizeof(banName));
+	SQL_EscapeString(g_hDatabase, Reason, banReason, sizeof(banReason));
 
 	//bid	authid	name	created ends lenght reason aid adminip	sid	removedBy removedType removedon type ureason
 	if ( serverID == -1 )
@@ -2717,7 +2763,7 @@ stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], c
 		LogToFile(logQuery, "UTIL_InsertBlock. QUERY: %s", Query);
 	#endif
 
-	SQL_TQuery(Database, VerifyInsertB, Query, Pack, DBPrio_High);
+	SQL_TQuery(g_hDatabase, VerifyInsertB, Query, Pack, DBPrio_High);
 }
 
 stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
