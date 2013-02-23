@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.117"
+#define VERSION "0.8.120"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2881,7 +2881,7 @@ bool:IsAllowedBlockLength(admin, length)
 		return true;	// Restriction disabled
 	if (!admin)
 		return true;	// all allowed for console
-	if (CheckCommandAccess(admin, "", UNBLOCK_FLAG|ADMFLAG_ROOT, true))
+	if (CheckCommandAccess(admin, "", UNBLOCK_FLAG, true))
 		return true;	// all allowed for admins with special flag
 	if (!length || length > ConfigMaxLength)
 		return false;
