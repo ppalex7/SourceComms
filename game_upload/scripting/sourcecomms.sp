@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.108"
+#define VERSION "0.8.117"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -141,19 +141,10 @@ public Plugin:myinfo =
 	url = "https://forums.alliedmods.net/showthread.php?t=207176"
 };
 
-#if SOURCEMOD_V_MAJOR >= 1 && SOURCEMOD_V_MINOR >= 3
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
-#else
-public bool:AskPluginLoad(Handle:myself, bool:late, String:error[], err_max)
-#endif
 {
 	LateLoaded = late;
-
-	#if SOURCEMOD_V_MAJOR >= 1 && SOURCEMOD_V_MINOR >= 3
-		return APLRes_Success;
-	#else
-		return true;
-	#endif
+	return APLRes_Success;
 }
 
 public OnPluginStart()
@@ -211,7 +202,7 @@ public OnPluginStart()
 		#if defined DEBUG
 			LogToFile(logFile, "Plugin late loaded");
 		#endif
-		for (new i = 1; i <= GetMaxClients(); i++)
+		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
 			{
@@ -270,32 +261,30 @@ public OnClientDisconnect(client)
 		g_hPlayerRecheck[client] = INVALID_HANDLE;
 	}
 
-	if (client > 0 && !IsFakeClient(client))
+	if (g_hMuteExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[client]))
 	{
-		if (g_hMuteExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[client]))
+		g_hMuteExpireTimer[client] = INVALID_HANDLE;
+		#if defined DEBUG
 		{
-			g_hMuteExpireTimer[client] = INVALID_HANDLE;
-			#if defined DEBUG
-			{
-				decl String:clientAuth[64];
-				GetClientAuthString(client, clientAuth, sizeof(clientAuth));
-				LogToFile(logFile, "Closed MuteExpire Timer for %s OnClientDisconnect", clientAuth);
-			}
-			#endif
+			decl String:clientAuth[64];
+			GetClientAuthString(client, clientAuth, sizeof(clientAuth));
+			LogToFile(logFile, "Closed MuteExpire Timer for %s OnClientDisconnect", clientAuth);
 		}
-
-		if (g_hGagExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[client]))
-		{
-			g_hGagExpireTimer[client] = INVALID_HANDLE;
-			#if defined DEBUG
-			{
-				decl String:clientAuth[64];
-				GetClientAuthString(client, clientAuth, sizeof(clientAuth));
-				LogToFile(logFile, "Closed GagExpire Timer for %s OnClientDisconnect", clientAuth);
-			}
-			#endif
-		}
+		#endif
 	}
+
+	if (g_hGagExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[client]))
+	{
+		g_hGagExpireTimer[client] = INVALID_HANDLE;
+		#if defined DEBUG
+		{
+			decl String:clientAuth[64];
+			GetClientAuthString(client, clientAuth, sizeof(clientAuth));
+			LogToFile(logFile, "Closed GagExpire Timer for %s OnClientDisconnect", clientAuth);
+		}
+		#endif
+	}
+
 }
 
 public bool:OnClientConnect(client, String:rejectmsg[], maxlen)
@@ -306,24 +295,21 @@ public bool:OnClientConnect(client, String:rejectmsg[], maxlen)
 
 public OnClientConnected(client)
 {
-	if (client > 0 && !IsFakeClient(client))
-	{
-		g_sName[client][0] = '\0';
+	g_sName[client][0] = '\0';
 
-		g_MuteType[client] = bNot;
-		g_iMuteTime[client] = 0;
-		g_iMuteLength[client] = 0;
-		g_iMuteLevel[client] = -1;
-		g_sMuteAdmin[client][0] = '\0';
-		g_sMuteReason[client][0] = '\0';
+	g_MuteType[client] = bNot;
+	g_iMuteTime[client] = 0;
+	g_iMuteLength[client] = 0;
+	g_iMuteLevel[client] = -1;
+	g_sMuteAdmin[client][0] = '\0';
+	g_sMuteReason[client][0] = '\0';
 
-		g_GagType[client] = bNot;
-		g_iGagTime[client] = 0;
-		g_iGagLength[client] = 0;
-		g_iGagLevel[client] = -1;
-		g_sGagAdmin[client][0] = '\0';
-		g_sGagReason[client][0] = '\0';
-	}
+	g_GagType[client] = bNot;
+	g_iGagTime[client] = 0;
+	g_iGagLength[client] = 0;
+	g_iGagLevel[client] = -1;
+	g_sGagAdmin[client][0] = '\0';
+	g_sGagReason[client][0] = '\0';
 }
 
 public OnClientPostAdminCheck(client)
@@ -339,7 +325,7 @@ public OnClientPostAdminCheck(client)
 		return;
 	}
 
-	if (client > 0 && !IsFakeClient(client))
+	if (client > 0 && IsClientInGame(client) && !IsFakeClient(client))
 	{
 		decl String:Query[512];
 		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
@@ -1514,7 +1500,7 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 	// as needing rebuilding, in case the next connection request works.
 	if(!g_hDatabase)
 	{
-		LogToFile(logFile, "Could not connect to database. Error: %s", error);
+		LogToFile(logFile, "Could not connect to database. Error %s", error);
 		return;
 	}
 
@@ -1591,16 +1577,15 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	new target = GetClientOfUserId(targetUserID);
 
 	new AdmImmunity, bool:AdmHasFlag = false;
-	if (admin > 0)
+	if (admin > 0 && GetUserAdmin(admin) != INVALID_ADMIN_ID)
 	{
 		AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(admin));
 		AdmHasFlag = CheckCommandAccess(admin, "", UNBLOCK_FLAG, true) ;
 	}
-	else
-		AdmImmunity = 0;
+
 	new bool:AdmImCheck = (DisUBImCheck == 0 && ((type == TYPE_MUTE && AdmImmunity > g_iMuteLevel[target]) || (type == TYPE_GAG && AdmImmunity > g_iGagLevel[target]) || (type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target] && AdmImmunity > g_iGagLevel[target]) ) );
 
-	new bool:errorCheck = false;
+	new bool:hasErrors = false;
 	// If error is not an empty string the query failed
 	if (error[0] != '\0')
 	{
@@ -1613,7 +1598,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		{
 			PrintToServer("%s%T", PREFIX, "Unblock Select Failed", LANG_SERVER, targetAuth);
 		}
-		errorCheck = true;
+		hasErrors = true;
 	}
 
 	// If there was no results then a ban does not exist for that id
@@ -1625,10 +1610,10 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		} else {
 			PrintToServer("%s%T", PREFIX, "No blocks found", LANG_SERVER, targetAuth);
 		}
-		errorCheck = true;
+		hasErrors = true;
 	}
 
-	if (errorCheck)
+	if (hasErrors)
 	{
 		#if defined DEBUG
 			LogToFile(logFile, "we have errors in SelectUnBlockCallback");
@@ -1911,7 +1896,7 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 {
 	if (hndl == INVALID_HANDLE || strlen(error) > 0)
 	{
-		LogToFile(logFile, "Failed to retrieve queued bans from sqlite database, %s", error);
+		LogToFile(logFile, "Failed to retrieve queued blocks from sqlite database, %s", error);
 		return;
 	}
 
@@ -1939,8 +1924,12 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		SQL_FetchString(hndl, 6, adminAuth, sizeof(adminAuth));
 		SQL_FetchString(hndl, 7, adminIp, sizeof(adminIp));
 		new type = SQL_FetchInt(hndl, 8);
-		SQL_EscapeString(g_hDatabase, name, banName, sizeof(banName));
-		SQL_EscapeString(g_hDatabase, reason, banReason, sizeof(banReason));
+		if (DB_Connect()) {
+			SQL_EscapeString(g_hDatabase, name, banName, sizeof(banName));
+			SQL_EscapeString(g_hDatabase, reason, banReason, sizeof(banReason));
+		}
+		else
+			continue;
 		// all blocks should be entered into db!
 		if ( serverID == -1 )
 		{
@@ -2322,11 +2311,11 @@ public bool:DB_Connect()
 	return false;
 }
 
-public bool:DB_Conn_Lost(Handle:query_hndl)
+public bool:DB_Conn_Lost(Handle:hndl)
 {
-	if (query_hndl == INVALID_HANDLE)
+	if (hndl == INVALID_HANDLE)
 	{
-		LogToFile(logFile, "Lost connection to DB. Reconnect at next query.");
+		LogToFile(logFile, "Lost connection to DB. Reconnect after delay, at next query.");
 		CloseHandle(g_hDatabase);
 		g_hDatabase = INVALID_HANDLE;
 		g_DatabaseState = DatabaseState_Wait;
@@ -2380,7 +2369,9 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	} else {
 		GetClientIP(client, adminIp, sizeof(adminIp));
 		GetClientAuthString(client, adminAuth, sizeof(adminAuth));
-		AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(client));
+		if (GetUserAdmin(client) != INVALID_ADMIN_ID)
+			AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(client));
+
 		AdmName = g_sName[client];
 	}
 
