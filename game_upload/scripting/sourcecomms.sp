@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.144"
+#define VERSION "0.8.155"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1879,9 +1879,11 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	if (DB_Conn_Lost(hndl))
 	{
 		LogToFile(logFile, "Verify Blocks Query Failed: %s", error);
-		g_hPlayerRecheck[client] = CreateTimer(RetryTime + 10, ClientRecheck, userid);
+		if (g_hPlayerRecheck[client] == INVALID_HANDLE)
+			g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, GetClientUserId(client));
 		return;
 	}
+
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
 
 	//SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user,
@@ -1992,7 +1994,7 @@ public Action:ClientRecheck(Handle:timer, any:userid)
 	if (!client)
 		return;
 
-	if (!g_bPlayerStatus[client] && IsClientConnected(client))
+	if (IsClientConnected(client))
 		OnClientPostAdminCheck(client);
 
 	g_hPlayerRecheck[client] =  INVALID_HANDLE;
@@ -2051,6 +2053,7 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
 public Action:Timer_StopWait(Handle:timer, any:data)
 {
 	g_DatabaseState = DatabaseState_None;
+	DB_Connect();
 }
 
 // PARSER //
@@ -2211,9 +2214,9 @@ public bool:DB_Conn_Lost(Handle:hndl)
 {
 	if (hndl == INVALID_HANDLE)
 	{
-		LogToFile(logFile, "Lost connection to DB. Reconnect after delay, at next query.");
 		if (g_hDatabase != INVALID_HANDLE)
 		{
+			LogToFile(logFile, "Lost connection to DB. Reconnect after delay.");
 			CloseHandle(g_hDatabase);
 			g_hDatabase = INVALID_HANDLE;
 		}
@@ -2963,7 +2966,7 @@ ForcePlayerRecheck()
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
-		if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
+		if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i) && g_hPlayerRecheck[i] == INVALID_HANDLE)
 		{
 			#if defined DEBUG
 			{
@@ -2972,8 +2975,7 @@ ForcePlayerRecheck()
 				LogToFile(logFile, "Creating Recheck timer for %s", clientAuth);
 			}
 			#endif
-			if (g_hPlayerRecheck[i] != INVALID_HANDLE)
-				g_hPlayerRecheck[i] = CreateTimer(RetryTime + i, ClientRecheck, GetClientUserId(i));
+			g_hPlayerRecheck[i] = CreateTimer(float(i), ClientRecheck, GetClientUserId(i));
 		}
 	}
 }
