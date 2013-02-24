@@ -2,13 +2,13 @@
 /**
  * =============================================================================
  * SourceBans Webkick feature
- * 
+ *
  * @author SteamFriends Development Team
  * @version 1.0.0
  * @copyright SourceBans (C)2007 SteamFriends.com.  All rights reserved.
  * @package SourceBans
  * @link http://www.sourcebans.net
- * 
+ *
  * @version $Id$
  * =============================================================================
  */
@@ -48,7 +48,7 @@ function LoadServers2($check, $type, $length) {
 		else { //no rcon = servercount + 1 ;)
 			$text = '<font size="1">No rcon password.</font>';
 			$objResponse->addScript('set_counter(1);');
-		}		
+		}
 		$objResponse->addAssign("srv_".$id, "innerHTML", $text);
 		$id++;
 		$servers->MoveNext();
@@ -68,33 +68,33 @@ function BlockPlayer($check, $sid, $num, $type, $length) {
 		$log = new CSystemLog("w", "Hacking Attempt", $username . " tried to process a playerblock, but doesnt have access.");
 		return $objResponse;
 	}
-	
+
 	//get the server data
 	$sdata = $GLOBALS['db']->GetRow("SELECT ip, port, rcon FROM ".DB_PREFIX."_servers WHERE sid = '".$sid."';");
-	
+
 	//test if server is online
 	if($test = @fsockopen($sdata['ip'], $sdata['port'], $errno, $errstr, 2)) {
 		@fclose($test);
 		require_once(INCLUDES_PATH . "/CServerRcon.php");
-		
+
 		$r = new CServerRcon($sdata['ip'], $sdata['port'], $sdata['rcon']);
 
 		if(!$r->Auth())
 		{
-			$GLOBALS['db']->Execute("UPDATE ".DB_PREFIX."_servers SET rcon = '' WHERE sid = '".$sid."' LIMIT 1;");		
+			$GLOBALS['db']->Execute("UPDATE ".DB_PREFIX."_servers SET rcon = '' WHERE sid = '".$sid."' LIMIT 1;");
 			$objResponse->addAssign("srv_$num", "innerHTML", "<font color='red' size='1'>Wrong RCON Password, please change!</font>");
 			$objResponse->addScript('set_counter(1);');
 			return $objResponse;
 		}
 		$ret = $r->rconCommand("status");
-		
+
 		// show hostname instead of the ip, but leave the ip in the title
 		require_once("../includes/system-functions.php");
 		$hostsearch = preg_match_all('/hostname:[ ]*(.+)/',$ret,$hostname,PREG_PATTERN_ORDER);
 		$hostname = trunc(htmlspecialchars($hostname[1][0]),25,false);
 		if(!empty($hostname))
 			$objResponse->addAssign("srvip_$num", "innerHTML", "<font size='1'><span title='".$sdata['ip'].":".$sdata['port']."'>".$hostname."</span></font>");
-		
+
 		$gothim = false;
 		$search = preg_match_all(STATUS_PARSE,$ret,$matches,PREG_PATTERN_ORDER);
 		//search for the steamid on the server

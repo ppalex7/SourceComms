@@ -40,7 +40,7 @@ if (isset($_GET['a']) && $_GET['a'] == "ungag" && isset($_GET['id']))
 		die("Possible hacking attempt (URL Key mismatch)");
 	//we have a multiple unban asking
 	$bid = intval($_GET['id']);
-	$res = $GLOBALS['db']->Execute("SELECT a.aid, a.gid FROM `".DB_PREFIX."_comms` c INNER JOIN ".DB_PREFIX."_admins a ON a.aid = c.aid WHERE c.type = 2 AND bid = '".$bid."';");
+	$res = $GLOBALS['db']->Execute("SELECT a.aid, a.gid FROM `".DB_PREFIX."_comms` c INNER JOIN ".DB_PREFIX."_admins a ON a.aid = c.aid WHERE bid = '".$bid."' AND c.type = 2;");
 	if (!$userbank->HasAccess(ADMIN_OWNER|ADMIN_UNBAN) &&
 			!($userbank->HasAccess(ADMIN_UNBAN_OWN_BANS) && $res->fields['aid'] == $userbank->GetAid()) &&
 			!($userbank->HasAccess(ADMIN_UNBAN_GROUP_BANS) && $res->fields['gid'] == $userbank->GetProperty('gid')))
@@ -51,7 +51,7 @@ if (isset($_GET['a']) && $_GET['a'] == "ungag" && isset($_GET['id']))
 	$row = $GLOBALS['db']->GetRow("SELECT b.authid, b.name, b.created, b.sid, UNIX_TIMESTAMP() as now
 										FROM ".DB_PREFIX."_comms b
 										LEFT JOIN ".DB_PREFIX."_servers s ON s.sid = b.sid
-										WHERE b.bid = ? AND b.type = 2 AND (b.length = '0' OR b.ends > UNIX_TIMESTAMP()) AND b.RemoveType IS NULL",array($bid));
+										WHERE b.bid = ? AND b.RemoveType IS NULL AND b.type = 2 AND (b.length = '0' OR b.ends > UNIX_TIMESTAMP())",array($bid));
 	if(empty($row) || !$row)
 	{
 		echo "<script>ShowBox('Player Not UnGagged', 'The player was not ungagged, either already ungagged or not a valid block.', 'red', 'index.php?p=commslist$pagelink');</script>";
@@ -86,7 +86,7 @@ else if(isset($_GET['a']) && $_GET['a'] == "unmute" && isset($_GET['id']))
 		die("Possible hacking attempt (URL Key mismatch)");
 	//we have a multiple unban asking
 	$bid = intval($_GET['id']);
-	$res = $GLOBALS['db']->Execute("SELECT a.aid, a.gid FROM `".DB_PREFIX."_comms` c INNER JOIN ".DB_PREFIX."_admins a ON a.aid = c.aid WHERE c.type = 1 AND bid = '".$bid."';");
+	$res = $GLOBALS['db']->Execute("SELECT a.aid, a.gid FROM `".DB_PREFIX."_comms` c INNER JOIN ".DB_PREFIX."_admins a ON a.aid = c.aid WHERE bid = '".$bid."' AND c.type = 1;");
 	if (!$userbank->HasAccess(ADMIN_OWNER|ADMIN_UNBAN) &&
 			!($userbank->HasAccess(ADMIN_UNBAN_OWN_BANS) && $res->fields['aid'] == $userbank->GetAid()) &&
 			!($userbank->HasAccess(ADMIN_UNBAN_GROUP_BANS) && $res->fields['gid'] == $userbank->GetProperty('gid')))
@@ -97,7 +97,7 @@ else if(isset($_GET['a']) && $_GET['a'] == "unmute" && isset($_GET['id']))
 	$row = $GLOBALS['db']->GetRow("SELECT b.authid, b.name, b.created, b.sid, UNIX_TIMESTAMP() as now
 										FROM ".DB_PREFIX."_comms b
 										LEFT JOIN ".DB_PREFIX."_servers s ON s.sid = b.sid
-										WHERE b.bid = ? AND b.type = 1 AND (b.length = '0' OR b.ends > UNIX_TIMESTAMP()) AND b.RemoveType IS NULL",array($bid));
+										WHERE b.bid = ? AND b.RemoveType IS NULL AND b.type = 1 AND (b.length = '0' OR b.ends > UNIX_TIMESTAMP())",array($bid));
 	if(empty($row) || !$row)
 	{
 		echo "<script>ShowBox('Player Not UnGagged', 'The player was not unmuted, either already unmuted or not a valid block.', 'red', 'index.php?p=commslist$pagelink');</script>";
@@ -176,7 +176,7 @@ else if(isset($_GET['a']) && $_GET['a'] == "delete")
 		$log = new CSystemLog("m", "Block Deleted", "Block '".StripQuotes($steam['name'])."' (" . $steam['authid'] . ") has been deleted.");
 	}else{
 		echo "<script>ShowBox('Ban NOT Deleted', 'The ban for \'".StripQuotes($steam['name'])."\' had an error while being removed.', 'red', 'index.php?p=commslist$pagelink', true);</script>";
-	}	
+	}
 }
 
 // LIMIT для SQL запроса - по номеру страницы и числу банов на страницу
@@ -202,17 +202,17 @@ if(isset($_SESSION["hideinactive"])) {
 }
 
 
-if (isset($_GET['searchText']))		
+if (isset($_GET['searchText']))
 {
 	$search = '%'.trim($_GET['searchText']).'%';
-	
+
 	$res = $GLOBALS['db']->Execute(
 		"SELECT bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 		SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
-		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 1 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as mute_count,
-		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 2 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as gag_count,
+		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 1)) as mute_count,
+		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 2)) as gag_count,
 		UNIX_TIMESTAMP() as c_time
-		FROM ".DB_PREFIX."_comms AS CO
+		FROM ".DB_PREFIX."_comms AS CO FORCE INDEX (created)
 		LEFT JOIN ".DB_PREFIX."_servers AS SE ON SE.sid = CO.sid
 		LEFT JOIN ".DB_PREFIX."_mods AS MO on SE.modid = MO.mid
 		LEFT JOIN ".DB_PREFIX."_admins AS AD ON CO.aid = AD.aid
@@ -230,10 +230,10 @@ elseif(!isset($_GET['advSearch']))
 	$res = $GLOBALS['db']->Execute(
 	"SELECT bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 		SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
-		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 1 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as mute_count,
-		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 2 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as gag_count,
+		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 1)) as mute_count,
+		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 2)) as gag_count,
 		UNIX_TIMESTAMP() as c_time
-		FROM ".DB_PREFIX."_comms AS CO
+		FROM ".DB_PREFIX."_comms AS CO FORCE INDEX (created)
 		LEFT JOIN ".DB_PREFIX."_servers AS SE ON SE.sid = CO.sid
 		LEFT JOIN ".DB_PREFIX."_mods AS MO on SE.modid = MO.mid
 		LEFT JOIN ".DB_PREFIX."_admins AS AD ON CO.aid = AD.aid
@@ -351,10 +351,10 @@ if(isset($_GET['advSearch']))
 		$res = $GLOBALS['db']->Execute(
 			"SELECT CO.bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 			SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
-			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 1 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as mute_count,
-		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 2 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as gag_count,
+			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 1)) as mute_count,
+		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND )) as gag_count,
 			UNIX_TIMESTAMP() as c_time
-			FROM ".DB_PREFIX."_comms AS CO
+			FROM ".DB_PREFIX."_comms AS CO FORCE INDEX (created)
 			LEFT JOIN ".DB_PREFIX."_servers AS SE ON SE.sid = CO.sid
 			LEFT JOIN ".DB_PREFIX."_mods AS MO on SE.modid = MO.mid
 			LEFT JOIN ".DB_PREFIX."_admins AS AD ON CO.aid = AD.aid
@@ -382,7 +382,7 @@ while (!$res->EOF)
 {
 	$data = array();
 
-	$data['ban_id'] = $res->fields['ban_id'];	
+	$data['ban_id'] = $res->fields['ban_id'];
 	$data['type'] = $res->fields['type'];
 	$data['c_time'] = $res->fields['c_time'];
 
@@ -417,7 +417,7 @@ while (!$res->EOF)
 	else
 		$data['admin'] = stripslashes($res->fields['admin_name']);
 	$data['reason'] = stripslashes($res->fields['ban_reason']);
-	
+
 	if ($res->fields['ban_length'] > 0)
 	{
 		$data['ban_length'] = SecondsToString(intval($res->fields['ban_length']));
@@ -463,7 +463,7 @@ while (!$res->EOF)
 
 	$data['layer_id'] = 'layer_'.$res->fields['ban_id'];
 	// Запрос текущего статуса игрока для рисования ссылки на мьют или гаг
-	$alrdybnd = $GLOBALS['db']->Execute("SELECT count(bid) as count FROM `".DB_PREFIX."_comms` WHERE authid = '".$data['steamid']."' AND (length = 0 OR ends > UNIX_TIMESTAMP()) AND RemovedBy IS NULL AND type = '".$data['type']."';");
+	$alrdybnd = $GLOBALS['db']->Execute("SELECT count(bid) as count FROM `".DB_PREFIX."_comms` WHERE authid = '".$data['steamid']."' AND RemovedBy IS NULL AND type = '".$data['type']."' AND (length = 0 OR ends > UNIX_TIMESTAMP());");
 	if($alrdybnd->fields['count']==0)
 	{
 		switch($data['type'])
@@ -477,11 +477,11 @@ while (!$res->EOF)
 		default:
 			break;
 		}
-	}		
+	}
 	else
 		$data['reban_link'] = false;
 
-	
+
 	$data['edit_link'] = CreateLinkR('<img src="images/edit.gif" border="0" alt="" style="vertical-align:middle" /> Edit Details',"index.php?p=admin&c=comms&o=edit".$pagelink."&id=".$res->fields['ban_id']."&key=".$_SESSION['banlist_postkey']);
 
 	switch($data['type'])
@@ -495,9 +495,9 @@ while (!$res->EOF)
 		default:
 			break;
 	}
-	
+
 	$data['delete_link'] = CreateLinkR('<img src="images/delete.gif" border="0" alt="" style="vertical-align:middle" /> Delete Block',"#","", "_self", false, "RemoveBlock('".$res->fields['ban_id']."', '".$_SESSION['banlist_postkey']."', '".$pagelink."', '".StripQuotes($data['player'])."', 0);return false;");
-	
+
 	$data['server_id'] = $res->fields['ban_server'];
 
 	if(empty($res->fields['mod_icon']))
@@ -661,7 +661,7 @@ if(isset($_GET["comment"])) {
         $ctext = $ceditdata['commenttxt'];
 		$cotherdataedit = " AND cid != '".(int)$_GET["cid"]."'";
 	}
-	else 
+	else
     {
         $cotherdataedit = "";
         $ctext = "";

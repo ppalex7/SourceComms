@@ -21,7 +21,4 @@ CREATE TABLE `sb_comms` (
   KEY `authid` (`authid`),
   KEY `created` (`created`),
   KEY `aid` (`aid`),
-  FULLTEXT KEY `reason` (`reason`),
-  FULLTEXT KEY `authid_2` (`authid`),
-  FULLTEXT KEY `name` (`name`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
