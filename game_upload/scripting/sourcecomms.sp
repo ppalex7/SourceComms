@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.121"
+#define VERSION "0.8.139"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -327,9 +327,12 @@ public OnClientPostAdminCheck(client)
 
 	if (client > 0 && IsClientInGame(client) && !IsFakeClient(client))
 	{
+		new String:sClAuthYZEscaped[sizeof(clientAuth) * 2 + 1];
+		SQL_EscapeString(g_hDatabase, clientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
+
 		decl String:Query[512];
 		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP())",
-				DatabasePrefix, DatabasePrefix, DatabasePrefix, clientAuth[8]);
+				DatabasePrefix, DatabasePrefix, DatabasePrefix, sClAuthYZEscaped);
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "Checking blocks for: %s. QUERY: %s", clientAuth, Query);
 		#endif
@@ -1533,7 +1536,7 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 		new time = ReadPackCell(dataPack);
 		new type = ReadPackCell(dataPack);
 		new Handle:reasonPack = Handle:ReadPackCell(dataPack);
-		decl String:reason[128];
+		decl String:reason[256];
 		ReadPackString(reasonPack, reason, sizeof(reason));
 		new String:name[MAX_NAME_LENGTH];
 		ReadPackString(dataPack, name, sizeof(name));
@@ -1561,33 +1564,23 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 
 public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	decl String:adminAuth[30], String:targetAuth[30], String:reason[128];
-	new String:unbanReason[256];
+	decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
+
 	ResetPack(data);
 	new adminUserID = ReadPackCell(data);
 	new targetUserID = ReadPackCell(data);
 	new type = ReadPackCell(data);
-	ReadPackString(data, reason, sizeof(reason));
+
 	ReadPackString(data, adminAuth, sizeof(adminAuth));
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
-	SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
-	CloseHandle(data);	// Need to close datapack
+	ReadPackString(data, reason, sizeof(reason));
 
 	new admin = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
-	new AdmImmunity, bool:AdmHasFlag = false;
-	if (admin > 0 && GetUserAdmin(admin) != INVALID_ADMIN_ID)
-	{
-		AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(admin));
-		AdmHasFlag = CheckCommandAccess(admin, "", UNBLOCK_FLAG, true) ;
-	}
-
-	new bool:AdmImCheck = (DisUBImCheck == 0 && ((type == TYPE_MUTE && AdmImmunity > g_iMuteLevel[target]) || (type == TYPE_GAG && AdmImmunity > g_iGagLevel[target]) || (type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target] && AdmImmunity > g_iGagLevel[target]) ) );
-
 	new bool:hasErrors = false;
 	// If error is not an empty string the query failed
-	if (error[0] != '\0')
+	if (DB_Conn_Lost(hndl) || error[0] != '\0')
 	{
 		LogToFile(logFile, "Unblock Select Query Failed: %s", error);
 		if (admin && IsClientInGame(admin))
@@ -1602,7 +1595,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	}
 
 	// If there was no results then a ban does not exist for that id
-	if (DB_Conn_Lost(hndl) || !SQL_GetRowCount(hndl))
+	if (!SQL_GetRowCount(hndl))
 	{
 		if (admin && IsClientInGame(admin))
 		{
@@ -1616,109 +1609,16 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	if (hasErrors)
 	{
 		#if defined DEBUG
-			LogToFile(logFile, "we have errors in SelectUnBlockCallback");
-			LogToFile(logFile, "WHO WE ARE CHECKING!");
-			if (!admin)
-				LogToFile(logFile, "we are console (possibly)");
-			if (AdmHasFlag)
-				LogToFile(logFile, "we have special flag");
+			LogToFile(logFile, "Calling TempUnBlock from SelectUnBlockCallback");
 		#endif
 
-		// We have some error.... Check access for unblock without db changes (temporary unblock)
-		if (!admin || AdmHasFlag || AdmImCheck)	//can, if we are console or have special flag
-		{
-			switch(type)
-			{
-				case TYPE_MUTE:
-				{
-					g_MuteType[target] = bNot;
-					g_iMuteTime[target] = 0;
-					g_iMuteLength[target] = 0;
-					g_iMuteLevel[target] = -1;
-					g_sMuteAdmin[target][0] = '\0';
-					g_sMuteReason[target][0] = '\0';
-					BaseComm_SetClientMute(target, false);
-					if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-					{
-						g_hMuteExpireTimer[target] = INVALID_HANDLE;
-						#if defined DEBUG
-							LogToFile(logFile, "MuteExpireTimer killed on temporary unmute (DB problems)");
-						#endif
-					}
-					ShowActivity2(admin, PREFIX, "%t", "Temp unmuted player", g_sName[target]);
-					LogAction(admin, target, "\"%L\" temporary (DB problems) unmuted \"%L\" (reason \"%s\")", admin, target, reason);
-				}
-				//-------------------------------------------------------------------------------------------------
-				case TYPE_GAG:
-				{
-					g_GagType[target] = bNot;
-					g_iGagTime[target] = 0;
-					g_iGagLength[target] = 0;
-					g_iGagLevel[target] = -1;
-					g_sGagAdmin[target][0] = '\0';
-					g_sGagReason[target][0] = '\0';
-					BaseComm_SetClientGag(target, false);
-					if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-					{
-						g_hGagExpireTimer[target] = INVALID_HANDLE;
-						#if defined DEBUG
-							LogToFile(logFile, "GagExpireTimer killed on temporary ungag (DB problems)");
-						#endif
-					}
-					ShowActivity2(admin, PREFIX, "%t", "Temp ungagged player", g_sName[target]);
-					LogAction(admin, target, "\"%L\" temporary (DB problems) ungagged \"%L\" (reason \"%s\")", admin, target, reason);
-				}
-				//-------------------------------------------------------------------------------------------------
-				case TYPE_SILENCE:
-				{
-					g_MuteType[target] = bNot;
-					g_iMuteTime[target] = 0;
-					g_iMuteLength[target] = 0;
-					g_iMuteLevel[target] = -1;
-					g_sMuteAdmin[target][0] = '\0';
-					g_sMuteReason[target][0] = '\0';
-					BaseComm_SetClientMute(target, false);
-					g_GagType[target] = bNot;
-					g_iGagTime[target] = 0;
-					g_iGagLength[target] = 0;
-					g_iGagLevel[target] = -1;
-					g_sGagAdmin[target][0] = '\0';
-					g_sGagReason[target][0] = '\0';
-					BaseComm_SetClientGag(target, false);
-					if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-					{
-						g_hMuteExpireTimer[target] = INVALID_HANDLE;
-						#if defined DEBUG
-							LogToFile(logFile, "MuteExpireTimer killed on temporary unsilence (DB problems)");
-						#endif
-					}
-					if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-					{
-						g_hGagExpireTimer[target] = INVALID_HANDLE;
-						#if defined DEBUG
-							LogToFile(logFile, "GagExpireTimer killed on temporary unsilence (DB problems)");
-						#endif
-					}
-					ShowActivity2(admin, PREFIX, "%t", "Temp unsilenced player", g_sName[target]);
-					LogAction(admin, target, "\"%L\" temporary (DB problems) unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
-				}
-			}
-		}
-		else
-		{
-			if (admin && IsClientInGame(admin))
-			{
-				PrintToChat(admin, "%s%t", PREFIX, "No db error unlock perm");
-			} else {
-				PrintToServer("%s%T", PREFIX, "No db error unlock perm", LANG_SERVER); //seriously? is it possible?
-			}
-		}
+		TempUnBlock(data);	// Datapack closed inside.
 		return;
 	}
-
-	// There is blocks
-	if (!DB_Conn_Lost(hndl))	// always true?
+	else
 	{
+		CloseHandle(data);	// Need to close datapack
+
 		#if defined DEBUG
 			LogToFile(logFile, "Processing unblock. Type: %d, admin %s, target %s,", type, adminAuth, targetAuth);
 		#endif
@@ -1742,15 +1642,15 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					LogToFile(logFile, "we are block author");
 				if (!admin)
 					LogToFile(logFile, "we are console (possibly)");
-				if (AdmHasFlag)
+				if (AdmHasFlag(admin))
 					LogToFile(logFile, "we have special flag");
-				if (AdmImmunity > cImmunity)
-					LogToFile(logFile, "we have %d immunity and block has %d. we cool", AdmImmunity, cImmunity);
+				if (GetAdmImmunity(admin) > cImmunity)
+					LogToFile(logFile, "we have %d immunity and block has %d. we cool", GetAdmImmunity(admin), cImmunity);
 				LogToFile(logFile, "Fetched from DB: bid %d, iAID: %d, cAID: %d, cImmunity: %d, cType: %d", bid, iAID, cAID, cImmunity, cType);
 			#endif
 
 			// Checking - has we acces to unblock?
-			if (iAID == cAID || AdmHasFlag || !admin || (DisUBImCheck == 0 && (AdmImmunity > cImmunity)))
+			if (iAID == cAID || AdmHasFlag(admin) || !admin || (DisUBImCheck == 0 && (GetAdmImmunity(admin) > cImmunity)))
 			{
 				// Ok! we have rights to unblock
 
@@ -1804,6 +1704,9 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				WritePackCell(dataPack, targetUserID);
 				WritePackCell(dataPack, cType);
 				WritePackString(dataPack, g_sName[target]);
+
+				new String:unbanReason[sizeof(reason) * 2 + 1];
+				SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
 
 				decl String:query[1024];
 				Format(query, sizeof(query),
@@ -1902,16 +1805,21 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 
 	decl String:auth[64];
 	new String:name[MAX_NAME_LENGTH];
-	decl String:reason[128];
+	decl String:reason[256];
 	decl String:adminAuth[64], String:adminIp[20];
 	decl String:query[1024];
-	decl String:banReason[128 * 2 + 1];
-	new String:banName[MAX_NAME_LENGTH * 2  + 1];
+
 	while(SQL_MoreRows(hndl))
 	{
 		// Oh noes! What happened?!
 		if (!SQL_FetchRow(hndl))
 			continue;
+
+		new String:sAuthEscaped[sizeof(auth) * 2 + 1];
+		new String:banName[MAX_NAME_LENGTH * 2  + 1];
+		new String:banReason[sizeof(reason) * 2 + 1];
+		new String:sAdmAuthEscaped[sizeof(adminAuth) * 2 + 1];
+		new String:sAdmAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
 
 		// if we get to here then there are rows in the queue pending processing
 		//steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER
@@ -1924,9 +1832,13 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		SQL_FetchString(hndl, 6, adminAuth, sizeof(adminAuth));
 		SQL_FetchString(hndl, 7, adminIp, sizeof(adminIp));
 		new type = SQL_FetchInt(hndl, 8);
+
 		if (DB_Connect()) {
+			SQL_EscapeString(g_hDatabase, auth, sAuthEscaped, sizeof(sAuthEscaped));
 			SQL_EscapeString(g_hDatabase, name, banName, sizeof(banName));
 			SQL_EscapeString(g_hDatabase, reason, banReason, sizeof(banReason));
+			SQL_EscapeString(g_hDatabase, adminAuth, sAdmAuthEscaped, sizeof(sAdmAuthEscaped));
+			SQL_EscapeString(g_hDatabase, adminAuth[8], sAdmAuthYZEscaped, sizeof(sAdmAuthYZEscaped));
 		}
 		else
 			continue;
@@ -1937,7 +1849,7 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 					"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 					('%s', '%s', %d, %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), '%s', \
 					(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)",
-					DatabasePrefix, auth, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, adminAuth, adminAuth[8], adminIp, DatabasePrefix, ServerIp, ServerPort, type);
+					DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, DatabasePrefix, ServerIp, ServerPort, type);
 		}
 		else
 		{
@@ -1945,7 +1857,7 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 					"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 					('%s', '%s', %d, %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), '%s', \
 					%d, %d)",
-					DatabasePrefix, auth, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, adminAuth, adminAuth[8], adminIp, serverID, type);
+					DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, serverID, type);
 		}
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in ProcessQueueCallbackB: Insert to db. QUERY: %s", query);
@@ -2710,35 +2622,185 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 	WritePackCell(dataPack, GetClientUserId(client));
 	WritePackCell(dataPack, GetClientUserId(target));
 	WritePackCell(dataPack, type);
-	WritePackString(dataPack, reason);
+
 	WritePackString(dataPack, adminAuth);
 	WritePackString(dataPack, targetAuth);
+	WritePackString(dataPack, reason);
 	ResetPack(dataPack);
 
-	decl String:query[1024];
-	Format(query, sizeof(query),
-		"SELECT c.bid, IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, c.aid, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type FROM %s_comms c \
-		LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND %s",
-		DatabasePrefix, adminAuth, adminAuth[8], DatabasePrefix, DatabasePrefix, DatabasePrefix, targetAuth, targetAuth[8], typeWHERE);
+	if (DB_Connect())
+	{
+		new String:sAdminAuthEscaped[sizeof(adminAuth) * 2 + 1];
+		new String:sAdminAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
+		new String:sTargetAuthEscaped[sizeof(targetAuth) * 2 + 1];
+		new String:sTargetAuthYZEscaped[sizeof(targetAuth) * 2 + 1];
 
-	#if defined LOG_QUERIES
-		LogToFile(logQuery, "Unblocking select. QUERY: %s", query);
-	#endif
+		SQL_EscapeString(g_hDatabase, adminAuth, sAdminAuthEscaped, sizeof(sAdminAuthEscaped));
+		SQL_EscapeString(g_hDatabase, adminAuth[8], sAdminAuthYZEscaped, sizeof(sAdminAuthYZEscaped));
+		SQL_EscapeString(g_hDatabase, targetAuth, sTargetAuthEscaped, sizeof(sTargetAuthEscaped));
+		SQL_EscapeString(g_hDatabase, targetAuth[8], sTargetAuthYZEscaped, sizeof(sTargetAuthYZEscaped));
 
-	SQL_TQuery(g_hDatabase, SelectUnBlockCallback, query, dataPack);
+		decl String:query[1024];
+		Format(query, sizeof(query),
+			"SELECT c.bid, IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, c.aid, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type FROM %s_comms c \
+			LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND %s",
+			DatabasePrefix, sAdminAuthEscaped, sAdminAuthYZEscaped, DatabasePrefix, DatabasePrefix, DatabasePrefix, sTargetAuthEscaped, sTargetAuthYZEscaped, typeWHERE);
+
+		#if defined LOG_QUERIES
+			LogToFile(logQuery, "Unblocking select. QUERY: %s", query);
+		#endif
+
+		SQL_TQuery(g_hDatabase, SelectUnBlockCallback, query, dataPack);
+	}
+	else
+	{
+		#if defined DEBUG
+			LogToFile(logFile, "Calling TempUnBlock from ProcessUnBlock");
+		#endif
+		TempUnBlock(dataPack);
+	}
 
 	return true;
+}
+
+public TempUnBlock(Handle:data)
+{
+	#if defined DEBUG
+		LogToFile(logFile, "TemporaryUnblock");
+	#endif
+
+	decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
+	ResetPack(data);
+	new adminUserID = ReadPackCell(data);
+	new targetUserID = ReadPackCell(data);
+	new type = ReadPackCell(data);
+	ReadPackString(data, adminAuth, sizeof(adminAuth));
+	ReadPackString(data, targetAuth, sizeof(targetAuth));
+	ReadPackString(data, reason, sizeof(reason));
+	CloseHandle(data);	// Need to close datapack
+
+	new admin = GetClientOfUserId(adminUserID);
+	new target = GetClientOfUserId(targetUserID);
+
+	new AdmImmunity = GetAdmImmunity(admin);
+	new bool:AdmImCheck = (DisUBImCheck == 0 && ((type == TYPE_MUTE && AdmImmunity > g_iMuteLevel[target]) || (type == TYPE_GAG && AdmImmunity > g_iGagLevel[target]) || (type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target] && AdmImmunity > g_iGagLevel[target]) ) );
+
+	#if defined DEBUG
+		LogToFile(logFile, "we have errors in SelectUnBlockCallback");
+		LogToFile(logFile, "WHO WE ARE CHECKING!");
+		if (!admin)
+			LogToFile(logFile, "we are console (possibly)");
+		if (AdmHasFlag(admin))
+			LogToFile(logFile, "we have special flag");
+	#endif
+
+	// Check access for unblock without db changes (temporary unblock)
+	if (!admin || AdmHasFlag(admin) || AdmImCheck)	//can, if we are console or have special flag
+	{
+		switch(type)
+		{
+			case TYPE_MUTE:
+			{
+				g_MuteType[target] = bNot;
+				g_iMuteTime[target] = 0;
+				g_iMuteLength[target] = 0;
+				g_iMuteLevel[target] = -1;
+				g_sMuteAdmin[target][0] = '\0';
+				g_sMuteReason[target][0] = '\0';
+				BaseComm_SetClientMute(target, false);
+				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
+				{
+					g_hMuteExpireTimer[target] = INVALID_HANDLE;
+					#if defined DEBUG
+						LogToFile(logFile, "MuteExpireTimer killed on temporary unmute (DB problems)");
+					#endif
+				}
+				ShowActivity2(admin, PREFIX, "%t", "Temp unmuted player", g_sName[target]);
+				LogAction(admin, target, "\"%L\" temporary (DB problems) unmuted \"%L\" (reason \"%s\")", admin, target, reason);
+			}
+			//-------------------------------------------------------------------------------------------------
+			case TYPE_GAG:
+			{
+				g_GagType[target] = bNot;
+				g_iGagTime[target] = 0;
+				g_iGagLength[target] = 0;
+				g_iGagLevel[target] = -1;
+				g_sGagAdmin[target][0] = '\0';
+				g_sGagReason[target][0] = '\0';
+				BaseComm_SetClientGag(target, false);
+				if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
+				{
+					g_hGagExpireTimer[target] = INVALID_HANDLE;
+					#if defined DEBUG
+						LogToFile(logFile, "GagExpireTimer killed on temporary ungag (DB problems)");
+					#endif
+				}
+				ShowActivity2(admin, PREFIX, "%t", "Temp ungagged player", g_sName[target]);
+				LogAction(admin, target, "\"%L\" temporary (DB problems) ungagged \"%L\" (reason \"%s\")", admin, target, reason);
+			}
+			//-------------------------------------------------------------------------------------------------
+			case TYPE_SILENCE:
+			{
+				g_MuteType[target] = bNot;
+				g_iMuteTime[target] = 0;
+				g_iMuteLength[target] = 0;
+				g_iMuteLevel[target] = -1;
+				g_sMuteAdmin[target][0] = '\0';
+				g_sMuteReason[target][0] = '\0';
+				BaseComm_SetClientMute(target, false);
+				g_GagType[target] = bNot;
+				g_iGagTime[target] = 0;
+				g_iGagLength[target] = 0;
+				g_iGagLevel[target] = -1;
+				g_sGagAdmin[target][0] = '\0';
+				g_sGagReason[target][0] = '\0';
+				BaseComm_SetClientGag(target, false);
+				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
+				{
+					g_hMuteExpireTimer[target] = INVALID_HANDLE;
+					#if defined DEBUG
+						LogToFile(logFile, "MuteExpireTimer killed on temporary unsilence (DB problems)");
+					#endif
+				}
+				if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
+				{
+					g_hGagExpireTimer[target] = INVALID_HANDLE;
+					#if defined DEBUG
+						LogToFile(logFile, "GagExpireTimer killed on temporary unsilence (DB problems)");
+					#endif
+				}
+				ShowActivity2(admin, PREFIX, "%t", "Temp unsilenced player", g_sName[target]);
+				LogAction(admin, target, "\"%L\" temporary (DB problems) unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
+			}
+		}
+	}
+	else
+	{
+		if (admin && IsClientInGame(admin))
+		{
+			PrintToChat(admin, "%s%t", PREFIX, "No db error unlock perm");
+		} else {
+			PrintToServer("%s%T", PREFIX, "No db error unlock perm", LANG_SERVER); //seriously? is it possible?
+		}
+	}
+
 }
 
 stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], const String:Reason[], const String:AdminAuthid[], const String:AdminIp[], Handle:Pack)
 {
 	// Принимает время - в минутах, а в базу пишет уже в секундах! Во всех остальных местах время - в минутах.
 	new String:banName[MAX_NAME_LENGTH * 2 + 1];
-	new String:banReason[512];
+	new String:banReason[256 * 2 + 1];
+	new String:sAuthidEscaped[64 * 2 + 1];
+	new String:sAdminAuthidEscaped[64 * 2 + 1];
+	new String:sAdminAuthidYZEscaped[64 * 2 + 1];
 	decl String:Query[1024];
 
 	SQL_EscapeString(g_hDatabase, Name, banName, sizeof(banName));
 	SQL_EscapeString(g_hDatabase, Reason, banReason, sizeof(banReason));
+	SQL_EscapeString(g_hDatabase, Authid, sAuthidEscaped, sizeof(sAuthidEscaped));
+	SQL_EscapeString(g_hDatabase, AdminAuthid, sAdminAuthidEscaped, sizeof(sAdminAuthidEscaped));
+	SQL_EscapeString(g_hDatabase, AdminAuthid[8], sAdminAuthidYZEscaped, sizeof(sAdminAuthidYZEscaped));
 
 	//bid	authid	name	created ends lenght reason aid adminip	sid	removedBy removedType removedon type ureason
 	if ( serverID == -1 )
@@ -2746,12 +2808,12 @@ stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], c
 		FormatEx(Query, sizeof(Query), "INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 						('%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'),'0'), '%s', \
 						(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)",
-						DatabasePrefix, Authid, banName, (time*60), (time*60), banReason, DatabasePrefix, AdminAuthid, AdminAuthid[8], AdminIp, DatabasePrefix, ServerIp, ServerPort, type);
+						DatabasePrefix, sAuthidEscaped, banName, (time*60), (time*60), banReason, DatabasePrefix, sAdminAuthidEscaped, sAdminAuthidYZEscaped, AdminIp, DatabasePrefix, ServerIp, ServerPort, type);
 	}else{
 		FormatEx(Query, sizeof(Query), "INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 						('%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'),'0'), '%s', \
 						%d, %d)",
-						DatabasePrefix, Authid, banName, (time*60), (time*60), banReason, DatabasePrefix, AdminAuthid, AdminAuthid[8], AdminIp, serverID, type);
+						DatabasePrefix, sAuthidEscaped, banName, (time*60), (time*60), banReason, DatabasePrefix, sAdminAuthidEscaped, sAdminAuthidYZEscaped, AdminIp, serverID, type);
 	}
 
 	#if defined LOG_QUERIES
@@ -2764,12 +2826,18 @@ stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], c
 stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
 {
 	new String:banName[MAX_NAME_LENGTH * 2 + 1];
-	new String:banReason[512];
-	decl String:query[512];
+	new String:banReason[256 * 2 + 1];
+	new String:sAuthEscaped[64 * 2 + 1];
+	new String:sAdminAuthEscaped[64 * 2 + 1];
+	decl String:query[1024];
+
 	SQL_EscapeString(SQLiteDB, name, banName, sizeof(banName));
 	SQL_EscapeString(SQLiteDB, reason, banReason, sizeof(banReason));
+	SQL_EscapeString(SQLiteDB, auth, sAuthEscaped, sizeof(sAuthEscaped));
+	SQL_EscapeString(SQLiteDB, adminAuth, sAdminAuthEscaped, sizeof(sAdminAuthEscaped));
+
 	FormatEx(	query, sizeof(query), "INSERT INTO queue2 (steam_id, time, start_time, reason, name, admin_id, admin_ip, type) VALUES ('%s', %i, %i, '%s', '%s', '%s', '%s', %i)",
-				auth, time, GetTime(), banReason, banName, adminAuth, adminIp, type);
+				sAuthEscaped, time, GetTime(), banReason, banName, sAdminAuthEscaped, adminIp, type);
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", query);
 	#endif
@@ -2881,11 +2949,24 @@ bool:IsAllowedBlockLength(admin, length)
 		return true;	// Restriction disabled
 	if (!admin)
 		return true;	// all allowed for console
-	if (CheckCommandAccess(admin, "", UNBLOCK_FLAG, true))
+	if (AdmHasFlag(admin))
 		return true;	// all allowed for admins with special flag
 	if (!length || length > ConfigMaxLength)
 		return false;
 	else
 		return true;
+}
+
+bool:AdmHasFlag(admin)
+{
+	return CheckCommandAccess(admin, "", UNBLOCK_FLAG, true);
+}
+
+_:GetAdmImmunity(admin)
+{
+	if (admin > 0 && GetUserAdmin(admin) != INVALID_ADMIN_ID)
+		return GetAdminImmunityLevel(GetUserAdmin(admin));
+	else
+		return 0;
 }
 //Yarr!
