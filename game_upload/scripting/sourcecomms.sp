@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.158"
+#define PLUGIN_VERSION "0.8.167"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -43,7 +43,8 @@ enum State /* ConfigState */
 	ConfigStateNone = 0,
 	ConfigStateConfig,
 	ConfigStateReasons,
-	ConfigStateTimes
+	ConfigStateTimes,
+	ConfigStateServers
 }
 enum DatabaseState /* Database connection state */
 {
@@ -93,6 +94,7 @@ new DefaultTime = 30;
 new DisUBImCheck = 0;
 new ConsoleImmunity = 0;
 new ConfigMaxLength = 0;
+new ConfigWhiteListOnly = 0;
 
 new serverID = -1;
 
@@ -131,12 +133,14 @@ new g_iGagLevel[MAXPLAYERS + 1]; // immunity level of admin
 new String:g_sGagAdmin[MAXPLAYERS + 1][MAX_NAME_LENGTH];
 new String:g_sGagReason[MAXPLAYERS + 1][128];
 
+new Handle:g_hServersWhiteList = INVALID_HANDLE;
+
 public Plugin:myinfo =
 {
 	name = "SourceComms",
 	author = "Alex",
 	description = "Advanced punishments management for the Source engine in SourceBans style.",
-	version = VERSION,
+	version = PLUGIN_VERSION,
 	url = "https://forums.alliedmods.net/showthread.php?t=207176"
 };
 
@@ -156,8 +160,9 @@ public OnPluginStart()
 
 	CvarHostIp = FindConVar("hostip");
 	CvarPort = FindConVar("hostport");
+	g_hServersWhiteList = CreateArray();
 
-	CreateConVar("sourcecomms_version", VERSION, _, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	CreateConVar("sourcecomms_version", PLUGIN_VERSION, _, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	AddCommandListener(CommandGag, "sm_gag");
 	AddCommandListener(CommandUnGag, "sm_ungag");
 	AddCommandListener(CommandMute, "sm_mute");
@@ -178,7 +183,7 @@ public OnPluginStart()
 	#endif
 
 	#if defined DEBUG
-		LogToFile(logFile, "Plugin loading. Version %s", VERSION);
+		LogToFile(logFile, "Plugin loading. Version %s", PLUGIN_VERSION);
 	#endif
 
 	// Catch config error
@@ -210,7 +215,7 @@ public OnLibraryAdded(const String:name[])
 
 public Updater_OnPluginUpdated()
 {
-	LogToFile(logFile, "Plugin updated. Old version was %s. Now reloading.", VERSION);
+	LogToFile(logFile, "Plugin updated. Old version was %s. Now reloading.", PLUGIN_VERSION);
 
 	ReloadPlugin();
 }
@@ -306,7 +311,7 @@ public OnClientPostAdminCheck(client)
 		SQL_EscapeString(g_hDatabase, clientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
 
 		decl String:Query[512];
-		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP())",
+		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP())",
 				DatabasePrefix, DatabasePrefix, DatabasePrefix, sClAuthYZEscaped);
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "Checking blocks for: %s. QUERY: %s", clientAuth, Query);
@@ -1547,7 +1552,12 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	ResetPack(data);
 	new adminUserID = ReadPackCell(data);
 	new targetUserID = ReadPackCell(data);
-	ReadPackCell(data); // Skip `type`
+
+	#if defined DEBUG
+		new type = ReadPackCell(data);
+	#else
+		ReadPackCell(data);
+	#endif
 
 	ReadPackString(data, adminAuth, sizeof(adminAuth));
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
@@ -1887,12 +1897,16 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
 
 	//SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user,
-	//IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
+	//IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid
+	//FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
 	//WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
 	if (SQL_GetRowCount(hndl) > 0)
 	{
 		while(SQL_FetchRow(hndl))
 		{
+			if (NotApplyToThisServer(SQL_FetchInt(hndl, 8)))
+				continue;
+
 			new remaining_time = SQL_FetchInt(hndl, 0);
 			new length = SQL_FetchInt(hndl, 1);
 			new type = SQL_FetchInt(hndl, 2);
@@ -2096,6 +2110,8 @@ public SMCResult:ReadConfig_NewSection(Handle:smc, const String:name[], bool:opt
 			ConfigState = ConfigStateReasons;
 		} else if (strcmp("CommsTimes", name, false) == 0) {
 			ConfigState = ConfigStateTimes;
+		} else if (strcmp("ServersWhiteList", name, false) == 0) {
+			ConfigState = ConfigStateServers;
 		}
 	}
 	return SMCParse_Continue;
@@ -2157,6 +2173,12 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			{
 				ConfigMaxLength = StringToInt(value);
 			}
+			else if (strcmp("OnlyWhiteListServers", key, false) == 0)
+			{
+				ConfigWhiteListOnly = StringToInt(value);
+				if (ConfigWhiteListOnly != 1)
+					ConfigWhiteListOnly = 0;
+			}
 		}
 		case ConfigStateReasons:
 		{
@@ -2175,6 +2197,20 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 				LogToFile(logFile, "Loaded time. index %d, time %d minutes, display_text \"%s\"", iNumTimes, g_iTimeMinutes[iNumTimes] , g_sTimeDisplays[iNumTimes]);
 			#endif
 			iNumTimes++;
+		}
+		case ConfigStateServers:
+		{
+			if (strcmp("id", key, false) == 0)
+			{
+				new srvID = StringToInt(value);
+				if (srvID >= 0)
+				{
+					PushArrayCell(g_hServersWhiteList, srvID);
+					#if defined DEBUG
+						LogToFile(logFile, "Loaded white list server id %d", srvID);
+					#endif
+				}
+			}
 		}
 	}
 	return SMCParse_Continue;
@@ -2864,8 +2900,8 @@ stock ReadConfig()
 
 	if (FileExists(ConfigFile1))
 	{
-		InternalReadConfig(ConfigFile1);
 		PrintToServer("%sLoading configs/sourcebans/sourcebans.cfg config file", PREFIX);
+		InternalReadConfig(ConfigFile1);
 	} else {
 		decl String:Error[PLATFORM_MAX_PATH + 64];
 		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", PREFIX, ConfigFile1);
@@ -2874,6 +2910,7 @@ stock ReadConfig()
 	}
 	if (FileExists(ConfigFile2))
 	{
+		PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", PREFIX);
 		iNumReasons = 0;
 		iNumTimes = 0;
 		InternalReadConfig(ConfigFile2);
@@ -2881,7 +2918,11 @@ stock ReadConfig()
 			iNumReasons--;
 		if (iNumTimes)
 			iNumTimes--;
-		PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", PREFIX);
+		if (ConfigWhiteListOnly && serverID == -1)
+		{
+			LogError("You must set valid `ServerID` value in sourcebans.cfg to use ServersWhiteList option.");
+			ConfigWhiteListOnly = 0;
+		}
 	} else {
 		decl String:Error[PLATFORM_MAX_PATH + 64];
 		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", PREFIX, ConfigFile2);
@@ -2978,5 +3019,13 @@ ForcePlayerRecheck()
 			g_hPlayerRecheck[i] = CreateTimer(float(i), ClientRecheck, GetClientUserId(i));
 		}
 	}
+}
+
+bool:NotApplyToThisServer(srvID)
+{
+	if (ConfigWhiteListOnly && FindValueInArray(g_hServersWhiteList, srvID) == -1)
+		return true;
+	else
+		return false;
 }
 //Yarr!
