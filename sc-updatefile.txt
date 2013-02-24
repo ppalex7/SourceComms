@@ -4,11 +4,19 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.8.89"
+			"Latest"	"0.8.158"
 		}
 
 		"Notes"	"More info @ https://forums.alliedmods.net/showthread.php?t=207176 "
-		"Notes"	"Fixed bug with MaxLength checking in console commands."
+		"Notes"	"Fixed `Unknown command` reply in client console"
+		"Notes"	"Fixed/added SQL-escaping to prevent SQL-injections"
+		"Notes"	"Changed way of connecting to database, added checking for *connection lost*"
+		"Notes"	"Fixed bug with unicode symbols in entries from queue"
+		"Notes"	"Fixed bug with only one punishment per steam-id could be saved in queue"
+		"Notes"	"Fixed bug with `MaxLength` checking, which doesn't work correctly for admins with `UNBLOCK_FLAG`"
+		"Notes"	"Some optimizations of SQL-queries"
+		"Notes"	"Improved plugin state *consistency* with unstable database connection."
+		"Notes"	"Other code improvements. Thanks to approver[alongub](https://forums.alliedmods.net/member.php?u=58635)"
 	}
 
 	"Files"
