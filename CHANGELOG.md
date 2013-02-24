@@ -1,4 +1,14 @@
 #Changelog
+* **0.8.158**
+	* Fixed `Unknown command` reply in client console.
+	* Fixed/added SQL-escaping to prevent SQL-injections.
+	* Changed way of connecting to database, added checking for *connection lost*.
+	* Fixed bug with unicode symbols in entries from queue.
+	* Fixed bug with only one punishment per steam-id could be saved in queue.
+	* Fixed bug with `MaxLength` checking, which doesn't work correctly for admins with `UNBLOCK_FLAG`.
+	* Some optimizations of SQL-queries.
+	* Improved plugin state *consistency* with unstable database connection.
+	* Other code improvements. Thanks to [alongub](https://forums.alliedmods.net/member.php?u=58635).
 * **0.8.89** - Fixed bug with MaxLength checking in console commands.
 * **0.8.88**
 	* Added `MaxLength` option to config. See plugin config for mor details.

@@ -10,13 +10,13 @@
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 #define DATABASE "sourcecomms"
 
-#define DEBUG
-#define LOG_QUERIES
+//#define DEBUG
+//#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.155"
+#define VERSION "0.8.158"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1547,7 +1547,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	ResetPack(data);
 	new adminUserID = ReadPackCell(data);
 	new targetUserID = ReadPackCell(data);
-	new type = ReadPackCell(data);
+	ReadPackCell(data); // Skip `type`
 
 	ReadPackString(data, adminAuth, sizeof(adminAuth));
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
