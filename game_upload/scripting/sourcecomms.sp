@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.139"
+#define VERSION "0.8.144"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -93,7 +93,6 @@ new DefaultTime = 30;
 new DisUBImCheck = 0;
 new ConsoleImmunity = 0;
 new ConfigMaxLength = 0;
-new bool:LateLoaded;
 
 new serverID = -1;
 
@@ -111,9 +110,9 @@ new g_iPeskyPanels[MAXPLAYERS + 1][PeskyPanels];
 /* Blocks info storage */
 enum bType{
 	bNot = 0,
+	bSess,
 	bTime,
-	bPerm,
-	bSess
+	bPerm
 }
 
 new String:g_sName[MAXPLAYERS + 1][MAX_NAME_LENGTH];
@@ -141,11 +140,10 @@ public Plugin:myinfo =
 	url = "https://forums.alliedmods.net/showthread.php?t=207176"
 };
 
-public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
-{
-	LateLoaded = late;
-	return APLRes_Success;
-}
+// public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+// {
+	// return APLRes_Success;
+// }
 
 public OnPluginStart()
 {
@@ -195,29 +193,6 @@ public OnPluginStart()
 	InitializeBackupDB();
 
 	ServerInfo();
-
-	/* Account for late loading */
-	if (LateLoaded)
-	{
-		#if defined DEBUG
-			LogToFile(logFile, "Plugin late loaded");
-		#endif
-		for (new i = 1; i <= MaxClients; i++)
-		{
-			if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
-			{
-				#if defined DEBUG
-				{
-					decl String:clientAuth[64];
-					GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-					LogToFile(logFile, "Creating Recheck timer for %s", clientAuth);
-				}
-				#endif
-				GetClientName(i, g_sName[i], sizeof(g_sName[]));
-				g_hPlayerRecheck[i] = CreateTimer(RetryTime + i, ClientRecheck, GetClientUserId(i));
-			}
-		}
-	}
 
 	if (LibraryExists("updater"))
     {
@@ -1517,6 +1492,9 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 
 	// Process queue
 	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, "SELECT id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type FROM queue2");
+
+	// Force recheck players
+	ForcePlayerRecheck();
 }
 
 public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPack)
@@ -1595,7 +1573,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	}
 
 	// If there was no results then a ban does not exist for that id
-	if (!SQL_GetRowCount(hndl))
+	if (!DB_Conn_Lost(hndl) && !SQL_GetRowCount(hndl))
 	{
 		if (admin && IsClientInGame(admin))
 		{
@@ -1931,56 +1909,62 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 			{
 				case TYPE_MUTE:
 				{
-					g_iMuteLength[client] = length / 60;
-					g_iMuteTime[client] = SQL_FetchInt(hndl, 3);
-					SQL_FetchString(hndl, 4, g_sMuteReason[client], sizeof(g_sMuteReason[]));
-					SQL_FetchString(hndl, 5, g_sMuteAdmin[client], sizeof(g_sMuteAdmin[]));
-					g_iMuteLevel[client] = immunity;
-
-					#if defined DEBUG
-						LogToFile(logFile, "%s is muted on connect", clientAuth);
-					#endif
-
-					PrintToChat(client, "%s%t", PREFIX, "Muted on connect");
-
-					if (length > 0)
+					if (g_MuteType[client] < bTime)
 					{
-						g_MuteType[client] = bTime;
-						#if defined DEBUG
-							LogToFile(logFile, "Creating MuteExpire timer");
-						#endif
-						g_hMuteExpireTimer[client] = CreateTimer(float(remaining_time), Timer_MuteExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-					}
-					else
-						g_MuteType[client] = bPerm;
+						g_iMuteLength[client] = length / 60;
+						g_iMuteTime[client] = SQL_FetchInt(hndl, 3);
+						SQL_FetchString(hndl, 4, g_sMuteReason[client], sizeof(g_sMuteReason[]));
+						SQL_FetchString(hndl, 5, g_sMuteAdmin[client], sizeof(g_sMuteAdmin[]));
+						g_iMuteLevel[client] = immunity;
 
-					BaseComm_SetClientMute(client, true);
+						#if defined DEBUG
+							LogToFile(logFile, "%s is muted on connect", clientAuth);
+						#endif
+
+						PrintToChat(client, "%s%t", PREFIX, "Muted on connect");
+
+						if (length > 0)
+						{
+							g_MuteType[client] = bTime;
+							#if defined DEBUG
+								LogToFile(logFile, "Creating MuteExpire timer");
+							#endif
+							g_hMuteExpireTimer[client] = CreateTimer(float(remaining_time), Timer_MuteExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+						}
+						else
+							g_MuteType[client] = bPerm;
+
+						BaseComm_SetClientMute(client, true);
+					}
 				}
 				case TYPE_GAG:
 				{
-					g_iGagLength[client] = length / 60;
-					g_iGagTime[client] = SQL_FetchInt(hndl, 3);
-					SQL_FetchString(hndl, 4, g_sGagReason[client], sizeof(g_sGagReason[]));
-					SQL_FetchString(hndl, 5, g_sGagAdmin[client], sizeof(g_sGagAdmin[]));
-					g_iGagLevel[client] = immunity;
-
-					#if defined DEBUG
-						LogToFile(logFile, "%s is gagged on connect", clientAuth);
-					#endif
-					PrintToChat(client, "%s%t", PREFIX, "Gagged on connect");
-
-					if (length > 0)
+					if (g_GagType[client] < bTime)
 					{
-						g_GagType[client] = bTime;
-						#if defined DEBUG
-							LogToFile(logFile, "Creating GagExpire timer");
-						#endif
-						g_hGagExpireTimer[client] = CreateTimer(float(remaining_time), Timer_GagExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-					}
-					else
-						g_GagType[client] = bPerm;
+						g_iGagLength[client] = length / 60;
+						g_iGagTime[client] = SQL_FetchInt(hndl, 3);
+						SQL_FetchString(hndl, 4, g_sGagReason[client], sizeof(g_sGagReason[]));
+						SQL_FetchString(hndl, 5, g_sGagAdmin[client], sizeof(g_sGagAdmin[]));
+						g_iGagLevel[client] = immunity;
 
-					BaseComm_SetClientGag(client, true);
+						#if defined DEBUG
+							LogToFile(logFile, "%s is gagged on connect", clientAuth);
+						#endif
+						PrintToChat(client, "%s%t", PREFIX, "Gagged on connect");
+
+						if (length > 0)
+						{
+							g_GagType[client] = bTime;
+							#if defined DEBUG
+								LogToFile(logFile, "Creating GagExpire timer");
+							#endif
+							g_hGagExpireTimer[client] = CreateTimer(float(remaining_time), Timer_GagExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
+						}
+						else
+							g_GagType[client] = bPerm;
+
+						BaseComm_SetClientGag(client, true);
+					}
 				}
 			}
 		}
@@ -2228,10 +2212,16 @@ public bool:DB_Conn_Lost(Handle:hndl)
 	if (hndl == INVALID_HANDLE)
 	{
 		LogToFile(logFile, "Lost connection to DB. Reconnect after delay, at next query.");
-		CloseHandle(g_hDatabase);
-		g_hDatabase = INVALID_HANDLE;
-		g_DatabaseState = DatabaseState_Wait;
-		CreateTimer(RetryTime, Timer_StopWait, _, TIMER_FLAG_NO_MAPCHANGE);
+		if (g_hDatabase != INVALID_HANDLE)
+		{
+			CloseHandle(g_hDatabase);
+			g_hDatabase = INVALID_HANDLE;
+		}
+		if (g_DatabaseState != DatabaseState_Wait)
+		{
+			g_DatabaseState = DatabaseState_Wait;
+			CreateTimer(RetryTime, Timer_StopWait, _, TIMER_FLAG_NO_MAPCHANGE);
+		}
 		return true;
 	}
 	else
@@ -2686,7 +2676,6 @@ public TempUnBlock(Handle:data)
 	new bool:AdmImCheck = (DisUBImCheck == 0 && ((type == TYPE_MUTE && AdmImmunity > g_iMuteLevel[target]) || (type == TYPE_GAG && AdmImmunity > g_iGagLevel[target]) || (type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target] && AdmImmunity > g_iGagLevel[target]) ) );
 
 	#if defined DEBUG
-		LogToFile(logFile, "we have errors in SelectUnBlockCallback");
 		LogToFile(logFile, "WHO WE ARE CHECKING!");
 		if (!admin)
 			LogToFile(logFile, "we are console (possibly)");
@@ -2968,5 +2957,24 @@ _:GetAdmImmunity(admin)
 		return GetAdminImmunityLevel(GetUserAdmin(admin));
 	else
 		return 0;
+}
+
+ForcePlayerRecheck()
+{
+	for (new i = 1; i <= MaxClients; i++)
+	{
+		if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
+		{
+			#if defined DEBUG
+			{
+				decl String:clientAuth[64];
+				GetClientAuthString(i, clientAuth, sizeof(clientAuth));
+				LogToFile(logFile, "Creating Recheck timer for %s", clientAuth);
+			}
+			#endif
+			if (g_hPlayerRecheck[i] != INVALID_HANDLE)
+				g_hPlayerRecheck[i] = CreateTimer(RetryTime + i, ClientRecheck, GetClientUserId(i));
+		}
+	}
 }
 //Yarr!
