@@ -26,10 +26,8 @@ Also includes files and instructions to integration to existing sourcebans web-p
 	* Punishments issued by *CONSOLE* has some immunity level (which is set in config, option *"ConsoleImmunity"*).
 	* Immunity checking system could be disabled by setting option *"DisableUnblockImmunityCheck"* to value 1 in config file.
 	* One more **important** moment. When somebody removes punishment - plugin retrieves *"punishment issuer admin id"* from database. If the request fails - punishment could be temporary removed (on server, not in database) only by console, admin with special flag or with higher immunity.
-* Plugin config:
-	* Punishments reasons and times stored in config.
-	* Config has another usefull setting - *"DefaultTime"*. When admin run sm_gag (mute, silence) command only with player name - he will be gagged on *"DefaultTime"* value minutes. (if *"DefaultTime"* setted in -1 -> player will be blocked only on session (until reconnect)).
-	* Config has setting *"MaxLength"*, which works following way: Plugin will hide (for admins without ADMFLAG_CUSTOM 2) from menu all durations more than MaxLength and restricts punishments commands with time > MaxLength argument (or permanent).
+* Plugin has *Servers White List* feature. If enabled, plugin will apply on players punishments only from current server or servers listed in *White List*.
+* Punishments reasons and times stored in config. More details about config listed below.
 * SourceComms supports [auto-update](https://forums.alliedmods.net/showthread.php?p=1570806).
 
 ### Web part provides the following functionality:
@@ -58,6 +56,13 @@ The **time** parameter controls how long the player is punished. (< 0 == Tempora
 
 ##Cvars:
 * `sourcecomms_version` - plugin version
+
+##Config settings:
+* `DefaultTime`. When admin run sm_gag (mute, silence) command only with player name - player will be gagged on *"DefaultTime"* value minutes. (if *"DefaultTime"* setted in **-1** -> player will be blocked only on session (until reconnect)). Value **0** *(permanent)* **is not allowed**.
+* `DisableUnblockImmunityCheck` (0, 1). Default value is **0**. If setted to **1**, player can be ungagged only by issuer admin, console or admin with special flag. Also, If 0 player maybe unblocked by Admin with higher immunity level than issuer admin had.
+* `ConsoleImmunity`. Default value is **0**. Immunity Level of server console.
+* `MaxLength`, which works following way: Plugin will hide (for admins without ADMFLAG_CUSTOM 2) from menu all durations more than MaxLength and restricts punishments commands with `time > MaxLength` argument (or permanent).
+* `OnlyWhiteListServers`. Default value is **0**. Set this option to **1** to applying on players punishments only from this server and servers listed in WhiteList. Value **0** applies on players punishments from any server.
 
 ##Installation instructions
 First of all, download this repository as a zip file.
