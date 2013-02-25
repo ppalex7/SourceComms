@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.167"
+#define PLUGIN_VERSION "0.8.173"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -144,10 +144,12 @@ public Plugin:myinfo =
 	url = "https://forums.alliedmods.net/showthread.php?t=207176"
 };
 
-// public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
-// {
-	// return APLRes_Success;
-// }
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	CreateNative("SourceComms_SetClientGag",         Native_SetClientGag);
+	RegPluginLibrary("sourcecomms");
+	return APLRes_Success;
+}
 
 public OnPluginStart()
 {
@@ -277,19 +279,8 @@ public OnClientConnected(client)
 {
 	g_sName[client][0] = '\0';
 
-	g_MuteType[client] = bNot;
-	g_iMuteTime[client] = 0;
-	g_iMuteLength[client] = 0;
-	g_iMuteLevel[client] = -1;
-	g_sMuteAdmin[client][0] = '\0';
-	g_sMuteReason[client][0] = '\0';
-
-	g_GagType[client] = bNot;
-	g_iGagTime[client] = 0;
-	g_iGagLength[client] = 0;
-	g_iGagLevel[client] = -1;
-	g_sGagAdmin[client][0] = '\0';
-	g_sGagReason[client][0] = '\0';
+	MarkClientAsUnMuted(client);
+	MarkClientAsUnGagged(client);
 }
 
 public OnClientPostAdminCheck(client)
@@ -342,7 +333,7 @@ public BaseComm_OnClientMute(client, bool:muteState)
 				g_iMuteLength[client] = -1;
 				g_iMuteLevel[client] = ConsoleImmunity;
 				g_sMuteAdmin[client] = "CONSOLE";
-				g_sMuteReason[client] = "Muted through natives";
+				g_sMuteReason[client] = "Muted through BaseComm natives";
 
 				decl String:adminIp[24];
 				decl String:adminAuth[64];
@@ -381,12 +372,7 @@ public BaseComm_OnClientMute(client, bool:muteState)
 		{
 			if (g_MuteType[client] > bNot)
 			{
-				g_MuteType[client] = bNot;
-				g_iMuteTime[client] = 0;
-				g_iMuteLength[client] = 0;
-				g_iMuteLevel[client] = -1;
-				g_sMuteAdmin[client][0] = '\0';
-				g_sMuteReason[client][0] = '\0';
+				MarkClientAsUnMuted(client);
 			}
 		}
 	}
@@ -405,7 +391,7 @@ public BaseComm_OnClientGag(client, bool:gagState)
 				g_iGagLength[client] = -1;
 				g_iGagLevel[client] = ConsoleImmunity;
 				g_sGagAdmin[client] = "CONSOLE";
-				g_sGagReason[client] = "Gagged through natives";
+				g_sGagReason[client] = "Gagged through BaseComm natives";
 
 				decl String:adminIp[24];
 				decl String:adminAuth[64];
@@ -444,12 +430,7 @@ public BaseComm_OnClientGag(client, bool:gagState)
 		{
 			if (g_GagType[client] > bNot)
 			{
-				g_GagType[client] = bNot;
-				g_iGagTime[client] = 0;
-				g_iGagLength[client] = 0;
-				g_iGagLevel[client] = -1;
-				g_sGagAdmin[client][0] = '\0';
-				g_sGagReason[client][0] = '\0';
+				MarkClientAsUnGagged(client);
 			}
 		}
 	}
@@ -579,12 +560,7 @@ public Action:FWUngag(args)
 
 				if (g_GagType[i] > bNot)
 				{
-					g_GagType[i] = bNot;
-					g_iGagTime[i] = 0;
-					g_iGagLength[i] = 0;
-					g_iGagLevel[i] = -1;
-					g_sGagAdmin[i][0] = '\0';
-					g_sGagReason[i][0] = '\0';
+					MarkClientAsUnGagged(i);
 					PrintToChat(i, "%s%t", PREFIX, "FWUngag");
 					BaseComm_SetClientGag(i, false);
 					LogToFile(logFile, "%s is ungagged from web", clientAuth);
@@ -626,12 +602,7 @@ public Action:FWUnmute(args)
 
 				if (g_MuteType[i] > bNot)
 				{
-					g_MuteType[i] = bNot;
-					g_iMuteTime[i] = 0;
-					g_iMuteLength[i] = 0;
-					g_iMuteLevel[i] = -1;
-					g_sMuteAdmin[i][0] = '\0';
-					g_sMuteReason[i][0] = '\0';
+					MarkClientAsUnMuted(i);
 					PrintToChat(i, "%s%t", PREFIX, "FWUnmute");
 					BaseComm_SetClientMute(i, false);
 					LogToFile(logFile, "%s is unmuted from web", clientAuth);
@@ -1647,12 +1618,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				{
 					case TYPE_MUTE:
 					{
-						g_MuteType[target] = bNot;
-						g_iMuteTime[target] = 0;
-						g_iMuteLength[target] = 0;
-						g_iMuteLevel[target] = -1;
-						g_sMuteAdmin[target][0] = '\0';
-						g_sMuteReason[target][0] = '\0';
+						MarkClientAsUnMuted(target);
 						BaseComm_SetClientMute(target, false);
 						if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
 						{
@@ -1667,12 +1633,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					//-------------------------------------------------------------------------------------------------
 					case TYPE_GAG:
 					{
-						g_GagType[target] = bNot;
-						g_iGagTime[target] = 0;
-						g_iGagLength[target] = 0;
-						g_iGagLevel[target] = -1;
-						g_sGagAdmin[target][0] = '\0';
-						g_sGagReason[target][0] = '\0';
+						MarkClientAsUnGagged(target);
 						BaseComm_SetClientGag(target, false);
 						if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
 						{
@@ -2028,13 +1989,7 @@ public Action:Timer_MuteExpire(Handle:timer, any:userid)
 	PrintToChat(client, "%s%t", PREFIX, "Mute expired");
 
 	g_hMuteExpireTimer[client] = INVALID_HANDLE;
-	g_MuteType[client] = bNot;
-	g_iMuteTime[client] = 0;
-	g_iMuteLength[client] = 0;
-	g_iMuteLevel[client] = -1;
-	g_sMuteAdmin[client][0] = '\0';
-	g_sMuteReason[client][0] = '\0';
-
+	MarkClientAsUnMuted(client);
 	if (IsClientInGame(client))
 		BaseComm_SetClientMute(client, false);
 }
@@ -2053,13 +2008,7 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
 	PrintToChat(client, "%s%t", PREFIX, "Gag expired");
 
 	g_hGagExpireTimer[client] = INVALID_HANDLE;
-	g_GagType[client] = bNot;
-	g_iGagTime[client] = 0;
-	g_iGagLength[client] = 0;
-	g_iGagLevel[client] = -1;
-	g_sGagAdmin[client][0] = '\0';
-	g_sGagReason[client][0] = '\0';
-
+	MarkClientAsUnGagged(client);
 	if (IsClientInGame(client))
 		BaseComm_SetClientGag(client, false);
 }
@@ -2729,12 +2678,7 @@ public TempUnBlock(Handle:data)
 		{
 			case TYPE_MUTE:
 			{
-				g_MuteType[target] = bNot;
-				g_iMuteTime[target] = 0;
-				g_iMuteLength[target] = 0;
-				g_iMuteLevel[target] = -1;
-				g_sMuteAdmin[target][0] = '\0';
-				g_sMuteReason[target][0] = '\0';
+				MarkClientAsUnMuted(target);
 				BaseComm_SetClientMute(target, false);
 				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
 				{
@@ -2749,12 +2693,7 @@ public TempUnBlock(Handle:data)
 			//-------------------------------------------------------------------------------------------------
 			case TYPE_GAG:
 			{
-				g_GagType[target] = bNot;
-				g_iGagTime[target] = 0;
-				g_iGagLength[target] = 0;
-				g_iGagLevel[target] = -1;
-				g_sGagAdmin[target][0] = '\0';
-				g_sGagReason[target][0] = '\0';
+				MarkClientAsUnGagged(target);
 				BaseComm_SetClientGag(target, false);
 				if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
 				{
@@ -2769,19 +2708,9 @@ public TempUnBlock(Handle:data)
 			//-------------------------------------------------------------------------------------------------
 			case TYPE_SILENCE:
 			{
-				g_MuteType[target] = bNot;
-				g_iMuteTime[target] = 0;
-				g_iMuteLength[target] = 0;
-				g_iMuteLevel[target] = -1;
-				g_sMuteAdmin[target][0] = '\0';
-				g_sMuteReason[target][0] = '\0';
+				MarkClientAsUnMuted(target);
 				BaseComm_SetClientMute(target, false);
-				g_GagType[target] = bNot;
-				g_iGagTime[target] = 0;
-				g_iGagLength[target] = 0;
-				g_iGagLevel[target] = -1;
-				g_sGagAdmin[target][0] = '\0';
-				g_sGagReason[target][0] = '\0';
+				MarkClientAsUnGagged(target);
 				BaseComm_SetClientGag(target, false);
 				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
 				{
@@ -3027,5 +2956,76 @@ bool:NotApplyToThisServer(srvID)
 		return true;
 	else
 		return false;
+}
+
+stock MarkClientAsUnMuted(client)
+{
+	g_MuteType[client] = bNot;
+	g_iMuteTime[client] = 0;
+	g_iMuteLength[client] = 0;
+	g_iMuteLevel[client] = -1;
+	g_sMuteAdmin[client][0] = '\0';
+	g_sMuteReason[client][0] = '\0';
+}
+
+stock MarkClientAsUnGagged(client)
+{
+	g_GagType[client] = bNot;
+	g_iGagTime[client] = 0;
+	g_iGagLength[client] = 0;
+	g_iGagLevel[client] = -1;
+	g_sGagAdmin[client][0] = '\0';
+	g_sGagReason[client][0] = '\0';
+}
+
+// Natives //
+//native bool:BaseComm_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = true, const String:reason[] = "Gagged through natives");
+public Native_SetClientGag(Handle:hPlugin, numParams)
+{
+	new client = GetNativeCell(1);
+	if (client < 1 || client > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", client);
+	}
+
+	// if (!IsClientInGame(client))
+	// {
+	// 	return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", client);
+	// }
+
+	new bool:gagState = GetNativeCell(2);
+	new gagLength = GetNativeCell(3);
+
+	if (gagState && gagLength == 0)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Permanent gag is not allowed!");
+	}
+
+	new bool:bSaveToDB = GetNativeCell(4);
+	decl String:sReason[256];
+	GetNativeString(5, sReason, sizeof(sReason));
+
+	PrintToServer("Native called with: client %d; gagState %b; gagLength %d; saveToDB %b, reason: %s.", client, gagState, gagLength, bSaveToDB, sReason);
+
+	if (gagState)
+	{
+		if (g_GagType[client] > bNot)
+		{
+			return false;
+		}
+
+//		PerformGag(-1, client, true);
+	}
+	else
+	{
+		if (g_GagType[client] == bNot)
+		{
+			return false;
+		}
+
+//		PerformUnGag(-1, client, true);
+	}
+
+	return true;
 }
 //Yarr!
