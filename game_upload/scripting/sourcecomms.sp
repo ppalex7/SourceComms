@@ -16,10 +16,10 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.177"
+#define PLUGIN_VERSION "0.8.183"
 #define PREFIX "\x04[SourceComms]\x01 "
 
-#define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
+//#define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
 #define TYPE_MUTE 1
 #define TYPE_GAG 2
@@ -146,7 +146,8 @@ public Plugin:myinfo =
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
-	CreateNative("SourceComms_SetClientGag",         Native_SetClientGag);
+	CreateNative("SourceComms_SetClientGag",        Native_SetClientGag);
+	CreateNative("SourceComms_SetClientMute", 		Native_SetClientMute);
 	RegPluginLibrary("sourcecomms");
 	return APLRes_Success;
 }
@@ -203,7 +204,7 @@ public OnPluginStart()
 
 	if (LibraryExists("updater"))
     {
-		Updater_AddPlugin(UPDATE_URL);
+		//Updater_AddPlugin(UPDATE_URL);
 	}
 }
 
@@ -211,7 +212,7 @@ public OnLibraryAdded(const String:name[])
 {
 	if (StrEqual(name, "updater"))
 	{
-		Updater_AddPlugin(UPDATE_URL);
+		//Updater_AddPlugin(UPDATE_URL);
 	}
 }
 
@@ -2922,55 +2923,116 @@ stock PerformUnGag(target)
 {
 	MarkClientAsUnGagged(target);
 	BaseComm_SetClientGag(target, false);
-	CloseGagExpireTimer(target);	
+	CloseGagExpireTimer(target);
 }
 
 // Natives //
-//native bool:BaseComm_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = true, const String:reason[] = "Gagged through natives");
-public Native_SetClientGag(Handle:hPlugin, numParams)
+public Native_SetClientMute(Handle:hPlugin, numParams)
 {
-	new client = GetNativeCell(1);
-	if (client < 1 || client > MaxClients)
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
 	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", client);
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
 	}
 
-	// if (!IsClientInGame(client))
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	new bool:muteState = GetNativeCell(2);
+	// new muteLength = GetNativeCell(3);
+
+	// if (muteState && muteLength == 0)
 	// {
-	// 	return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", client);
+	// 	return ThrowNativeError(SP_ERROR_NATIVE, "Permanent mute is not allowed!");
 	// }
 
-	new bool:gagState = GetNativeCell(2);
-	new gagLength = GetNativeCell(3);
+	// new bool:bSaveToDB = GetNativeCell(4);
+	// decl String:sReason[256];
+	// GetNativeString(5, sReason, sizeof(sReason));
 
-	if (gagState && gagLength == 0)
+	// PrintToServer("Native called with: client %d; muteState %b; muteLength %d; saveToDB %b, reason: %s.", target, muteState, muteLength, bSaveToDB, sReason);
+
+	if (muteState)
 	{
-		return ThrowNativeError(SP_ERROR_NATIVE, "Permanent gag is not allowed!");
-	}
-
-	new bool:bSaveToDB = GetNativeCell(4);
-	decl String:sReason[256];
-	GetNativeString(5, sReason, sizeof(sReason));
-
-	PrintToServer("Native called with: client %d; gagState %b; gagLength %d; saveToDB %b, reason: %s.", client, gagState, gagLength, bSaveToDB, sReason);
-
-	if (gagState)
-	{
-		if (g_GagType[client] > bNot)
+		if (g_MuteType[target] > bNot)
 		{
 			return false;
 		}
 
-//		PerformGag(-1, client, true);
+		g_MuteType[target] = bSess;
+		g_iMuteTime[target] = GetTime();
+		g_iMuteLength[target] = -1;
+		g_iMuteLevel[target] = ConsoleImmunity;
+		g_sMuteAdmin[target] = "CONSOLE";
+		g_sMuteReason[target] = "Muted through natives";
+		BaseComm_SetClientMute(target, true);
 	}
 	else
 	{
-		if (g_GagType[client] == bNot)
+		if (g_MuteType[target] == bNot)
 		{
 			return false;
 		}
 
-//		PerformUnGag(-1, client, true);
+		PerformUnMute(target);
+	}
+
+	return true;
+}
+
+//native bool:BaseComm_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = true, const String:reason[] = "Gagged through natives");
+public Native_SetClientGag(Handle:hPlugin, numParams)
+{
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
+	}
+
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	new bool:gagState = GetNativeCell(2);
+	// new gagLength = GetNativeCell(3);
+
+	// if (gagState && gagLength == 0)
+	// {
+	// 	return ThrowNativeError(SP_ERROR_NATIVE, "Permanent gag is not allowed!");
+	// }
+
+	// new bool:bSaveToDB = GetNativeCell(4);
+	// decl String:sReason[256];
+	// GetNativeString(5, sReason, sizeof(sReason));
+
+	// PrintToServer("Native called with: client %d; gagState %b; gagLength %d; saveToDB %b, reason: %s.", target, gagState, gagLength, bSaveToDB, sReason);
+
+	if (gagState)
+	{
+		if (g_GagType[target] > bNot)
+		{
+			return false;
+		}
+
+		g_GagType[target] = bSess;
+		g_iGagTime[target] = GetTime();
+		g_iGagLength[target] = -1;
+		g_iGagLevel[target] = ConsoleImmunity;
+		g_sGagAdmin[target] = "CONSOLE";
+		g_sGagReason[target] = "Gagged through natives";
+		BaseComm_SetClientGag(target, true);
+	}
+	else
+	{
+		if (g_GagType[target] == bNot)
+		{
+			return false;
+		}
+
+		PerformUnGag(target);
 	}
 
 	return true;

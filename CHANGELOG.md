@@ -1,4 +1,5 @@
 #Changelog
+* **0.8.183** - Added Natives for changing gag/mute state without saving to db.
 * **0.8.167** - Added *Servers White List* feature. More details in README.
 * **0.8.158**
 	* Fixed `Unknown command` reply in client console.
