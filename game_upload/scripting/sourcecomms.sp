@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.173"
+#define PLUGIN_VERSION "0.8.174"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -484,7 +484,7 @@ public Action:FWBlock(args)
 				{
 					g_iMuteTime[i] = GetTime();
 					g_iMuteLength[i] = length / 60;
-					g_iMuteLevel[i] = 99;
+					g_iMuteLevel[i] = ConsoleImmunity;
 					g_sMuteAdmin[i] = "CONSOLE";
 					g_sMuteReason[i][0] = '\0';
 					PrintToChat(i, "%s%t", PREFIX, "Muted on connect");
@@ -507,7 +507,7 @@ public Action:FWBlock(args)
 				{
 					g_iGagTime[i] = GetTime();
 					g_iGagLength[i] = length / 60;
-					g_iGagLevel[i] = 99;
+					g_iGagLevel[i] = ConsoleImmunity;
 					g_sGagAdmin[i] = "CONSOLE";
 					g_sGagReason[i][0] = '\0';
 					PrintToChat(i, "%s%t", PREFIX, "Gagged on connect");
