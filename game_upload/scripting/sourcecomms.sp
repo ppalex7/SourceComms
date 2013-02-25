@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.174"
+#define PLUGIN_VERSION "0.8.175"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -237,36 +237,11 @@ public OnMapStart()
 
 public OnClientDisconnect(client)
 {
-	if (g_hPlayerRecheck[client] != INVALID_HANDLE)
-	{
-		KillTimer(g_hPlayerRecheck[client]);
+	if (g_hPlayerRecheck[client] != INVALID_HANDLE && CloseHandle(g_hPlayerRecheck[client]))
 		g_hPlayerRecheck[client] = INVALID_HANDLE;
-	}
 
-	if (g_hMuteExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[client]))
-	{
-		g_hMuteExpireTimer[client] = INVALID_HANDLE;
-		#if defined DEBUG
-		{
-			decl String:clientAuth[64];
-			GetClientAuthString(client, clientAuth, sizeof(clientAuth));
-			LogToFile(logFile, "Closed MuteExpire Timer for %s OnClientDisconnect", clientAuth);
-		}
-		#endif
-	}
-
-	if (g_hGagExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[client]))
-	{
-		g_hGagExpireTimer[client] = INVALID_HANDLE;
-		#if defined DEBUG
-		{
-			decl String:clientAuth[64];
-			GetClientAuthString(client, clientAuth, sizeof(clientAuth));
-			LogToFile(logFile, "Closed GagExpire Timer for %s OnClientDisconnect", clientAuth);
-		}
-		#endif
-	}
-
+	CloseMuteExpireTimer(client);
+	CloseGagExpireTimer(client);
 }
 
 public bool:OnClientConnect(client, String:rejectmsg[], maxlen)
@@ -564,8 +539,7 @@ public Action:FWUngag(args)
 					PrintToChat(i, "%s%t", PREFIX, "FWUngag");
 					BaseComm_SetClientGag(i, false);
 					LogToFile(logFile, "%s is ungagged from web", clientAuth);
-					if (g_hGagExpireTimer[i] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[i]))
-						g_hGagExpireTimer[i] = INVALID_HANDLE;
+					CloseGagExpireTimer(i);
 				}
 				else
 					LogToFile(logFile, "Can't ungag %s from web, isn't gagged", clientAuth);
@@ -606,8 +580,7 @@ public Action:FWUnmute(args)
 					PrintToChat(i, "%s%t", PREFIX, "FWUnmute");
 					BaseComm_SetClientMute(i, false);
 					LogToFile(logFile, "%s is unmuted from web", clientAuth);
-					if (g_hMuteExpireTimer[i] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[i]))
-						g_hMuteExpireTimer[i] = INVALID_HANDLE;
+					CloseMuteExpireTimer(i);
 				}
 				else
 					LogToFile(logFile, "Can't unmute %s from web, isn't muted", clientAuth);
@@ -1620,13 +1593,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					{
 						MarkClientAsUnMuted(target);
 						BaseComm_SetClientMute(target, false);
-						if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-						{
-							g_hMuteExpireTimer[target] = INVALID_HANDLE;
-							#if defined DEBUG
-								LogToFile(logFile, "MuteExpireTimer killed on unmute");
-							#endif
-						}
+						CloseMuteExpireTimer(target);
 						ShowActivity2(admin, PREFIX, "%t", "Unmuted player", g_sName[target]);
 						LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 					}
@@ -1635,13 +1602,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					{
 						MarkClientAsUnGagged(target);
 						BaseComm_SetClientGag(target, false);
-						if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-						{
-							g_hGagExpireTimer[target] = INVALID_HANDLE;
-							#if defined DEBUG
-								LogToFile(logFile, "GagExpireTimer killed on ungag");
-							#endif
-						}
+						CloseGagExpireTimer(target);
 						ShowActivity2(admin, PREFIX, "%t", "Ungagged player", g_sName[target]);
 						LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 					}
@@ -2680,13 +2641,7 @@ public TempUnBlock(Handle:data)
 			{
 				MarkClientAsUnMuted(target);
 				BaseComm_SetClientMute(target, false);
-				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-				{
-					g_hMuteExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "MuteExpireTimer killed on temporary unmute (DB problems)");
-					#endif
-				}
+				CloseMuteExpireTimer(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp unmuted player", g_sName[target]);
 				LogAction(admin, target, "\"%L\" temporary (DB problems) unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 			}
@@ -2695,13 +2650,7 @@ public TempUnBlock(Handle:data)
 			{
 				MarkClientAsUnGagged(target);
 				BaseComm_SetClientGag(target, false);
-				if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-				{
-					g_hGagExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "GagExpireTimer killed on temporary ungag (DB problems)");
-					#endif
-				}
+				CloseGagExpireTimer(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp ungagged player", g_sName[target]);
 				LogAction(admin, target, "\"%L\" temporary (DB problems) ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 			}
@@ -2712,20 +2661,8 @@ public TempUnBlock(Handle:data)
 				BaseComm_SetClientMute(target, false);
 				MarkClientAsUnGagged(target);
 				BaseComm_SetClientGag(target, false);
-				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-				{
-					g_hMuteExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "MuteExpireTimer killed on temporary unsilence (DB problems)");
-					#endif
-				}
-				if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-				{
-					g_hGagExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "GagExpireTimer killed on temporary unsilence (DB problems)");
-					#endif
-				}
+				CloseMuteExpireTimer(target);
+				CloseGagExpireTimer(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp unsilenced player", g_sName[target]);
 				LogAction(admin, target, "\"%L\" temporary (DB problems) unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
 			}
@@ -2976,6 +2913,18 @@ stock MarkClientAsUnGagged(client)
 	g_iGagLevel[client] = -1;
 	g_sGagAdmin[client][0] = '\0';
 	g_sGagReason[client][0] = '\0';
+}
+
+stock CloseMuteExpireTimer(client)
+{
+	if (g_hMuteExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[client]))
+		g_hMuteExpireTimer[client] = INVALID_HANDLE;
+}
+
+stock CloseGagExpireTimer(client)
+{
+	if (g_hGagExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[client]))
+		g_hGagExpireTimer[client] = INVALID_HANDLE;
 }
 
 // Natives //
