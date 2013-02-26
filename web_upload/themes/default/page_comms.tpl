@@ -54,13 +54,13 @@
 <br />
 {php} require (TEMPLATES_PATH . "/admin.comms.search.php");{/php}
 <br />
-<div id="banlist-nav"> 
+<div id="banlist-nav">
 {$ban_nav}
 </div>
 <a href="index.php?p=commslist&hideinactive={if $hidetext == 'Hide'}true{else}false{/if}{$searchlink|htmlspecialchars}" title="{$hidetext} inactive">{$hidetext} inactive</a>
 <div id="banlist">
 	<table width="100%" cellspacing="0" cellpadding="0" align="center" class="listtable">
-		<tr>			
+		<tr>
 			<td width="8%" height="16" class="listtable_top" align="center"><b>MOD/Type</b></td>
 			<td width="14%" height="16" class="listtable_top" align="center"><b>Date</b></td>
 			<td height="16" class="listtable_top"><b>Player</b></td>
@@ -70,11 +70,11 @@
 			<td width="16%" height="16" class="listtable_top" align="center"><b>Length</b></td>
 		</tr>
 		{foreach from=$ban_list item=ban name=banlist}
-			<tr class="opener tbl_out" onmouseout="this.className='tbl_out'" onmouseover="this.className='tbl_hover'" 
+			<tr class="opener tbl_out" onmouseout="this.className='tbl_out'" onmouseover="this.className='tbl_hover'"
 			{if $ban.server_id != 0}
 				onclick="xajax_ServerHostPlayers({$ban.server_id}, {$ban.ban_id});"
 			{/if}
-			>		
+			>
 		<td height="16" align="center" class="listtable_1">{$ban.mod_icon}</td>
         <td height="16" align="center" class="listtable_1">{$ban.ban_date}</td>
         <td height="16" class="listtable_1">
@@ -108,7 +108,7 @@
 			<!-- ###############[ Start Sliding Panel ]################## -->
 			<tr>
         <td colspan="7" align="center">
-          <div class="opener"> 
+          <div class="opener">
 						<table width="80%" cellspacing="0" cellpadding="0" class="listtable">
               <tr>
               	{if $view_bans}
@@ -116,7 +116,7 @@
               	{else}
               	<td height="16" align="left" class="listtable_top" colspan="2">
               	{/if}
-									<b>Block Details</b>            
+									<b>Block Details</b>
 								</td>
               </tr>
               <tr align="left">
@@ -130,14 +130,14 @@
                 </td>
                 <!-- ###############[ Start Admin Controls ]################## -->
                 {if $view_bans}
-                <td width="30%" rowspan="{if $ban.unbanned}11{else}9{/if}" class="listtable_2 opener">
+                <td width="30%" rowspan="{if $ban.unbanned}12{else}10{/if}" class="listtable_2 opener">
                   <div class="ban-edit">
                     <ul>
 					  {if $ban.unbanned && $ban.reban_link != false}
 					  <li>{$ban.reban_link}</li>
 					  {/if}
                       <li>{$ban.addcomment}</li>
-                      {if ($ban.view_edit && !$ban.unbanned)} 
+                      {if ($ban.view_edit && !$ban.unbanned)}
                       <li>{$ban.edit_link}</li>
                       {/if}
                       {if ($ban.unbanned == false && $ban.view_unban)}
@@ -161,6 +161,10 @@
                   {$ban.steamid}
                   {/if}
                 </td>
+              </tr>
+              <tr align="left">
+                <td width="20%" height="16" class="listtable_1">Steam Community</td>
+                <td height="16" class="listtable_1"><a href="http://steamcommunity.com/profiles/{$ban.communityid}" target="_blank">{$ban.communityid}</a></td>
               </tr>
               <tr align="left">
 								<td width="20%" height="16" class="listtable_1">Invoked on</td>
@@ -284,7 +288,7 @@
 								</td>
 							</tr>
 							{/if}
-						</table>	
+						</table>
 					</div>
           		</td>
           	</tr>
@@ -293,14 +297,14 @@
 	</table><div align="right" style="margin-top: 3px; font-size:7pt">SourceComms plugin &#038;	integration to SourceBans made by <a href="http://steamcommunity.com/id/raleks" target="_blank">Alex</a></div>
 </div>
 {literal}
-<script type="text/javascript">window.addEvent('domready', function(){	
+<script type="text/javascript">window.addEvent('domready', function(){
 InitAccordion('tr.opener', 'div.opener', 'mainwrapper');
 {/literal}
 {if $view_bans}
 $('tickswitch').value=0;
 {/if}
 {literal}
-}); 
+});
 </script>
 {/literal}
 {/if}

@@ -209,6 +209,7 @@ if (isset($_GET['searchText']))
 	$res = $GLOBALS['db']->Execute(
 		"SELECT bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 		SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
+		CAST(MID(CO.authid, 9, 1) AS UNSIGNED) + CAST('76561197960265728' AS UNSIGNED) + CAST(MID(CO.authid, 11, 10) * 2 AS UNSIGNED) AS community_id,
 		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 1)) as mute_count,
 		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 2)) as gag_count,
 		UNIX_TIMESTAMP() as c_time
@@ -230,6 +231,7 @@ elseif(!isset($_GET['advSearch']))
 	$res = $GLOBALS['db']->Execute(
 	"SELECT bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 		SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
+		CAST(MID(CO.authid, 9, 1) AS UNSIGNED) + CAST('76561197960265728' AS UNSIGNED) + CAST(MID(CO.authid, 11, 10) * 2 AS UNSIGNED) AS community_id,
 		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 1)) as mute_count,
 		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 2)) as gag_count,
 		UNIX_TIMESTAMP() as c_time
@@ -351,8 +353,9 @@ if(isset($_GET['advSearch']))
 		$res = $GLOBALS['db']->Execute(
 			"SELECT CO.bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 			SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
+			CAST(MID(CO.authid, 9, 1) AS UNSIGNED) + CAST('76561197960265728' AS UNSIGNED) + CAST(MID(CO.authid, 11, 10) * 2 AS UNSIGNED) AS community_id,
 			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 1)) as mute_count,
-		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND )) as gag_count,
+			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND )) as gag_count,
 			UNIX_TIMESTAMP() as c_time
 			FROM ".DB_PREFIX."_comms AS CO FORCE INDEX (created)
 			LEFT JOIN ".DB_PREFIX."_servers AS SE ON SE.sid = CO.sid
@@ -411,6 +414,7 @@ while (!$res->EOF)
 	$data['ban_date'] = SBDate($dateformat,$res->fields['ban_created']);
 	$data['player'] = addslashes($res->fields['player_name']);
 	$data['steamid'] = $res->fields['authid'];
+	$data['communityid'] = $res->fields['community_id'];
 
 	if(isset($GLOBALS['config']['banlist.hideadminname']) && $GLOBALS['config']['banlist.hideadminname'] == "1" && !$userbank->is_admin())
 		$data['admin'] = false;
