@@ -10,13 +10,13 @@
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 #define DATABASE "sourcecomms"
 
-//#define DEBUG
-//#define LOG_QUERIES
+#define DEBUG
+#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.216"
+#define PLUGIN_VERSION "0.8.222"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1372,7 +1372,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
 	ReadPackString(data, reason, sizeof(reason));
 
-	new admin = GetClientOfUserId(adminUserID);
+	new admin = GetClientOfUserId2(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
 	new bool:hasErrors = false;
@@ -2284,10 +2284,9 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 
 	// Pack everything into a data pack so we can retain it
 	new Handle:dataPack = CreateDataPack();
-	WritePackCell(dataPack, GetClientUserId(client));
+	WritePackCell(dataPack, GetClientUserId2(client));
 	WritePackCell(dataPack, GetClientUserId(target));
 	WritePackCell(dataPack, type);
-
 	WritePackString(dataPack, adminAuth);
 	WritePackString(dataPack, targetAuth);
 	WritePackString(dataPack, reason);
@@ -2344,7 +2343,7 @@ public TempUnBlock(Handle:data)
 	ReadPackString(data, reason, sizeof(reason));
 	CloseHandle(data);	// Need to close datapack
 
-	new admin = GetClientOfUserId(adminUserID);
+	new admin = GetClientOfUserId2(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
 	new AdmImmunity = GetAdmImmunity(admin);
@@ -2367,14 +2366,14 @@ public TempUnBlock(Handle:data)
 			{
 				PerformUnMute(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp unmuted player", g_sName[target]);
-				LogAction(admin, target, "\"%L\" temporary (DB problems) unmuted \"%L\" (reason \"%s\")", admin, target, reason);
+				LogAction(admin, target, "\"%L\" temporary unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
 			case TYPE_GAG:
 			{
 				PerformUnGag(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp ungagged player", g_sName[target]);
-				LogAction(admin, target, "\"%L\" temporary (DB problems) ungagged \"%L\" (reason \"%s\")", admin, target, reason);
+				LogAction(admin, target, "\"%L\" temporary ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
 			case TYPE_SILENCE:
@@ -2382,7 +2381,7 @@ public TempUnBlock(Handle:data)
 				PerformUnMute(target);
 				PerformUnGag(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp unsilenced player", g_sName[target]);
-				LogAction(admin, target, "\"%L\" temporary (DB problems) unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
+				LogAction(admin, target, "\"%L\" temporary unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 		}
 	}
@@ -2587,6 +2586,22 @@ _:GetAdmImmunity(admin)
 		return 0;
 }
 
+_:GetClientUserId2(client)
+{
+	if (client)
+		return GetClientUserId(client);
+	else
+		return 0;	// for CONSOLE
+}
+
+_:GetClientOfUserId2(userid)
+{
+	if (userid)
+		return GetClientOfUserId(userid);
+	else
+		return 0;	// for CONSOLE
+}
+
 ForcePlayerRecheck()
 {
 	for (new i = 1; i <= MaxClients; i++)
@@ -2780,6 +2795,7 @@ stock SavePunishment(target, type, admin = 0)
 }
 
 // Natives //
+// native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, bool:saveToDB = true, const String:reason[] = "Muted through natives");
 public Native_SetClientMute(Handle:hPlugin, numParams)
 {
 	new target = GetNativeCell(1);
@@ -2794,18 +2810,15 @@ public Native_SetClientMute(Handle:hPlugin, numParams)
 	}
 
 	new bool:muteState = GetNativeCell(2);
-	// new muteLength = GetNativeCell(3);
+	new muteLength = GetNativeCell(3);
+	if (muteState && muteLength == 0)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Permanent mute is not allowed!");
+	}
 
-	// if (muteState && muteLength == 0)
-	// {
-	// 	return ThrowNativeError(SP_ERROR_NATIVE, "Permanent mute is not allowed!");
-	// }
-
-	// new bool:bSaveToDB = GetNativeCell(4);
-	// decl String:sReason[256];
-	// GetNativeString(5, sReason, sizeof(sReason));
-
-	// PrintToServer("Native called with: client %d; muteState %b; muteLength %d; saveToDB %b, reason: %s.", target, muteState, muteLength, bSaveToDB, sReason);
+	new bool:bSaveToDB = GetNativeCell(4);
+	decl String:sReason[256];
+	GetNativeString(5, sReason, sizeof(sReason));
 
 	if (muteState)
 	{
@@ -2816,6 +2829,8 @@ public Native_SetClientMute(Handle:hPlugin, numParams)
 
 		MarkClientAsMuted(target, _, _, _, "Muted through natives");
 		BaseComm_SetClientMute(target, true);
+		if (bSaveToDB)
+			SavePunishment(target, TYPE_MUTE, _);
 	}
 	else
 	{
