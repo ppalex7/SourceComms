@@ -1372,7 +1372,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
 	ReadPackString(data, reason, sizeof(reason));
 
-	new admin = GetClientOfUserId2(adminUserID);
+	new admin = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
 	new bool:hasErrors = false;
@@ -2343,7 +2343,7 @@ public TempUnBlock(&Handle:data)
 	ReadPackString(data, reason, sizeof(reason));
 	CloseHandle(data);	// Need to close datapack
 
-	new admin = GetClientOfUserId2(adminUserID);
+	new admin = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
 	new AdmImmunity = GetAdmImmunity(admin);
@@ -2590,14 +2590,6 @@ _:GetClientUserId2(client)
 {
 	if (client)
 		return GetClientUserId(client);
-	else
-		return 0;	// for CONSOLE
-}
-
-_:GetClientOfUserId2(userid)
-{
-	if (userid)
-		return GetClientOfUserId(userid);
 	else
 		return 0;	// for CONSOLE
 }
