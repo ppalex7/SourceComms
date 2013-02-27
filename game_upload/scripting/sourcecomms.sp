@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.222"
+#define PLUGIN_VERSION "0.8.224"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2327,7 +2327,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 	return true;
 }
 
-public TempUnBlock(Handle:data)
+public TempUnBlock(&Handle:data)
 {
 	#if defined DEBUG
 		LogToFile(logFile, "TemporaryUnblock");
