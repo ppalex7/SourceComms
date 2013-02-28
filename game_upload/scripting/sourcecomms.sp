@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <basecomm>
+#include "include/sourcecomms.inc"
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
@@ -16,11 +17,12 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define VERSION "0.8.158"
+#define PLUGIN_VERSION "0.8.253"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
+#define NOW 0
 #define TYPE_MUTE 1
 #define TYPE_GAG 2
 #define TYPE_SILENCE 3
@@ -43,7 +45,8 @@ enum State /* ConfigState */
 	ConfigStateNone = 0,
 	ConfigStateConfig,
 	ConfigStateReasons,
-	ConfigStateTimes
+	ConfigStateTimes,
+	ConfigStateServers
 }
 enum DatabaseState /* Database connection state */
 {
@@ -93,6 +96,7 @@ new DefaultTime = 30;
 new DisUBImCheck = 0;
 new ConsoleImmunity = 0;
 new ConfigMaxLength = 0;
+new ConfigWhiteListOnly = 0;
 
 new serverID = -1;
 
@@ -107,14 +111,6 @@ enum PeskyPanels
 }
 new g_iPeskyPanels[MAXPLAYERS + 1][PeskyPanels];
 
-/* Blocks info storage */
-enum bType{
-	bNot = 0,
-	bSess,
-	bTime,
-	bPerm
-}
-
 new String:g_sName[MAXPLAYERS + 1][MAX_NAME_LENGTH];
 
 new bType:g_MuteType[MAXPLAYERS + 1];
@@ -122,28 +118,35 @@ new g_iMuteTime[MAXPLAYERS + 1];
 new g_iMuteLength[MAXPLAYERS + 1]; // in sec
 new g_iMuteLevel[MAXPLAYERS + 1]; // immunity level of admin
 new String:g_sMuteAdmin[MAXPLAYERS + 1][MAX_NAME_LENGTH];
-new String:g_sMuteReason[MAXPLAYERS + 1][128];
+new String:g_sMuteReason[MAXPLAYERS + 1][256];
 
 new bType:g_GagType[MAXPLAYERS + 1];
 new g_iGagTime[MAXPLAYERS + 1];
 new g_iGagLength[MAXPLAYERS + 1]; // in sec
 new g_iGagLevel[MAXPLAYERS + 1]; // immunity level of admin
 new String:g_sGagAdmin[MAXPLAYERS + 1][MAX_NAME_LENGTH];
-new String:g_sGagReason[MAXPLAYERS + 1][128];
+new String:g_sGagReason[MAXPLAYERS + 1][256];
+
+new Handle:g_hServersWhiteList = INVALID_HANDLE;
 
 public Plugin:myinfo =
 {
 	name = "SourceComms",
 	author = "Alex",
 	description = "Advanced punishments management for the Source engine in SourceBans style.",
-	version = VERSION,
+	version = PLUGIN_VERSION,
 	url = "https://forums.alliedmods.net/showthread.php?t=207176"
 };
 
-// public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
-// {
-	// return APLRes_Success;
-// }
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+	CreateNative("SourceComms_SetClientMute", 		Native_SetClientMute);
+	CreateNative("SourceComms_SetClientGag",        Native_SetClientGag);
+	CreateNative("SourceComms_GetClientMuteType",	Native_GetClientMuteType);
+	CreateNative("SourceComms_GetClientGagType",	Native_GetClientGagType);
+	RegPluginLibrary("sourcecomms");
+	return APLRes_Success;
+}
 
 public OnPluginStart()
 {
@@ -156,8 +159,9 @@ public OnPluginStart()
 
 	CvarHostIp = FindConVar("hostip");
 	CvarPort = FindConVar("hostport");
+	g_hServersWhiteList = CreateArray();
 
-	CreateConVar("sourcecomms_version", VERSION, _, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
+	CreateConVar("sourcecomms_version", PLUGIN_VERSION, _, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
 	AddCommandListener(CommandGag, "sm_gag");
 	AddCommandListener(CommandUnGag, "sm_ungag");
 	AddCommandListener(CommandMute, "sm_mute");
@@ -178,7 +182,7 @@ public OnPluginStart()
 	#endif
 
 	#if defined DEBUG
-		LogToFile(logFile, "Plugin loading. Version %s", VERSION);
+		LogToFile(logFile, "Plugin loading. Version %s", PLUGIN_VERSION);
 	#endif
 
 	// Catch config error
@@ -210,7 +214,7 @@ public OnLibraryAdded(const String:name[])
 
 public Updater_OnPluginUpdated()
 {
-	LogToFile(logFile, "Plugin updated. Old version was %s. Now reloading.", VERSION);
+	LogToFile(logFile, "Plugin updated. Old version was %s. Now reloading.", PLUGIN_VERSION);
 
 	ReloadPlugin();
 }
@@ -230,36 +234,11 @@ public OnMapStart()
 
 public OnClientDisconnect(client)
 {
-	if (g_hPlayerRecheck[client] != INVALID_HANDLE)
-	{
-		KillTimer(g_hPlayerRecheck[client]);
+	if (g_hPlayerRecheck[client] != INVALID_HANDLE && CloseHandle(g_hPlayerRecheck[client]))
 		g_hPlayerRecheck[client] = INVALID_HANDLE;
-	}
 
-	if (g_hMuteExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[client]))
-	{
-		g_hMuteExpireTimer[client] = INVALID_HANDLE;
-		#if defined DEBUG
-		{
-			decl String:clientAuth[64];
-			GetClientAuthString(client, clientAuth, sizeof(clientAuth));
-			LogToFile(logFile, "Closed MuteExpire Timer for %s OnClientDisconnect", clientAuth);
-		}
-		#endif
-	}
-
-	if (g_hGagExpireTimer[client] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[client]))
-	{
-		g_hGagExpireTimer[client] = INVALID_HANDLE;
-		#if defined DEBUG
-		{
-			decl String:clientAuth[64];
-			GetClientAuthString(client, clientAuth, sizeof(clientAuth));
-			LogToFile(logFile, "Closed GagExpire Timer for %s OnClientDisconnect", clientAuth);
-		}
-		#endif
-	}
-
+	CloseMuteExpireTimer(client);
+	CloseGagExpireTimer(client);
 }
 
 public bool:OnClientConnect(client, String:rejectmsg[], maxlen)
@@ -272,19 +251,8 @@ public OnClientConnected(client)
 {
 	g_sName[client][0] = '\0';
 
-	g_MuteType[client] = bNot;
-	g_iMuteTime[client] = 0;
-	g_iMuteLength[client] = 0;
-	g_iMuteLevel[client] = -1;
-	g_sMuteAdmin[client][0] = '\0';
-	g_sMuteReason[client][0] = '\0';
-
-	g_GagType[client] = bNot;
-	g_iGagTime[client] = 0;
-	g_iGagLength[client] = 0;
-	g_iGagLevel[client] = -1;
-	g_sGagAdmin[client][0] = '\0';
-	g_sGagReason[client][0] = '\0';
+	MarkClientAsUnMuted(client);
+	MarkClientAsUnGagged(client);
 }
 
 public OnClientPostAdminCheck(client)
@@ -306,7 +274,7 @@ public OnClientPostAdminCheck(client)
 		SQL_EscapeString(g_hDatabase, clientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
 
 		decl String:Query[512];
-		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP())",
+		FormatEx(Query, sizeof(Query), "SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP())",
 				DatabasePrefix, DatabasePrefix, DatabasePrefix, sClAuthYZEscaped);
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "Checking blocks for: %s. QUERY: %s", clientAuth, Query);
@@ -332,56 +300,15 @@ public BaseComm_OnClientMute(client, bool:muteState)
 		{
 			if (g_MuteType[client] == bNot)
 			{
-				g_MuteType[client] = bSess;
-				g_iMuteTime[client] = GetTime();
-				g_iMuteLength[client] = -1;
-				g_iMuteLevel[client] = ConsoleImmunity;
-				g_sMuteAdmin[client] = "CONSOLE";
-				g_sMuteReason[client] = "Muted through natives";
-
-				decl String:adminIp[24];
-				decl String:adminAuth[64];
-				// setup dummy adminAuth and adminIp for server
-				strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
-				strcopy(adminIp, sizeof(adminIp), ServerIp);
-
-				// target information
-				decl String:auth[64];
-				GetClientAuthString(client, auth, sizeof(auth));
-
-				// Pack everything into a data pack so we can retain it trough sql-callback
-				new Handle:dataPack = CreateDataPack();
-				new Handle:reasonPack = CreateDataPack();
-				WritePackString(reasonPack, g_sMuteReason[client]);
-				WritePackCell(dataPack, -1);
-				WritePackCell(dataPack, TYPE_MUTE);
-				WritePackCell(dataPack, _:reasonPack);
-				WritePackString(dataPack, g_sName[client]);
-				WritePackString(dataPack, auth);
-				WritePackString(dataPack, adminAuth);
-				WritePackString(dataPack, adminIp);
-
-				ResetPack(dataPack);
-				ResetPack(reasonPack);
-				if (DB_Connect())
-				{
-					UTIL_InsertBlock(-1, TYPE_MUTE, g_sName[client], auth, g_sMuteReason[client], adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
-				} else {
-					UTIL_InsertTempBlock(-1, TYPE_MUTE, g_sName[client], auth, g_sMuteReason[client], adminAuth, adminIp);
-					LogToFile(logFile, "We need insert to queue (calling UTIL_InsertTempBlock)");
-				}
+				MarkClientAsMuted(client, _, _, _, ConsoleImmunity, "Muted through BaseComm natives");
+				SavePunishment(client, TYPE_MUTE, _);
 			}
 		}
 		else
 		{
 			if (g_MuteType[client] > bNot)
 			{
-				g_MuteType[client] = bNot;
-				g_iMuteTime[client] = 0;
-				g_iMuteLength[client] = 0;
-				g_iMuteLevel[client] = -1;
-				g_sMuteAdmin[client][0] = '\0';
-				g_sMuteReason[client][0] = '\0';
+				MarkClientAsUnMuted(client);
 			}
 		}
 	}
@@ -395,56 +322,15 @@ public BaseComm_OnClientGag(client, bool:gagState)
 		{
 			if (g_GagType[client] == bNot)
 			{
-				g_GagType[client] = bSess;
-				g_iGagTime[client] = GetTime();
-				g_iGagLength[client] = -1;
-				g_iGagLevel[client] = ConsoleImmunity;
-				g_sGagAdmin[client] = "CONSOLE";
-				g_sGagReason[client] = "Gagged through natives";
-
-				decl String:adminIp[24];
-				decl String:adminAuth[64];
-				// setup dummy adminAuth and adminIp for server
-				strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
-				strcopy(adminIp, sizeof(adminIp), ServerIp);
-
-				// target information
-				decl String:auth[64];
-				GetClientAuthString(client, auth, sizeof(auth));
-
-				// Pack everything into a data pack so we can retain it trough sql-callback
-				new Handle:dataPack = CreateDataPack();
-				new Handle:reasonPack = CreateDataPack();
-				WritePackString(reasonPack, g_sGagReason[client]);
-				WritePackCell(dataPack, -1);
-				WritePackCell(dataPack, TYPE_MUTE);
-				WritePackCell(dataPack, _:reasonPack);
-				WritePackString(dataPack, g_sName[client]);
-				WritePackString(dataPack, auth);
-				WritePackString(dataPack, adminAuth);
-				WritePackString(dataPack, adminIp);
-
-				ResetPack(dataPack);
-				ResetPack(reasonPack);
-				if (DB_Connect())
-				{
-					UTIL_InsertBlock(-1, TYPE_GAG, g_sName[client], auth, g_sGagReason[client], adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
-				} else {
-					UTIL_InsertTempBlock(-1, TYPE_GAG, g_sName[client], auth, g_sGagReason[client], adminAuth, adminIp);
-					LogToFile(logFile, "We need insert to queue (calling UTIL_InsertTempBlock)");
-				}
+				MarkClientAsGagged(client, _, _, _, ConsoleImmunity, "Gagged through BaseComm natives");
+				SavePunishment(client, TYPE_GAG, _);
 			}
 		}
 		else
 		{
 			if (g_GagType[client] > bNot)
 			{
-				g_GagType[client] = bNot;
-				g_iGagTime[client] = 0;
-				g_iGagLength[client] = 0;
-				g_iGagLevel[client] = -1;
-				g_sGagAdmin[client][0] = '\0';
-				g_sGagReason[client][0] = '\0';
+				MarkClientAsUnGagged(client);
 			}
 		}
 	}
@@ -496,49 +382,15 @@ public Action:FWBlock(args)
 
 				if (g_MuteType[i] == bNot && (type == 1 || type == 3))
 				{
-					g_iMuteTime[i] = GetTime();
-					g_iMuteLength[i] = length / 60;
-					g_iMuteLevel[i] = 99;
-					g_sMuteAdmin[i] = "CONSOLE";
-					g_sMuteReason[i][0] = '\0';
+					PerformMute(i, _, length / 60, _, ConsoleImmunity, _);
 					PrintToChat(i, "%s%t", PREFIX, "Muted on connect");
 					LogToFile(logFile, "%s is muted from web", clientAuth);
-
-					if (length > 0)
-					{
-						g_MuteType[i] = bTime;
-						#if defined DEBUG
-							LogToFile(logFile, "Creating MuteExpire timer");
-						#endif
-						g_hMuteExpireTimer[i] = CreateTimer(float(length), Timer_MuteExpire, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
-					}
-					else
-						g_MuteType[i] = bPerm;
-
-					BaseComm_SetClientMute(i, true);
 				}
 				if (g_GagType[i] == bNot && (type == 2 || type == 3))
 				{
-					g_iGagTime[i] = GetTime();
-					g_iGagLength[i] = length / 60;
-					g_iGagLevel[i] = 99;
-					g_sGagAdmin[i] = "CONSOLE";
-					g_sGagReason[i][0] = '\0';
+					PerformGag(i, _, length / 60, _, ConsoleImmunity, _);
 					PrintToChat(i, "%s%t", PREFIX, "Gagged on connect");
-
 					LogToFile(logFile, "%s is gagged from web", clientAuth);
-					if (length > 0)
-					{
-						g_GagType[i] = bTime;
-						#if defined DEBUG
-							LogToFile(logFile, "Creating GagExpire timer");
-						#endif
-						g_hGagExpireTimer[i] = CreateTimer(float(length), Timer_GagExpire, GetClientUserId(i), TIMER_FLAG_NO_MAPCHANGE);
-					}
-					else
-						g_GagType[i] = bPerm;
-
-					BaseComm_SetClientGag(i, true);
 				}
 				break;
 			}
@@ -574,17 +426,9 @@ public Action:FWUngag(args)
 
 				if (g_GagType[i] > bNot)
 				{
-					g_GagType[i] = bNot;
-					g_iGagTime[i] = 0;
-					g_iGagLength[i] = 0;
-					g_iGagLevel[i] = -1;
-					g_sGagAdmin[i][0] = '\0';
-					g_sGagReason[i][0] = '\0';
+					PerformUnGag(i);
 					PrintToChat(i, "%s%t", PREFIX, "FWUngag");
-					BaseComm_SetClientGag(i, false);
 					LogToFile(logFile, "%s is ungagged from web", clientAuth);
-					if (g_hGagExpireTimer[i] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[i]))
-						g_hGagExpireTimer[i] = INVALID_HANDLE;
 				}
 				else
 					LogToFile(logFile, "Can't ungag %s from web, isn't gagged", clientAuth);
@@ -621,17 +465,9 @@ public Action:FWUnmute(args)
 
 				if (g_MuteType[i] > bNot)
 				{
-					g_MuteType[i] = bNot;
-					g_iMuteTime[i] = 0;
-					g_iMuteLength[i] = 0;
-					g_iMuteLevel[i] = -1;
-					g_sMuteAdmin[i][0] = '\0';
-					g_sMuteReason[i][0] = '\0';
+					PerformUnMute(i);
 					PrintToChat(i, "%s%t", PREFIX, "FWUnmute");
-					BaseComm_SetClientMute(i, false);
 					LogToFile(logFile, "%s is unmuted from web", clientAuth);
-					if (g_hMuteExpireTimer[i] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[i]))
-						g_hMuteExpireTimer[i] = INVALID_HANDLE;
 				}
 				else
 					LogToFile(logFile, "Can't unmute %s from web, isn't muted", clientAuth);
@@ -644,10 +480,6 @@ public Action:FWUnmute(args)
 
 public Action:CommandGag(client, const String:command[], args)
 {
-	#if defined DEBUG
-		LogToFile(logFile, "CommandGag()");
-	#endif
-
 	if (client && !CheckCommandAccess(client, "sm_gag", ADMFLAG_CHAT))
 		return Plugin_Continue;
 
@@ -664,10 +496,6 @@ public Action:CommandGag(client, const String:command[], args)
 
 public Action:CommandMute(client, const String:command[], args)
 {
-	#if defined DEBUG
-		LogToFile(logFile, "CommandMute()");
-	#endif
-
 	if (client && !CheckCommandAccess(client, "sm_mute", ADMFLAG_CHAT))
 		return Plugin_Continue;
 
@@ -684,10 +512,6 @@ public Action:CommandMute(client, const String:command[], args)
 
 public Action:CommandSilence(client, const String:command[], args)
 {
-	#if defined DEBUG
-		LogToFile(logFile, "CommandSilence()");
-	#endif
-
 	if (client && !CheckCommandAccess(client, "sm_silence", ADMFLAG_CHAT))
 		return Plugin_Continue;
 
@@ -704,10 +528,6 @@ public Action:CommandSilence(client, const String:command[], args)
 
 public Action:CommandUnGag(client, const String:command[], args)
 {
-	#if defined DEBUG
-		LogToFile(logFile, "CommandUnGag()");
-	#endif
-
 	if (client && !CheckCommandAccess(client, "sm_ungag", ADMFLAG_CHAT))
 		return Plugin_Continue;
 
@@ -723,10 +543,6 @@ public Action:CommandUnGag(client, const String:command[], args)
 
 public Action:CommandUnMute(client, const String:command[], args)
 {
-	#if defined DEBUG
-		LogToFile(logFile, "CommandUnMute()");
-	#endif
-
 	if (client && !CheckCommandAccess(client, "sm_unmute", ADMFLAG_CHAT))
 		return Plugin_Continue;
 
@@ -742,10 +558,6 @@ public Action:CommandUnMute(client, const String:command[], args)
 
 public Action:CommandUnSilence(client, const String:command[], args)
 {
-	#if defined DEBUG
-		LogToFile(logFile, "CommandUnSilence()");
-	#endif
-
 	if (client && !CheckCommandAccess(client, "sm_unsilence", ADMFLAG_CHAT))
 		return Plugin_Continue;
 
@@ -762,7 +574,7 @@ public Action:CommandUnSilence(client, const String:command[], args)
 public Action:PrepareBlock(client, type_block, args)
 {
 	#if defined DEBUG
-		LogToFile(logFile, "PrepareBlock(type %d)", type_block);
+		LogToFile(logFile, "PrepareBlock(cl %L, type %d)", client, type_block);
 	#endif
 
 	new String:sBuffer[256], String:sArg[3][192], String:sReason[256];
@@ -772,13 +584,7 @@ public Action:PrepareBlock(client, type_block, args)
 	// Get the target, find target returns a message on failure so we do not
 	new target = FindTarget(client, sArg[0], true);
 	if (target == -1)
-	{
-		#if defined DEBUG
-			LogToFile(logFile, "target not found (-1)");
-		#endif
-
 		return Plugin_Stop;
-	}
 
 	// Get the ban time
 	new time;
@@ -807,7 +613,7 @@ public Action:PrepareBlock(client, type_block, args)
 public Action:PrepareUnBlock(client, type_block, args)
 {
 	#if defined DEBUG
-		LogToFile(logFile, "PrepareUnBlock(type %d)", type_block);
+		LogToFile(logFile, "PrepareUnBlock(cl %L, type %d)", client, type_block);
 	#endif
 
 	new String:sBuffer[256], String:sArg[2][192];
@@ -817,13 +623,7 @@ public Action:PrepareUnBlock(client, type_block, args)
 	// Get the target, find target returns a message on failure so we do not
 	new target = FindTarget(client, sArg[0], true);
 	if (target == -1)
-	{
-		#if defined DEBUG
-			LogToFile(logFile, "target not found (-1)");
-		#endif
-
 		return Plugin_Stop;
-	}
 
 	#if defined DEBUG
 		LogToFile(logFile, "Calling ProcessUnBlock cl %d, target %d, type %d, reason %s", client, target, type_block, sArg[1]);
@@ -839,9 +639,7 @@ public OnAdminMenuReady(Handle:topmenu)
 {
 	/* Block us from being called twice */
 	if (topmenu == hTopMenu)
-	{
 		return;
-	}
 
 	/* Save the Handle */
 	hTopMenu = topmenu;
@@ -1462,6 +1260,7 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 	#if defined DEBUG
 		LogToFile(logFile, "in GotDatabase: data %d, lock %d, g_h %d, hndl %d", data, g_iConnectLock, g_hDatabase, hndl);
 	#endif
+
 	// If this happens to be an old connection request, ignore it.
 	if(data != g_iConnectLock || g_hDatabase)
 	{
@@ -1471,7 +1270,7 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 	}
 
 	g_iConnectLock   = 0;
-	g_DatabaseState = DatabaseState_Connected;
+	g_DatabaseState  = DatabaseState_Connected;
 	g_hDatabase      = hndl;
 
 	// See if the connection is valid.  If not, don't un-mark the caches
@@ -1508,7 +1307,6 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPa
 	if (DB_Conn_Lost(hndl) || error[0])
 	{
 		LogToFile(logFile, "Verify Insert Query Failed: %s", error);
-		LogToFile(logFile, "Handle was %d", hndl);
 
 		ResetPack(dataPack);
 		new time = ReadPackCell(dataPack);
@@ -1547,7 +1345,12 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	ResetPack(data);
 	new adminUserID = ReadPackCell(data);
 	new targetUserID = ReadPackCell(data);
-	ReadPackCell(data); // Skip `type`
+
+	#if defined DEBUG
+		new type = ReadPackCell(data);
+	#else
+		ReadPackCell(data);	// Skip `type` row
+	#endif
 
 	ReadPackString(data, adminAuth, sizeof(adminAuth));
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
@@ -1637,40 +1440,14 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				{
 					case TYPE_MUTE:
 					{
-						g_MuteType[target] = bNot;
-						g_iMuteTime[target] = 0;
-						g_iMuteLength[target] = 0;
-						g_iMuteLevel[target] = -1;
-						g_sMuteAdmin[target][0] = '\0';
-						g_sMuteReason[target][0] = '\0';
-						BaseComm_SetClientMute(target, false);
-						if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-						{
-							g_hMuteExpireTimer[target] = INVALID_HANDLE;
-							#if defined DEBUG
-								LogToFile(logFile, "MuteExpireTimer killed on unmute");
-							#endif
-						}
+						PerformUnMute(target);
 						ShowActivity2(admin, PREFIX, "%t", "Unmuted player", g_sName[target]);
 						LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 					}
 					//-------------------------------------------------------------------------------------------------
 					case TYPE_GAG:
 					{
-						g_GagType[target] = bNot;
-						g_iGagTime[target] = 0;
-						g_iGagLength[target] = 0;
-						g_iGagLevel[target] = -1;
-						g_sGagAdmin[target][0] = '\0';
-						g_sGagReason[target][0] = '\0';
-						BaseComm_SetClientGag(target, false);
-						if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-						{
-							g_hGagExpireTimer[target] = INVALID_HANDLE;
-							#if defined DEBUG
-								LogToFile(logFile, "GagExpireTimer killed on ungag");
-							#endif
-						}
+						PerformUnGag(target);
 						ShowActivity2(admin, PREFIX, "%t", "Ungagged player", g_sName[target]);
 						LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 					}
@@ -1702,13 +1479,15 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				{
 					case TYPE_MUTE:
 					{
-						ShowActivity2(admin, PREFIX, "%t", "No permission unmute", g_sName[target]);
+						if (admin && IsClientInGame(admin))
+							PrintToChat(admin, "%s%t", PREFIX, "No permission unmute", g_sName[target]);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute \"%L\" (reason \"%s\")", admin, target, reason);
 					}
 					//-------------------------------------------------------------------------------------------------
 					case TYPE_GAG:
 					{
-						ShowActivity2(admin, PREFIX, "%t", "No permission ungag", g_sName[target]);
+						if (admin && IsClientInGame(admin))
+							PrintToChat(admin, "%s%t", PREFIX, "No permission ungag", g_sName[target]);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag \"%L\" (reason \"%s\")", admin, target, reason);
 					}
 				}
@@ -1887,17 +1666,25 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
 
 	//SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user,
-	//IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
+	//IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid
+	//FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
 	//WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
 	if (SQL_GetRowCount(hndl) > 0)
 	{
 		while(SQL_FetchRow(hndl))
 		{
+			if (NotApplyToThisServer(SQL_FetchInt(hndl, 8)))
+				continue;
+
+			new String:sReason[256], String:sAdmName[MAX_NAME_LENGTH];
 			new remaining_time = SQL_FetchInt(hndl, 0);
 			new length = SQL_FetchInt(hndl, 1);
 			new type = SQL_FetchInt(hndl, 2);
-			new aid = SQL_FetchInt(hndl, 7);
+			new time = SQL_FetchInt(hndl, 3);
+			SQL_FetchString(hndl, 4, sReason, sizeof(sReason));
+			SQL_FetchString(hndl, 5, sAdmName, sizeof(sAdmName));
 			new immunity = SQL_FetchInt(hndl, 6);
+			new aid = SQL_FetchInt(hndl, 7);
 
 			// Block from CONSOLE (aid=0) and we have `console immunity` value in config
 			if (!aid && ConsoleImmunity > immunity)
@@ -1913,69 +1700,20 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 				{
 					if (g_MuteType[client] < bTime)
 					{
-						g_iMuteLength[client] = length / 60;
-						g_iMuteTime[client] = SQL_FetchInt(hndl, 3);
-						SQL_FetchString(hndl, 4, g_sMuteReason[client], sizeof(g_sMuteReason[]));
-						SQL_FetchString(hndl, 5, g_sMuteAdmin[client], sizeof(g_sMuteAdmin[]));
-						g_iMuteLevel[client] = immunity;
-
-						#if defined DEBUG
-							LogToFile(logFile, "%s is muted on connect", clientAuth);
-						#endif
-
+						PerformMute(client, time, length / 60, sAdmName, immunity, sReason, remaining_time);
 						PrintToChat(client, "%s%t", PREFIX, "Muted on connect");
-
-						if (length > 0)
-						{
-							g_MuteType[client] = bTime;
-							#if defined DEBUG
-								LogToFile(logFile, "Creating MuteExpire timer");
-							#endif
-							g_hMuteExpireTimer[client] = CreateTimer(float(remaining_time), Timer_MuteExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-						}
-						else
-							g_MuteType[client] = bPerm;
-
-						BaseComm_SetClientMute(client, true);
 					}
 				}
 				case TYPE_GAG:
 				{
 					if (g_GagType[client] < bTime)
 					{
-						g_iGagLength[client] = length / 60;
-						g_iGagTime[client] = SQL_FetchInt(hndl, 3);
-						SQL_FetchString(hndl, 4, g_sGagReason[client], sizeof(g_sGagReason[]));
-						SQL_FetchString(hndl, 5, g_sGagAdmin[client], sizeof(g_sGagAdmin[]));
-						g_iGagLevel[client] = immunity;
-
-						#if defined DEBUG
-							LogToFile(logFile, "%s is gagged on connect", clientAuth);
-						#endif
+						PerformGag(client, time, length / 60, sAdmName, immunity, sReason, remaining_time);
 						PrintToChat(client, "%s%t", PREFIX, "Gagged on connect");
-
-						if (length > 0)
-						{
-							g_GagType[client] = bTime;
-							#if defined DEBUG
-								LogToFile(logFile, "Creating GagExpire timer");
-							#endif
-							g_hGagExpireTimer[client] = CreateTimer(float(remaining_time), Timer_GagExpire, GetClientUserId(client), TIMER_FLAG_NO_MAPCHANGE);
-						}
-						else
-							g_GagType[client] = bPerm;
-
-						BaseComm_SetClientGag(client, true);
 					}
 				}
 			}
 		}
-	}
-	else
-	{
-		#if defined DEBUG
-			LogToFile(logFile, "%s is NOT blocked.", clientAuth);
-		#endif
 	}
 
 	g_bPlayerStatus[client] = true;
@@ -1987,7 +1725,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 public Action:ClientRecheck(Handle:timer, any:userid)
 {
 	#if defined DEBUG
-		LogToFile(logFile, "ClientRecheck()");
+		LogToFile(logFile, "ClientRecheck(userid: %d)", userid);
 	#endif
 
 	new client = GetClientOfUserId(userid);
@@ -2006,21 +1744,16 @@ public Action:Timer_MuteExpire(Handle:timer, any:userid)
 	if (!client)
 		return;
 
-	decl String:clientAuth[64];
-	GetClientAuthString(client, clientAuth,sizeof(clientAuth));
 	#if defined DEBUG
+		decl String:clientAuth[64];
+		GetClientAuthString(client, clientAuth,sizeof(clientAuth));
 		LogToFile(logFile, "Mute expired for %s", clientAuth);
 	#endif
+
 	PrintToChat(client, "%s%t", PREFIX, "Mute expired");
 
 	g_hMuteExpireTimer[client] = INVALID_HANDLE;
-	g_MuteType[client] = bNot;
-	g_iMuteTime[client] = 0;
-	g_iMuteLength[client] = 0;
-	g_iMuteLevel[client] = -1;
-	g_sMuteAdmin[client][0] = '\0';
-	g_sMuteReason[client][0] = '\0';
-
+	MarkClientAsUnMuted(client);
 	if (IsClientInGame(client))
 		BaseComm_SetClientMute(client, false);
 }
@@ -2031,21 +1764,16 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
 	if (!client)
 		return;
 
-	decl String:clientAuth[64];
-	GetClientAuthString(client, clientAuth,sizeof(clientAuth));
 	#if defined DEBUG
+		decl String:clientAuth[64];
+		GetClientAuthString(client, clientAuth,sizeof(clientAuth));
 		LogToFile(logFile, "Gag expired for %s", clientAuth);
 	#endif
+
 	PrintToChat(client, "%s%t", PREFIX, "Gag expired");
 
 	g_hGagExpireTimer[client] = INVALID_HANDLE;
-	g_GagType[client] = bNot;
-	g_iGagTime[client] = 0;
-	g_iGagLength[client] = 0;
-	g_iGagLevel[client] = -1;
-	g_sGagAdmin[client][0] = '\0';
-	g_sGagReason[client][0] = '\0';
-
+	MarkClientAsUnGagged(client);
 	if (IsClientInGame(client))
 		BaseComm_SetClientGag(client, false);
 }
@@ -2096,6 +1824,8 @@ public SMCResult:ReadConfig_NewSection(Handle:smc, const String:name[], bool:opt
 			ConfigState = ConfigStateReasons;
 		} else if (strcmp("CommsTimes", name, false) == 0) {
 			ConfigState = ConfigStateTimes;
+		} else if (strcmp("ServersWhiteList", name, false) == 0) {
+			ConfigState = ConfigStateServers;
 		}
 	}
 	return SMCParse_Continue;
@@ -2157,6 +1887,12 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			{
 				ConfigMaxLength = StringToInt(value);
 			}
+			else if (strcmp("OnlyWhiteListServers", key, false) == 0)
+			{
+				ConfigWhiteListOnly = StringToInt(value);
+				if (ConfigWhiteListOnly != 1)
+					ConfigWhiteListOnly = 0;
+			}
 		}
 		case ConfigStateReasons:
 		{
@@ -2176,6 +1912,20 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			#endif
 			iNumTimes++;
 		}
+		case ConfigStateServers:
+		{
+			if (strcmp("id", key, false) == 0)
+			{
+				new srvID = StringToInt(value);
+				if (srvID >= 0)
+				{
+					PushArrayCell(g_hServersWhiteList, srvID);
+					#if defined DEBUG
+						LogToFile(logFile, "Loaded white list server id %d", srvID);
+					#endif
+				}
+			}
+		}
 	}
 	return SMCParse_Continue;
 }
@@ -2187,7 +1937,7 @@ public SMCResult:ReadConfig_EndSection(Handle:smc)
 
 // STOCK FUNCTIONS //
 
-public bool:DB_Connect()
+stock bool:DB_Connect()
 {
 	#if defined DEBUG
 		LogToFile(logFile, "in DB_Connect, handle %d, state %d, lock %d", g_hDatabase, g_DatabaseState, g_iConnectLock);
@@ -2210,7 +1960,7 @@ public bool:DB_Connect()
 	return false;
 }
 
-public bool:DB_Conn_Lost(Handle:hndl)
+stock bool:DB_Conn_Lost(Handle:hndl)
 {
 	if (hndl == INVALID_HANDLE)
 	{
@@ -2231,7 +1981,7 @@ public bool:DB_Conn_Lost(Handle:hndl)
 		return false;
 }
 
-public InitializeBackupDB()
+stock InitializeBackupDB()
 {
 	decl String:error[255];
 	SQLiteDB = SQLite_UseDatabase("sourcecomms-queue", error, sizeof(error));
@@ -2242,10 +1992,10 @@ public InitializeBackupDB()
 	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
 }
 
-public bool:CreateBlock(client, target, time, type, String:reason[])
+stock bool:CreateBlock(client, target, length, type, String:reason[])
 {
 	#if defined DEBUG
-		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s)", client, target, time, type, reason);
+		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s)", client, target, length, type, reason);
 		if (type > 3 || type < 1)
 			LogToFile(logFile, "WOW! How do you do that?!");
 	#endif
@@ -2257,87 +2007,33 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 		return false;
 	}
 
-	decl String:adminIp[24];
-	decl String:adminAuth[64];
-	new String:AdmName[MAX_NAME_LENGTH];
-	//	!!	client - is Admin  !! 	//
-	new AdmImmunity;
-
-	// The server is the one calling the block
-	if (!client)
-	{
-		// setup dummy adminAuth and adminIp for server
-		strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
-		strcopy(adminIp, sizeof(adminIp), ServerIp);
-		AdmImmunity = ConsoleImmunity;
-		AdmName = "CONSOLE";
-	} else {
-		GetClientIP(client, adminIp, sizeof(adminIp));
-		GetClientAuthString(client, adminAuth, sizeof(adminAuth));
-		if (GetUserAdmin(client) != INVALID_ADMIN_ID)
-			AdmImmunity = GetAdminImmunityLevel(GetUserAdmin(client));
-
-		AdmName = g_sName[client];
-	}
-
-	// target information
-	decl String:auth[64];
-
-	GetClientAuthString(target, auth, sizeof(auth));
 	#if defined DEBUG
+		decl String:auth[64];
+		GetClientAuthString(target, auth, sizeof(auth));
 		LogToFile(logFile, "Processing block for %s", auth);
 	#endif
-
-	// Pack everything into a data pack so we can retain it trough sql-callback
-	new Handle:dataPack = CreateDataPack();
-	new Handle:reasonPack = CreateDataPack();
-	WritePackString(reasonPack, reason);
-	WritePackCell(dataPack, time);
-	WritePackCell(dataPack, type);
-	WritePackCell(dataPack, _:reasonPack);
-	WritePackString(dataPack, g_sName[target]);
-	WritePackString(dataPack, auth);
-	WritePackString(dataPack, adminAuth);
-	WritePackString(dataPack, adminIp);
-
-	ResetPack(dataPack);
-	ResetPack(reasonPack);
 
 	switch(type)
 	{
 		case TYPE_MUTE:
 		{
-			#if defined DEBUG
-				LogToFile(logFile, "TYPE_MUTE. Now check player.");
-			#endif
-
 			if (!BaseComm_IsClientMuted(target))
 			{
 				#if defined DEBUG
 					LogToFile(logFile, "%s not muted. Mute him, creating unmute timer and add record to DB", auth);
 				#endif
 
-				g_iMuteTime[target] = GetTime();
-				g_iMuteLength[target] = time;
-				g_iMuteLevel[target] = AdmImmunity;
-				g_sMuteAdmin[target] = AdmName;
-				Format(g_sMuteReason[target], sizeof(g_sMuteReason[]), "%s", reason);
+				PerformMute(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
-				if (time > 0)
+				if (length > 0)
 				{
-					g_MuteType[target] = bTime;
-					#if defined DEBUG
-						LogToFile(logFile, "Creating MuteExpire timer");
-					#endif
-					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Muted player", g_sName[target], time);
+						ShowActivity2(client, PREFIX, "%t", "Muted player", g_sName[target], length);
 					else
-						ShowActivity2(client, PREFIX, "%t", "Muted player reason", g_sName[target], time, reason);
+						ShowActivity2(client, PREFIX, "%t", "Muted player reason", g_sName[target], length, reason);
 				}
-				else if (time == 0)
+				else if (length == 0)
 				{
-					g_MuteType[target] = bPerm;
 					if (reason[0] == '\0')
 						ShowActivity2(client, PREFIX, "%t", "Permamuted player", g_sName[target]);
 					else
@@ -2345,23 +2041,15 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				}
 				else	// temp block
 				{
-					g_MuteType[target] = bSess;
 					if (reason[0] == '\0')
 						ShowActivity2(client, PREFIX, "%t", "Temp muted player", g_sName[target]);
 					else
 						ShowActivity2(client, PREFIX, "%t", "Temp muted player reason", g_sName[target], reason);
 				}
-				BaseComm_SetClientMute(target, true);
-				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
-				// pass move forward with the block
-				if (DB_Connect())
-				{
-					UTIL_InsertBlock(time, TYPE_MUTE, g_sName[target], auth, reason, adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
-				} else {
-					UTIL_InsertTempBlock(time, TYPE_MUTE, g_sName[target], auth, reason, adminAuth, adminIp);
-					LogToFile(logFile, "We need insert to queue (calling UTIL_InsertTempBlock)");
-				}
+				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+
+				SavePunishment(target, TYPE_MUTE, client);
 			}
 			else
 			{
@@ -2375,37 +2063,23 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 		//-------------------------------------------------------------------------------------------------
 		case TYPE_GAG:
 		{
-			#if defined DEBUG
-				LogToFile(logFile, "TYPE_GAG. Now check player.");
-			#endif
-
 			if (!BaseComm_IsClientGagged(target))
 			{
 				#if defined DEBUG
 					LogToFile(logFile, "%s not gagged. Gag him, creating ungag timer and add record to DB", auth);
 				#endif
 
-				g_iGagTime[target] = GetTime();
-				g_iGagLength[target] = time;
-				g_iGagLevel[target] = AdmImmunity;
-				g_sGagAdmin[target] = AdmName;
-				Format(g_sGagReason[target], sizeof(g_sGagReason[]), "%s", reason);
+				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
-				if (time > 0)
+				if (length > 0)
 				{
-					g_GagType[target] = bTime;
-					#if defined DEBUG
-						LogToFile(logFile, "Creating GagExpire timer");
-					#endif
-					g_hGagExpireTimer[target] = CreateTimer(float(time*60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Gagged player", g_sName[target], time);
+						ShowActivity2(client, PREFIX, "%t", "Gagged player", g_sName[target], length);
 					else
-						ShowActivity2(client, PREFIX, "%t", "Gagged player reason", g_sName[target], time, reason);
+						ShowActivity2(client, PREFIX, "%t", "Gagged player reason", g_sName[target], length, reason);
 				}
-				else if (time == 0)
+				else if (length == 0)
 				{
-					g_GagType[target] = bPerm;
 					if (reason[0] == '\0')
 						ShowActivity2(client, PREFIX, "%t", "Permagagged player", g_sName[target]);
 					else
@@ -2413,23 +2087,15 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				}
 				else	//temp block
 				{
-					g_GagType[target] = bSess;
 					if (reason[0] == '\0')
 						ShowActivity2(client, PREFIX, "%t", "Temp gagged player", g_sName[target]);
 					else
 						ShowActivity2(client, PREFIX, "%t", "Temp gagged player reason", g_sName[target], reason);
 				}
-				BaseComm_SetClientGag(target, true);
-				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
-				// pass move forward with the block
-				if (DB_Connect())
-				{
-					UTIL_InsertBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp, dataPack);
-				} else {
-					UTIL_InsertTempBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp);
-					LogToFile(logFile, "We need insert to queue (calling UTIL_InsertTempBlock)");
-				}
+				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+
+				SavePunishment(target, TYPE_GAG, client);
 			}
 			else
 			{
@@ -2443,50 +2109,24 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 		//-------------------------------------------------------------------------------------------------
 		case TYPE_SILENCE:
 		{
-			#if defined DEBUG
-				LogToFile(logFile, "TYPE_SILENCE. Now check player.");
-			#endif
-
 			if (!BaseComm_IsClientGagged(target) && !BaseComm_IsClientMuted(target))
 			{
 				#if defined DEBUG
 					LogToFile(logFile, "%s not silenced. Silence him, creating ungag & unmute timers and add records to DB", auth);
 				#endif
 
-				g_iMuteTime[target] = GetTime();
-				g_iMuteLength[target] = time;
-				g_iMuteLevel[target] = AdmImmunity;
-				g_sMuteAdmin[target] = AdmName;
-				Format(g_sMuteReason[target], sizeof(g_sMuteReason[]), "%s", reason);
+				PerformMute(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
+				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
-				g_iGagTime[target] = GetTime();
-				g_iGagLength[target] = time;
-				g_iGagLevel[target] = AdmImmunity;
-				g_sGagAdmin[target] = AdmName;
-				Format(g_sGagReason[target], sizeof(g_sGagReason[]), "%s", reason);
-
-				if (time > 0)
+				if (length > 0)
 				{
-					g_MuteType[target] = bTime;
-					g_GagType[target] = bTime;
-					#if defined DEBUG
-						LogToFile(logFile, "Creating GagExpire timer");
-					#endif
-					g_hGagExpireTimer[target] = CreateTimer(float(time*60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
-
-					#if defined DEBUG
-						LogToFile(logFile, "Creating MuteExpire timer");
-					#endif
-					g_hMuteExpireTimer[target] = CreateTimer(float(time*60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
 					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Silenced player", g_sName[target], time);
+						ShowActivity2(client, PREFIX, "%t", "Silenced player", g_sName[target], length);
 					else
-						ShowActivity2(client, PREFIX, "%t", "Silenced player reason", g_sName[target], time, reason);
+						ShowActivity2(client, PREFIX, "%t", "Silenced player reason", g_sName[target], length, reason);
 				}
-				else if (time == 0)
+				else if (length == 0)
 				{
-					g_MuteType[target] = bPerm;
-					g_GagType[target] = bPerm;
 					if (reason[0] == '\0')
 						ShowActivity2(client, PREFIX, "%t", "Permasilenced player", g_sName[target]);
 					else
@@ -2494,42 +2134,16 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 				}
 				else	//temp block
 				{
-					g_MuteType[target] = bSess;
-					g_GagType[target] = bSess;
 					if (reason[0] == '\0')
 						ShowActivity2(client, PREFIX, "%t", "Temp silenced player", g_sName[target]);
 					else
 						ShowActivity2(client, PREFIX, "%t", "Temp silenced player reason", g_sName[target], reason);
 				}
-				BaseComm_SetClientMute(target, true);
-				BaseComm_SetClientGag(target, true);
-				LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, time, reason);
 
-				// pass move forward with the block
-				if (DB_Connect())
-				{
-					UTIL_InsertBlock(time, TYPE_MUTE, g_sName[target], auth, reason, adminAuth, adminIp, dataPack);
-					// Oh no... Looks very bad, but we need to do it again
-					// Pack everything into a data pack so we can retain it trough sql-callback
-					new Handle:dataPack2 = CreateDataPack();
-					new Handle:reasonPack2 = CreateDataPack();
-					WritePackString(reasonPack2, reason);
-					WritePackCell(dataPack2, time);
-					WritePackCell(dataPack2, type);
-					WritePackCell(dataPack2, _:reasonPack2);
-					WritePackString(dataPack2, g_sName[target]);
-					WritePackString(dataPack2, auth);
-					WritePackString(dataPack2, adminAuth);
-					WritePackString(dataPack2, adminIp);
-					ResetPack(dataPack2);
-					ResetPack(reasonPack2);
+				LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
 
-					UTIL_InsertBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp, dataPack2);
-				} else {
-					UTIL_InsertTempBlock(time, TYPE_MUTE, g_sName[target], auth, reason, adminAuth, adminIp);
-					UTIL_InsertTempBlock(time, TYPE_GAG, g_sName[target], auth, reason, adminAuth, adminIp);
-					LogToFile(logFile, "We need insert to queue (calling UTIL_InsertTempBlock)");
-				}
+				SavePunishment(target, TYPE_MUTE, client);
+				SavePunishment(target, TYPE_GAG, client);
 			}
 			else
 			{
@@ -2545,7 +2159,7 @@ public bool:CreateBlock(client, target, time, type, String:reason[])
 	return true;
 }
 
-public bool:ProcessUnBlock(client, target, type, String:reason[])
+stock bool:ProcessUnBlock(client, target, type, String:reason[])
 {
 	#if defined DEBUG
 		LogToFile(logFile, "ProcessUnBlock(%d, %s)", type, reason);
@@ -2612,10 +2226,9 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 
 	// Pack everything into a data pack so we can retain it
 	new Handle:dataPack = CreateDataPack();
-	WritePackCell(dataPack, GetClientUserId(client));
+	WritePackCell(dataPack, GetClientUserId2(client));
 	WritePackCell(dataPack, GetClientUserId(target));
 	WritePackCell(dataPack, type);
-
 	WritePackString(dataPack, adminAuth);
 	WritePackString(dataPack, targetAuth);
 	WritePackString(dataPack, reason);
@@ -2656,7 +2269,7 @@ public bool:ProcessUnBlock(client, target, type, String:reason[])
 	return true;
 }
 
-public TempUnBlock(Handle:data)
+stock TempUnBlock(&Handle:data)
 {
 	#if defined DEBUG
 		LogToFile(logFile, "TemporaryUnblock");
@@ -2687,82 +2300,30 @@ public TempUnBlock(Handle:data)
 	#endif
 
 	// Check access for unblock without db changes (temporary unblock)
-	if (!admin || AdmHasFlag(admin) || AdmImCheck)	//can, if we are console or have special flag
+	if (!admin || AdmHasFlag(admin) || AdmImCheck)	// can, if we are console or have special flag
 	{
 		switch(type)
 		{
 			case TYPE_MUTE:
 			{
-				g_MuteType[target] = bNot;
-				g_iMuteTime[target] = 0;
-				g_iMuteLength[target] = 0;
-				g_iMuteLevel[target] = -1;
-				g_sMuteAdmin[target][0] = '\0';
-				g_sMuteReason[target][0] = '\0';
-				BaseComm_SetClientMute(target, false);
-				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-				{
-					g_hMuteExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "MuteExpireTimer killed on temporary unmute (DB problems)");
-					#endif
-				}
+				PerformUnMute(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp unmuted player", g_sName[target]);
-				LogAction(admin, target, "\"%L\" temporary (DB problems) unmuted \"%L\" (reason \"%s\")", admin, target, reason);
+				LogAction(admin, target, "\"%L\" temporary unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
 			case TYPE_GAG:
 			{
-				g_GagType[target] = bNot;
-				g_iGagTime[target] = 0;
-				g_iGagLength[target] = 0;
-				g_iGagLevel[target] = -1;
-				g_sGagAdmin[target][0] = '\0';
-				g_sGagReason[target][0] = '\0';
-				BaseComm_SetClientGag(target, false);
-				if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-				{
-					g_hGagExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "GagExpireTimer killed on temporary ungag (DB problems)");
-					#endif
-				}
+				PerformUnGag(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp ungagged player", g_sName[target]);
-				LogAction(admin, target, "\"%L\" temporary (DB problems) ungagged \"%L\" (reason \"%s\")", admin, target, reason);
+				LogAction(admin, target, "\"%L\" temporary ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
 			case TYPE_SILENCE:
 			{
-				g_MuteType[target] = bNot;
-				g_iMuteTime[target] = 0;
-				g_iMuteLength[target] = 0;
-				g_iMuteLevel[target] = -1;
-				g_sMuteAdmin[target][0] = '\0';
-				g_sMuteReason[target][0] = '\0';
-				BaseComm_SetClientMute(target, false);
-				g_GagType[target] = bNot;
-				g_iGagTime[target] = 0;
-				g_iGagLength[target] = 0;
-				g_iGagLevel[target] = -1;
-				g_sGagAdmin[target][0] = '\0';
-				g_sGagReason[target][0] = '\0';
-				BaseComm_SetClientGag(target, false);
-				if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
-				{
-					g_hMuteExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "MuteExpireTimer killed on temporary unsilence (DB problems)");
-					#endif
-				}
-				if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
-				{
-					g_hGagExpireTimer[target] = INVALID_HANDLE;
-					#if defined DEBUG
-						LogToFile(logFile, "GagExpireTimer killed on temporary unsilence (DB problems)");
-					#endif
-				}
+				PerformUnMute(target);
+				PerformUnGag(target);
 				ShowActivity2(admin, PREFIX, "%t", "Temp unsilenced player", g_sName[target]);
-				LogAction(admin, target, "\"%L\" temporary (DB problems) unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
+				LogAction(admin, target, "\"%L\" temporary unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 		}
 	}
@@ -2780,7 +2341,7 @@ public TempUnBlock(Handle:data)
 
 stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], const String:Reason[], const String:AdminAuthid[], const String:AdminIp[], Handle:Pack)
 {
-	// Принимает время - в минутах, а в базу пишет уже в секундах! Во всех остальных местах время - в минутах.
+	// Accepts time in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
 	new String:banName[MAX_NAME_LENGTH * 2 + 1];
 	new String:banReason[256 * 2 + 1];
 	new String:sAuthidEscaped[64 * 2 + 1];
@@ -2864,8 +2425,8 @@ stock ReadConfig()
 
 	if (FileExists(ConfigFile1))
 	{
-		InternalReadConfig(ConfigFile1);
 		PrintToServer("%sLoading configs/sourcebans/sourcebans.cfg config file", PREFIX);
+		InternalReadConfig(ConfigFile1);
 	} else {
 		decl String:Error[PLATFORM_MAX_PATH + 64];
 		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", PREFIX, ConfigFile1);
@@ -2874,6 +2435,7 @@ stock ReadConfig()
 	}
 	if (FileExists(ConfigFile2))
 	{
+		PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", PREFIX);
 		iNumReasons = 0;
 		iNumTimes = 0;
 		InternalReadConfig(ConfigFile2);
@@ -2881,7 +2443,11 @@ stock ReadConfig()
 			iNumReasons--;
 		if (iNumTimes)
 			iNumTimes--;
-		PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", PREFIX);
+		if (ConfigWhiteListOnly && serverID == -1)
+		{
+			LogError("You must set valid `ServerID` value in sourcebans.cfg to use ServersWhiteList option.");
+			ConfigWhiteListOnly = 0;
+		}
 	} else {
 		decl String:Error[PLATFORM_MAX_PATH + 64];
 		FormatEx(Error, sizeof(Error), "%sFATAL *** ERROR *** can not find %s", PREFIX, ConfigFile2);
@@ -2935,7 +2501,7 @@ bool:Bool_ValidMenuTarget(client, target)
 	return true;
 }
 
-bool:IsAllowedBlockLength(admin, length)
+stock bool:IsAllowedBlockLength(admin, length)
 {
 	if (!ConfigMaxLength)
 		return true;	// Restriction disabled
@@ -2949,12 +2515,12 @@ bool:IsAllowedBlockLength(admin, length)
 		return true;
 }
 
-bool:AdmHasFlag(admin)
+stock bool:AdmHasFlag(admin)
 {
 	return CheckCommandAccess(admin, "", UNBLOCK_FLAG, true);
 }
 
-_:GetAdmImmunity(admin)
+stock _:GetAdmImmunity(admin)
 {
 	if (admin > 0 && GetUserAdmin(admin) != INVALID_ADMIN_ID)
 		return GetAdminImmunityLevel(GetUserAdmin(admin));
@@ -2962,7 +2528,15 @@ _:GetAdmImmunity(admin)
 		return 0;
 }
 
-ForcePlayerRecheck()
+stock _:GetClientUserId2(client)
+{
+	if (client)
+		return GetClientUserId(client);
+	else
+		return 0;	// for CONSOLE
+}
+
+stock ForcePlayerRecheck()
 {
 	for (new i = 1; i <= MaxClients; i++)
 	{
@@ -2978,5 +2552,340 @@ ForcePlayerRecheck()
 			g_hPlayerRecheck[i] = CreateTimer(float(i), ClientRecheck, GetClientUserId(i));
 		}
 	}
+}
+
+stock bool:NotApplyToThisServer(srvID)
+{
+	if (ConfigWhiteListOnly && FindValueInArray(g_hServersWhiteList, srvID) == -1)
+		return true;
+	else
+		return false;
+}
+
+stock MarkClientAsUnMuted(target)
+{
+	g_MuteType[target] = bNot;
+	g_iMuteTime[target] = 0;
+	g_iMuteLength[target] = 0;
+	g_iMuteLevel[target] = -1;
+	g_sMuteAdmin[target][0] = '\0';
+	g_sMuteReason[target][0] = '\0';
+}
+
+stock MarkClientAsUnGagged(target)
+{
+	g_GagType[target] = bNot;
+	g_iGagTime[target] = 0;
+	g_iGagLength[target] = 0;
+	g_iGagLevel[target] = -1;
+	g_sGagAdmin[target][0] = '\0';
+	g_sGagReason[target][0] = '\0';
+}
+
+stock MarkClientAsMuted(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "")
+{
+	if (time)
+		g_iMuteTime[target] = time;
+	else
+		g_iMuteTime[target] = GetTime();
+
+	g_iMuteLength[target] = length;
+	g_iMuteLevel[target] = adminImmunity;
+	strcopy(g_sMuteAdmin[target], sizeof(g_sMuteAdmin[]), adminName);
+	strcopy(g_sMuteReason[target], sizeof(g_sMuteReason[]), reason);
+
+	if (length > 0)
+		g_MuteType[target] = bTime;
+	else if (length == 0)
+		g_MuteType[target] = bPerm;
+	else
+		g_MuteType[target] = bSess;
+}
+
+stock MarkClientAsGagged(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "")
+{
+	if (time)
+		g_iGagTime[target] = time;
+	else
+		g_iGagTime[target] = GetTime();
+
+	g_iGagLength[target] = length;
+	g_iGagLevel[target] = adminImmunity;
+	strcopy(g_sGagAdmin[target], sizeof(g_sGagAdmin[]), adminName);
+	strcopy(g_sGagReason[target], sizeof(g_sGagReason[]), reason);
+
+	if (length > 0)
+		g_GagType[target] = bTime;
+	else if (length == 0)
+		g_GagType[target] = bPerm;
+	else
+		g_GagType[target] = bSess;
+}
+
+stock CloseMuteExpireTimer(target)
+{
+	if (g_hMuteExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hMuteExpireTimer[target]))
+		g_hMuteExpireTimer[target] = INVALID_HANDLE;
+}
+
+stock CloseGagExpireTimer(target)
+{
+	if (g_hGagExpireTimer[target] != INVALID_HANDLE && CloseHandle(g_hGagExpireTimer[target]))
+		g_hGagExpireTimer[target] = INVALID_HANDLE;
+}
+
+stock CreateMuteExpireTimer(target, remainingTime = 0)
+{
+	if (g_iMuteLength[target] > 0)
+	{
+		if (remainingTime)
+			g_hMuteExpireTimer[target] = CreateTimer(float(remainingTime), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+		else
+			g_hMuteExpireTimer[target] = CreateTimer(float(g_iMuteLength[target] * 60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+stock CreateGagExpireTimer(target, remainingTime = 0)
+{
+	if (g_iGagLength[target] > 0)
+	{
+		if (remainingTime)
+			g_hGagExpireTimer[target] = CreateTimer(float(remainingTime), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+		else
+			g_hGagExpireTimer[target] = CreateTimer(float(g_iGagLength[target] * 60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+	}
+}
+
+stock PerformUnMute(target)
+{
+	MarkClientAsUnMuted(target);
+	BaseComm_SetClientMute(target, false);
+	CloseMuteExpireTimer(target);
+}
+
+stock PerformUnGag(target)
+{
+	MarkClientAsUnGagged(target);
+	BaseComm_SetClientGag(target, false);
+	CloseGagExpireTimer(target);
+}
+
+stock PerformMute(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "", remaining_time = 0)
+{
+	MarkClientAsMuted(target, time, length, adminName, adminImmunity, reason);
+	BaseComm_SetClientMute(target, true);
+	CreateMuteExpireTimer(target, remaining_time);
+}
+
+stock PerformGag(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "", remaining_time = 0)
+{
+	MarkClientAsGagged(target, time, length, adminName, adminImmunity, reason);
+	BaseComm_SetClientGag(target, true);
+	CreateGagExpireTimer(target, remaining_time);
+}
+
+stock SavePunishment(target, type, admin = 0)
+{
+	if (type != TYPE_MUTE && type != TYPE_GAG)
+		return;
+
+	// target information
+	new String:targetAuth[64];
+	GetClientAuthString(target, targetAuth, sizeof(targetAuth));
+
+	new String:adminIp[24];
+	new String:adminAuth[64];
+	if (admin)
+	{
+		GetClientIP(admin, adminIp, sizeof(adminIp));
+		GetClientAuthString(admin, adminAuth, sizeof(adminAuth));
+	}
+	else
+	{
+		// setup dummy adminAuth and adminIp for server
+		strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
+		strcopy(adminIp, sizeof(adminIp), ServerIp);
+	}
+
+	new length;
+	new String:sReason[256];
+
+	switch(type)
+	{
+		case TYPE_MUTE:
+		{
+			strcopy(sReason, sizeof(sReason), g_sMuteReason[target]);
+			length = g_iMuteLength[target];
+		}
+		case TYPE_GAG:
+		{
+			strcopy(sReason, sizeof(sReason), g_sGagReason[target]);
+			length = g_iGagLength[target];
+		}
+	}
+
+	// Pack everything into a data pack so we can retain it trough sql-callback
+	new Handle:dataPack = CreateDataPack();
+	new Handle:reasonPack = CreateDataPack();
+	WritePackString(reasonPack, sReason);
+	WritePackCell(dataPack, length);
+	WritePackCell(dataPack, type);
+	WritePackCell(dataPack, _:reasonPack);
+	WritePackString(dataPack, g_sName[target]);
+	WritePackString(dataPack, targetAuth);
+	WritePackString(dataPack, adminAuth);
+	WritePackString(dataPack, adminIp);
+	ResetPack(dataPack);
+	ResetPack(reasonPack);
+
+	if (DB_Connect())
+	{
+		UTIL_InsertBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
+	} else {
+		UTIL_InsertTempBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp);
+		LogToFile(logFile, "Database unavailable, saving punishment to queue.");
+	}
+
+}
+
+// Natives //
+public Native_SetClientMute(Handle:hPlugin, numParams)
+{
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
+	}
+
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	new bool:muteState = GetNativeCell(2);
+	new muteLength = GetNativeCell(3);
+	if (muteState && muteLength == 0)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Permanent mute is not allowed!");
+	}
+
+	new bool:bSaveToDB = GetNativeCell(4);
+	if (!muteState && bSaveToDB)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Removing punishments from DB is not allowed!");
+	}
+
+	decl String:sReason[256];
+	GetNativeString(5, sReason, sizeof(sReason));
+
+	if (muteState)
+	{
+		if (g_MuteType[target] > bNot)
+		{
+			return false;
+		}
+
+		PerformMute(target, _, muteLength, _, ConsoleImmunity, sReason);
+
+		if (bSaveToDB)
+			SavePunishment(target, TYPE_MUTE, _);
+	}
+	else
+	{
+		if (g_MuteType[target] == bNot)
+		{
+			return false;
+		}
+
+		PerformUnMute(target);
+	}
+
+	return true;
+}
+
+public Native_SetClientGag(Handle:hPlugin, numParams)
+{
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
+	}
+
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	new bool:gagState = GetNativeCell(2);
+	new gagLength = GetNativeCell(3);
+	if (gagState && gagLength == 0)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Permanent gag is not allowed!");
+	}
+
+	new bool:bSaveToDB = GetNativeCell(4);
+	if (!gagState && bSaveToDB)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Removing punishments from DB is not allowed!");
+	}
+
+	decl String:sReason[256];
+	GetNativeString(5, sReason, sizeof(sReason));
+
+	if (gagState)
+	{
+		if (g_GagType[target] > bNot)
+		{
+			return false;
+		}
+
+		PerformGag(target, _, gagLength, _, ConsoleImmunity, sReason);
+
+		if (bSaveToDB)
+			SavePunishment(target, TYPE_GAG, _);
+	}
+	else
+	{
+		if (g_GagType[target] == bNot)
+		{
+			return false;
+		}
+
+		PerformUnGag(target);
+	}
+
+	return true;
+}
+
+public Native_GetClientMuteType(Handle:hPlugin, numParams)
+{
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
+	}
+
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	return bType:g_MuteType[target];
+}
+
+public Native_GetClientGagType(Handle:hPlugin, numParams)
+{
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
+	}
+
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	return bType:g_GagType[target];
 }
 //Yarr!
