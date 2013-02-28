@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <basecomm>
+#include "include/sourcecomms.inc"
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
@@ -16,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.244"
+#define PLUGIN_VERSION "0.8.250"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -110,14 +111,6 @@ enum PeskyPanels
 }
 new g_iPeskyPanels[MAXPLAYERS + 1][PeskyPanels];
 
-/* Blocks info storage */
-enum bType{
-	bNot = 0,
-	bSess,
-	bTime,
-	bPerm
-}
-
 new String:g_sName[MAXPLAYERS + 1][MAX_NAME_LENGTH];
 
 new bType:g_MuteType[MAXPLAYERS + 1];
@@ -147,8 +140,10 @@ public Plugin:myinfo =
 
 public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 {
-	CreateNative("SourceComms_SetClientGag",        Native_SetClientGag);
 	CreateNative("SourceComms_SetClientMute", 		Native_SetClientMute);
+	CreateNative("SourceComms_SetClientGag",        Native_SetClientGag);
+	CreateNative("SourceComms_GetClientMuteType",	Native_GetClientMuteType);
+	CreateNative("SourceComms_GetClientGagType",	Native_GetClientGagType);
 	RegPluginLibrary("sourcecomms");
 	return APLRes_Success;
 }
@@ -2744,7 +2739,6 @@ stock SavePunishment(target, type, admin = 0)
 }
 
 // Natives //
-// native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, bool:saveToDB = true, const String:reason[] = "Muted through natives");
 public Native_SetClientMute(Handle:hPlugin, numParams)
 {
 	new target = GetNativeCell(1);
@@ -2799,7 +2793,6 @@ public Native_SetClientMute(Handle:hPlugin, numParams)
 	return true;
 }
 
-//native bool:BaseComm_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = true, const String:reason[] = "Gagged through natives");
 public Native_SetClientGag(Handle:hPlugin, numParams)
 {
 	new target = GetNativeCell(1);
@@ -2852,5 +2845,37 @@ public Native_SetClientGag(Handle:hPlugin, numParams)
 	}
 
 	return true;
+}
+
+public Native_GetClientMuteType(Handle:hPlugin, numParams)
+{
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
+	}
+
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	return bType:g_MuteType[target];
+}
+
+public Native_GetClientGagType(Handle:hPlugin, numParams)
+{
+	new target = GetNativeCell(1);
+	if (target < 1 || target > MaxClients)
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Invalid client index %d", target);
+	}
+
+	if (!IsClientInGame(target))
+	{
+		return ThrowNativeError(SP_ERROR_NATIVE, "Client %d is not in game", target);
+	}
+
+	return bType:g_GagType[target];
 }
 //Yarr!

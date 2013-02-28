@@ -2,6 +2,14 @@
  * SourceComms Include File
  */
 
+/* Punishments types */
+enum bType{
+	bNot = 0,	// Player chat or voice is not blocked
+	bSess,		// ... blocked for player session (until reconnect)
+	bTime,		// ... blocked for some time
+	bPerm		// ... permanently blocked
+}
+
 #if defined _sourcecomms_included
   #endinput
 #endif
@@ -35,6 +43,22 @@ native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, b
  */
 native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = false, const String:reason[] = "Gagged through natives");
 
+/**
+ * Returns the client's mute type
+ *
+ * @param client	The client index of the player to check mute status
+ * @return          The client's current mute type index (see enum bType in the begin).
+ */
+native bType:SourceComms_GetClientMuteType(client);
+
+
+/**
+ * Returns the client's gag type
+ *
+ * @param client	The client index of the player to check gag status
+ * @return          The client's current gag type index (see enum bType in the begin).
+ */
+native bType:SourceComms_GetClientGagType(client);
 
 public SharedPlugin:__pl_sourcecomms =
 {
@@ -51,4 +75,7 @@ public __pl_sourcecomms_SetNTVOptional()
 {
 	MarkNativeAsOptional("SourceComms_SetClientMute");
 	MarkNativeAsOptional("SourceComms_SetClientGag");
+	MarkNativeAsOptional("SourceComms_GetClientMuteType");
+	MarkNativeAsOptional("SourceComms_GetClientGagType");
+
 }
