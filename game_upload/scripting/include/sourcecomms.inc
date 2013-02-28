@@ -19,7 +19,7 @@ enum bType{
  * Sets a client's mute state.
  *
  * @param client		Client index.
- * @param gagState		True to gag client, false to ungag.
+ * @param gagState		True to mute client, false to unmute.
  * -------------------------------------Parameters below this line are used only for muteState=true-------------------------------------
  * ----------------------------------for muteState=false these parameters are ignored (saveToDB=false)----------------------------------
  * @param gagLength		Length of punishment in minutes. Value < 0 muting client for session. Permanent (0) is not allowed at this time.

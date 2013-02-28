@@ -151,12 +151,34 @@ This means, that you need to open file `<sourcebans_web_folder>\includes\page-bu
 		$page = TEMPLATES_PATH ."/page.commslist.php";
 		break;</code></pre>
 
-## Known bugs
-### Server plugin
-* Has no known bugs.
+## For plugin developers
+**SourceComms** releases several natives to provide compatibility with other plugins and for additional functionality.
 
-### Web part
-* Sometimes blocking/unblocking from web may work not properly. (The *search players on the servers* box "hangs" and doesn't respond.)
+### These natives to set client status:
+* `native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, bool:saveToDB = false, const String:reason[] = "Muted through natives")` - Sets a client's mute state.
+* `native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = false, const String:reason[] = "Gagged through natives")` - Sets a client's gag state.
+* Parametrs:
+	* `client` - Client index. Client index must be valid (`0 < client < MaxClients`) and client must be in game (`IsClientInGame(client) == true`).
+	* *bool* `muteState` | `gagState` - `true` to mute (or gag) client, false to unmute (ungag).
+	* Next parameters applies only for muting or gagging (`muteState==true` or `gagState==true`).
+		* `muteLength` | `gagLength` - length of punishment in minutes. Value `< 0` muting (gagging) client for session (until reconnect). Permanent (0) **is not allowed**. Default value is `-1`.
+		* *bool* `saveToDB` - if `true` - punishment will be saved in DB (maybe not immediately). Default value is `false`.
+		* *String* `reason` - reason of punishment which will displayed and (possibly) saved into DB. Default value is `Muted through natives` or `Gagged through natives`.
+* Natives returns `true` if this caused a change in *mute* or *gag* state, `false` otherwise.
+* It's recommended to use these natives instead of `BaseComm_SetClientMute` or `BaseComm_SetClientGag`.
+* For example, equivalent of `BaseComm_SetClientMute(client, true)` is `SourceComms_SetClientMute(client, true, -1, false)`; also it may be `SourceComms_SetClientMute(client, true, _, _)` or simple `SourceComms_SetClientMute(client, true)`.
+* Removing player's punishments from DB through natives **are not available at this moment**.
+
+### Natives to get client status:
+* `native bType:SourceComms_GetClientMuteType(client)` - Returns the client's mute type.
+* `native bType:SourceComms_GetClientGagType(client)` - Returns the client's gag type.
+* Parametrs:
+	* `client` - Client index, it must be valid and client must be in game.
+* Natives returns one of enum `bType` values, which can be:
+	* `bNot` - Player chat or voice is not blocked.
+	* `bSess` - Player chat or voice is blocked for player session (until reconnect) (like in *basecomm* plugin).
+	* `bTime` - Player chat or voice is blocked for some time.
+	* `bPerm` -  Player chat or voice is permanently blocked.
 
 ## Special thanks to
 * [Twisted|Panda](https://forums.alliedmods.net/member.php?u=41467) for his [ExtendedComm](https://forums.alliedmods.net/showthread.php?p=1383953) plugin, which inspired me and was the basis for my plugin.
