@@ -59,7 +59,7 @@ The **time** parameter controls how long the player is punished. (< 0 == Tempora
 
 ##Config settings:
 * `DefaultTime`. When admin run sm_gag (mute, silence) command only with player name - player will be gagged on *"DefaultTime"* value minutes. (if *"DefaultTime"* setted in **-1** -> player will be blocked only on session (until reconnect)). Value **0** *(permanent)* **is not allowed**.
-* `DisableUnblockImmunityCheck` (0, 1). Default value is **0**. If setted to **1**, player can be ungagged only by issuer admin, console or admin with special flag. Also, If 0 player maybe unblocked by Admin with higher immunity level than issuer admin had.
+* `DisableUnblockImmunityCheck` (0, 1). Default value is **0**. If setted to **1**, player can be ungagged only by issuer admin, console or admin with special flag. Also, If **0** player maybe unblocked by Admin with higher immunity level than issuer admin had.
 * `ConsoleImmunity`. Default value is **0**. Immunity Level of server console.
 * `MaxLength`, which works following way: Plugin will hide (for admins without ADMFLAG_CUSTOM 2) from menu all durations more than MaxLength and restricts punishments commands with `time > MaxLength` argument (or permanent).
 * `OnlyWhiteListServers`. Default value is **0**. Set this option to **1** to applying on players punishments only from this server and servers listed in WhiteList. Value **0** applies on players punishments from any server.
@@ -155,11 +155,11 @@ This means, that you need to open file `<sourcebans_web_folder>\includes\page-bu
 **SourceComms** releases several natives to provide compatibility with other plugins and for additional functionality.
 
 ### These natives to set client status:
-* `native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, bool:saveToDB = false, const String:reason[] = "Muted through natives")` - Sets a client's mute state.
-* `native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = false, const String:reason[] = "Gagged through natives")` - Sets a client's gag state.
+* `native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength, bool:saveToDB, const String:reason[])` - Sets a client's mute state.
+* `native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength, bool:saveToDB, const String:reason[])` - Sets a client's gag state.
 * Parametrs:
 	* `client` - Client index. Client index must be valid (`0 < client < MaxClients`) and client must be in game (`IsClientInGame(client) == true`).
-	* *bool* `muteState` | `gagState` - `true` to mute (or gag) client, false to unmute (ungag).
+	* *bool* `muteState` | `gagState` - `true` to mute (or gag) client, `false` to unmute (ungag).
 	* Next parameters applies only for muting or gagging (`muteState==true` or `gagState==true`).
 		* `muteLength` | `gagLength` - length of punishment in minutes. Value `< 0` muting (gagging) client for session (until reconnect). Permanent (0) **is not allowed**. Default value is `-1`.
 		* *bool* `saveToDB` - if `true` - punishment will be saved in DB (maybe not immediately). Default value is `false`.
