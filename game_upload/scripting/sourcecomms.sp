@@ -11,13 +11,13 @@
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 #define DATABASE "sourcecomms"
 
-#define DEBUG
-#define LOG_QUERIES
+//#define DEBUG
+//#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.250"
+#define PLUGIN_VERSION "0.8.253"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1700,7 +1700,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 				{
 					if (g_MuteType[client] < bTime)
 					{
-						PerformMute(client, time, length / 60, sAdmName, immunity, sReason);
+						PerformMute(client, time, length / 60, sAdmName, immunity, sReason, remaining_time);
 						PrintToChat(client, "%s%t", PREFIX, "Muted on connect");
 					}
 				}
@@ -1708,7 +1708,7 @@ public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
 				{
 					if (g_GagType[client] < bTime)
 					{
-						PerformGag(client, time, length / 60, sAdmName, immunity, sReason);
+						PerformGag(client, time, length / 60, sAdmName, immunity, sReason, remaining_time);
 						PrintToChat(client, "%s%t", PREFIX, "Gagged on connect");
 					}
 				}
@@ -2634,16 +2634,26 @@ stock CloseGagExpireTimer(target)
 		g_hGagExpireTimer[target] = INVALID_HANDLE;
 }
 
-stock CreateMuteExpireTimer(target)
+stock CreateMuteExpireTimer(target, remainingTime = 0)
 {
 	if (g_iMuteLength[target] > 0)
-		g_hMuteExpireTimer[target] = CreateTimer(float(g_iMuteLength[target] * 60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+	{
+		if (remainingTime)
+			g_hMuteExpireTimer[target] = CreateTimer(float(remainingTime), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+		else
+			g_hMuteExpireTimer[target] = CreateTimer(float(g_iMuteLength[target] * 60), Timer_MuteExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
-stock CreateGagExpireTimer(target)
+stock CreateGagExpireTimer(target, remainingTime = 0)
 {
 	if (g_iGagLength[target] > 0)
-		g_hGagExpireTimer[target] = CreateTimer(float(g_iGagLength[target] * 60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+	{
+		if (remainingTime)
+			g_hGagExpireTimer[target] = CreateTimer(float(remainingTime), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+		else
+			g_hGagExpireTimer[target] = CreateTimer(float(g_iGagLength[target] * 60), Timer_GagExpire, GetClientUserId(target), TIMER_FLAG_NO_MAPCHANGE);
+	}
 }
 
 stock PerformUnMute(target)
@@ -2660,18 +2670,18 @@ stock PerformUnGag(target)
 	CloseGagExpireTimer(target);
 }
 
-stock PerformMute(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "")
+stock PerformMute(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "", remaining_time = 0)
 {
 	MarkClientAsMuted(target, time, length, adminName, adminImmunity, reason);
 	BaseComm_SetClientMute(target, true);
-	CreateMuteExpireTimer(target);
+	CreateMuteExpireTimer(target, remaining_time);
 }
 
-stock PerformGag(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "")
+stock PerformGag(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", adminImmunity = 0, const String:reason[] = "", remaining_time = 0)
 {
 	MarkClientAsGagged(target, time, length, adminName, adminImmunity, reason);
 	BaseComm_SetClientGag(target, true);
-	CreateGagExpireTimer(target);
+	CreateGagExpireTimer(target, remaining_time);
 }
 
 stock SavePunishment(target, type, admin = 0)
