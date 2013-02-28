@@ -19,7 +19,7 @@
  * @param reason		Reason for punishment.
  * @return				True if this caused a change in mute state, false otherwise.
  */
-native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, bool:saveToDB = true, const String:reason[] = "Muted through natives");
+native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, bool:saveToDB = false, const String:reason[] = "Muted through natives");
 
 /**
  * Sets a client's gag state.
@@ -33,7 +33,7 @@ native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, b
  * @param reason		Reason for punishment.
  * @return				True if this caused a change in gag state, false otherwise.
  */
-native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = true, const String:reason[] = "Gagged through natives");
+native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = false, const String:reason[] = "Gagged through natives");
 
 
 public SharedPlugin:__pl_sourcecomms =

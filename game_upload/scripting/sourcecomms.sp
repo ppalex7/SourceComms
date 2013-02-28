@@ -16,7 +16,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.242"
+#define PLUGIN_VERSION "0.8.244"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2781,7 +2781,7 @@ public Native_SetClientMute(Handle:hPlugin, numParams)
 			return false;
 		}
 
-		PerformMute(target, _, _, _, ConsoleImmunity, sReason);
+		PerformMute(target, _, muteLength, _, ConsoleImmunity, sReason);
 
 		if (bSaveToDB)
 			SavePunishment(target, TYPE_MUTE, _);
@@ -2836,7 +2836,7 @@ public Native_SetClientGag(Handle:hPlugin, numParams)
 			return false;
 		}
 
-		PerformGag(target, _, _, _, ConsoleImmunity, sReason);
+		PerformGag(target, _, gagLength, _, ConsoleImmunity, sReason);
 
 		if (bSaveToDB)
 			SavePunishment(target, TYPE_GAG, _);
