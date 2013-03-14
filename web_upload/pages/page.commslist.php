@@ -352,7 +352,7 @@ if(isset($_GET['advSearch']))
 			"SELECT CO.bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 			SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
 			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 1 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as mute_count,
-		(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 2 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as gag_count,
+			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.type = 2 AND BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL)) as gag_count,
 			UNIX_TIMESTAMP() as c_time
 			FROM ".DB_PREFIX."_comms AS CO
 			LEFT JOIN ".DB_PREFIX."_servers AS SE ON SE.sid = CO.sid
