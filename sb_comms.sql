@@ -20,8 +20,5 @@ CREATE TABLE `sb_comms` (
   KEY `RemoveType` (`RemoveType`),
   KEY `authid` (`authid`),
   KEY `created` (`created`),
-  KEY `aid` (`aid`),
-  FULLTEXT KEY `reason` (`reason`),
-  FULLTEXT KEY `authid_2` (`authid`),
-  FULLTEXT KEY `name` (`name`)
+  KEY `aid` (`aid`)
 ) ENGINE=MyISAM  DEFAULT CHARSET=utf8;

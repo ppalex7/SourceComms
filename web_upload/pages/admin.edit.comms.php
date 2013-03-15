@@ -83,7 +83,7 @@ if(isset($_POST['name']))
 	if($error == 0)
 	{
 		// Check if the new steamid is already banned
-		$chk = $GLOBALS['db']->GetRow("SELECT count(bid) AS count FROM ".DB_PREFIX."_comms WHERE authid = ? AND (length = 0 OR ends > UNIX_TIMESTAMP()) AND RemovedBy IS NULL AND type = ? AND bid != ?", array($_POST['steam'], (int)$_POST['type'], (int)$_GET['id']));
+		$chk = $GLOBALS['db']->GetRow("SELECT count(bid) AS count FROM ".DB_PREFIX."_comms WHERE authid = ? AND RemovedBy IS NULL AND type = ? AND bid != ? AND (length = 0 OR ends > UNIX_TIMESTAMP())", array($_POST['steam'], (int)$_POST['type'], (int)$_GET['id']));
 		if((int)$chk[0] > 0)
 		{
 			$error++;

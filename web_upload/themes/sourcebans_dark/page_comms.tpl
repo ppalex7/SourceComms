@@ -130,7 +130,7 @@
                 </td>
                 <!-- ###############[ Start Admin Controls ]################## -->
                 {if $view_bans}
-                <td width="30%" rowspan="{if $ban.unbanned}11{else}9{/if}" class="listtable_2 opener">
+                <td width="30%" rowspan="{if $ban.unbanned}12{else}10{/if}" class="listtable_2 opener">
                   <div class="ban-edit">
                     <ul>
 					  {if $ban.unbanned && $ban.reban_link != false}
@@ -163,6 +163,10 @@
                 </td>
               </tr>
               <tr align="left">
+                <td width="20%" height="16" class="listtable_1">Steam Community</td>
+                <td height="16" class="listtable_1"><a href="http://steamcommunity.com/profiles/{$ban.communityid}" target="_blank">{$ban.communityid}</a>
+              	</td>
+              </tr>
 								<td width="20%" height="16" class="listtable_1">Invoked on</td>
 								<td height="16" class="listtable_1">{$ban.ban_date}</td>
 					        </tr>

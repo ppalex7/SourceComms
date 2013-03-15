@@ -8,7 +8,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 
 ##Compatibility:
 * In theory - all games on the Source 2009 engine.
-* Plugin tested on TF2 and CS:S servers.
+* Plugin tested on TF2, CS:S, CS:GO servers.
 
 ## Features
 ### Server plugin
@@ -24,7 +24,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * SourceComms has support for protecting current punishments based on immunity levels.
 	* When a punishment is issued, the administrator responsible has their immunity level attached to the punishment. In order to remove that punishment, the second administrator must have **higher** immunity level or special admin flag (<i>ADMFLAG\_CUSTOM2</i> by default. You may change it in sourcecode). Also, punishment can be removed by console or his author.
 	* Punishments issued by *CONSOLE* has some immunity level (which is set in config, option *"ConsoleImmunity"*).
-	* Immunity checking system could be disabled by setting option *"DisableUnblockImmunityCheck"* to value 1 in config file.
+	* Immunity checking system could be disabled by setting option *"DisableUnblockImmunityCheck"* to value **1** in config file.
 	* One more **important** moment. When somebody removes punishment - plugin retrieves *"punishment issuer admin id"* from database. If the request fails - punishment could be temporary removed (on server, not in database) only by console, admin with special flag or with higher immunity.
 * Plugin has *Servers White List* feature. If enabled, plugin will apply on players punishments only from current server or servers listed in *White List*.
 * Punishments reasons and times stored in config. More details about config listed below.
@@ -52,14 +52,14 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * `sm_unsilence <player> <optional:reason>` - Restores a player's ability to use in-game voice and chat.
 
 The **player** parameter could be Name *(only as single word, without whitespaces)* or UserID.<br/>
-The **time** parameter controls how long the player is punished. (< 0 == Temporary, 0 == Permanent, # == Minutes). If not specified it will be *"DefaultTime"* minutes (30 by default).
+The **time** parameter controls how long the player is punished. (`< 0` == Temporary, `0` == Permanent, `#` == Minutes). If not specified it will be *"DefaultTime"* minutes (**30** by default).
 
 ##Cvars:
 * `sourcecomms_version` - plugin version
 
 ##Config settings:
 * `DefaultTime`. When admin run sm_gag (mute, silence) command only with player name - player will be gagged on *"DefaultTime"* value minutes. (if *"DefaultTime"* setted in **-1** -> player will be blocked only on session (until reconnect)). Value **0** *(permanent)* **is not allowed**.
-* `DisableUnblockImmunityCheck` (0, 1). Default value is **0**. If setted to **1**, player can be ungagged only by issuer admin, console or admin with special flag. Also, If 0 player maybe unblocked by Admin with higher immunity level than issuer admin had.
+* `DisableUnblockImmunityCheck` (0, 1). Default value is **0**. If setted to **1**, player can be ungagged only by issuer admin, console or admin with special flag. Also, If **0** player maybe unblocked by Admin with higher immunity level than issuer admin had.
 * `ConsoleImmunity`. Default value is **0**. Immunity Level of server console.
 * `MaxLength`, which works following way: Plugin will hide (for admins without ADMFLAG_CUSTOM 2) from menu all durations more than MaxLength and restricts punishments commands with `time > MaxLength` argument (or permanent).
 * `OnlyWhiteListServers`. Default value is **0**. Set this option to **1** to applying on players punishments only from this server and servers listed in WhiteList. Value **0** applies on players punishments from any server.
@@ -155,13 +155,13 @@ This means, that you need to open file `<sourcebans_web_folder>\includes\page-bu
 **SourceComms** releases several natives to provide compatibility with other plugins and for additional functionality.
 
 ### These natives to set client status:
-* `native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength = -1, bool:saveToDB = false, const String:reason[] = "Muted through natives")` - Sets a client's mute state.
-* `native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength = -1, bool:saveToDB = false, const String:reason[] = "Gagged through natives")` - Sets a client's gag state.
+* `native bool:SourceComms_SetClientMute(client, bool:muteState, muteLength, bool:saveToDB, const String:reason[])` - Sets a client's mute state.
+* `native bool:SourceComms_SetClientGag(client, bool:gagState, gagLength, bool:saveToDB, const String:reason[])` - Sets a client's gag state.
 * Parametrs:
 	* `client` - Client index. Client index must be valid (`0 < client < MaxClients`) and client must be in game (`IsClientInGame(client) == true`).
-	* *bool* `muteState` | `gagState` - `true` to mute (or gag) client, false to unmute (ungag).
+	* *bool* `muteState` | `gagState` - `true` to mute (or gag) client, `false` to unmute (ungag).
 	* Next parameters applies only for muting or gagging (`muteState==true` or `gagState==true`).
-		* `muteLength` | `gagLength` - length of punishment in minutes. Value `< 0` muting (gagging) client for session (until reconnect). Permanent (0) **is not allowed**. Default value is `-1`.
+		* `muteLength` | `gagLength` - length of punishment in minutes. Value `< 0` muting (gagging) client for session (until reconnect). Permanent (`0`) **is not allowed**. Default value is `-1`.
 		* *bool* `saveToDB` - if `true` - punishment will be saved in DB (maybe not immediately). Default value is `false`.
 		* *String* `reason` - reason of punishment which will displayed and (possibly) saved into DB. Default value is `Muted through natives` or `Gagged through natives`.
 * Natives returns `true` if this caused a change in *mute* or *gag* state, `false` otherwise.
