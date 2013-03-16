@@ -176,7 +176,7 @@ else if(isset($_GET['a']) && $_GET['a'] == "delete")
 		$log = new CSystemLog("m", "Block Deleted", "Block '".StripQuotes($steam['name'])."' (" . $steam['authid'] . ") has been deleted.");
 	}else{
 		echo "<script>ShowBox('Ban NOT Deleted', 'The ban for \'".StripQuotes($steam['name'])."\' had an error while being removed.', 'red', 'index.php?p=commslist$pagelink', true);</script>";
-	}	
+	}
 }
 
 // LIMIT для SQL запроса - по номеру страницы и числу банов на страницу
@@ -202,10 +202,10 @@ if(isset($_SESSION["hideinactive"])) {
 }
 
 
-if (isset($_GET['searchText']))		
+if (isset($_GET['searchText']))
 {
 	$search = '%'.trim($_GET['searchText']).'%';
-	
+
 	$res = $GLOBALS['db']->Execute(
 		"SELECT bid ban_id, CO.type, CO.authid, CO.name player_name, created ban_created, ends ban_ends, length ban_length, reason ban_reason, CO.ureason unban_reason, CO.aid, AD.gid AS gid, adminIp, CO.sid ban_server, RemovedOn, RemovedBy, RemoveType row_type,
 		SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
@@ -355,7 +355,7 @@ if(isset($_GET['advSearch']))
 			SE.ip server_ip, AD.user admin_name, MO.icon as mod_icon,
 			CAST(MID(CO.authid, 9, 1) AS UNSIGNED) + CAST('76561197960265728' AS UNSIGNED) + CAST(MID(CO.authid, 11, 10) * 2 AS UNSIGNED) AS community_id,
 			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 1)) as mute_count,
-			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND )) as gag_count,
+			(SELECT count(*) FROM ".DB_PREFIX."_comms as BH WHERE (BH.authid = CO.authid AND BH.authid != '' AND BH.authid IS NOT NULL AND BH.type = 2)) as gag_count,
 			UNIX_TIMESTAMP() as c_time
 			FROM ".DB_PREFIX."_comms AS CO FORCE INDEX (created)
 			LEFT JOIN ".DB_PREFIX."_servers AS SE ON SE.sid = CO.sid
@@ -385,7 +385,7 @@ while (!$res->EOF)
 {
 	$data = array();
 
-	$data['ban_id'] = $res->fields['ban_id'];	
+	$data['ban_id'] = $res->fields['ban_id'];
 	$data['type'] = $res->fields['type'];
 	$data['c_time'] = $res->fields['c_time'];
 
@@ -421,7 +421,7 @@ while (!$res->EOF)
 	else
 		$data['admin'] = stripslashes($res->fields['admin_name']);
 	$data['reason'] = stripslashes($res->fields['ban_reason']);
-	
+
 	if ($res->fields['ban_length'] > 0)
 	{
 		$data['ban_length'] = SecondsToString(intval($res->fields['ban_length']));
@@ -481,11 +481,11 @@ while (!$res->EOF)
 		default:
 			break;
 		}
-	}		
+	}
 	else
 		$data['reban_link'] = false;
 
-	
+
 	$data['edit_link'] = CreateLinkR('<img src="images/edit.gif" border="0" alt="" style="vertical-align:middle" /> Edit Details',"index.php?p=admin&c=comms&o=edit".$pagelink."&id=".$res->fields['ban_id']."&key=".$_SESSION['banlist_postkey']);
 
 	switch($data['type'])
@@ -499,9 +499,9 @@ while (!$res->EOF)
 		default:
 			break;
 	}
-	
+
 	$data['delete_link'] = CreateLinkR('<img src="images/delete.gif" border="0" alt="" style="vertical-align:middle" /> Delete Block',"#","", "_self", false, "RemoveBlock('".$res->fields['ban_id']."', '".$_SESSION['banlist_postkey']."', '".$pagelink."', '".StripQuotes($data['player'])."', 0);return false;");
-	
+
 	$data['server_id'] = $res->fields['ban_server'];
 
 	if(empty($res->fields['mod_icon']))
@@ -665,7 +665,7 @@ if(isset($_GET["comment"])) {
         $ctext = $ceditdata['commenttxt'];
 		$cotherdataedit = " AND cid != '".(int)$_GET["cid"]."'";
 	}
-	else 
+	else
     {
         $cotherdataedit = "";
         $ctext = "";
