@@ -3,7 +3,7 @@ A sourcemod plugin, which provides extended, temporary and permanent punishments
 Also includes files and instructions to integration to existing sourcebans web-pages.
 
 ***********
-**Important note:** If you installed web part before 16th March 2013, please follow the [instructions](https://github.com/d-ai/SourceComms/tree/master/wep_updates/update01.md) to update it to actual version.
+**Important note:** If you has installed web part before 16th March 2013, please follow the [instructions](https://github.com/d-ai/SourceComms/tree/master/wep_updates/update01.md) to update it to actual version.
 ***********
 
 ## Requirements
