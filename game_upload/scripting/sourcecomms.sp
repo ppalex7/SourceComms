@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.253"
+#define PLUGIN_VERSION "0.8.255"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1861,8 +1861,7 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			}
 			else if (strcmp("ServerID", key, false) == 0)
 			{
-				serverID = StringToInt(value);
-				if (serverID == 0)
+				if (!StringToIntEx(value, serverID) || serverID < 0)
 					serverID = -1;
 			}
 			else if (strcmp("DefaultTime", key, false) == 0)
