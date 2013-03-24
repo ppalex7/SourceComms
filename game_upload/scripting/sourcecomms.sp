@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.253"
+#define PLUGIN_VERSION "0.8.257"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -750,12 +750,26 @@ AdminMenu_Target(client, type)
 	SetMenuTitle(hMenu, Title);
 	SetMenuExitBackButton(hMenu, true);
 
+	new iClients;
 	if (type <= 3)	// Mute, gag, silence
 	{
 		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i) && !IsFakeClient(i))
 			{
+				switch(type)
+				{
+					case TYPE_MUTE:
+						if (g_MuteType[i] > bNot)
+							continue;
+					case TYPE_GAG:
+						if (g_GagType[i] > bNot)
+							continue;
+					case TYPE_SILENCE:
+						if (g_MuteType[i] > bNot || g_GagType[i] > bNot)
+							continue;
+				}
+				iClients++;
 				strcopy(Title, sizeof(Title), g_sName[i]);
 				AdminMenu_GetPunishPhrase(client, i, Title, sizeof(Title));
 				Format(Option, sizeof(Option), "%d %d", GetClientUserId(i), type);
@@ -765,7 +779,6 @@ AdminMenu_Target(client, type)
 	}
 	else		// UnMute, ungag, unsilence
 	{
-		new iClients;
 		for (new i = 1; i <= MaxClients; i++)
 		{
 			if (IsClientInGame(i) && !IsFakeClient(i))
@@ -805,20 +818,21 @@ AdminMenu_Target(client, type)
 				}
 			}
 		}
-
-		if (!iClients)
+	}
+	if (!iClients)
+	{
+		switch(type)
 		{
-			switch(type)
-			{
-				case TYPE_UNMUTE:
-					Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Mute_Empty", client);
-				case TYPE_UNGAG:
-					Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Gag_Empty", client);
-				case TYPE_UNSILENCE:
-					Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Silence_Empty", client);
-			}
-			AddMenuItem(hMenu, "0", Title, ITEMDRAW_DISABLED);
+			case TYPE_UNMUTE:
+				Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Mute_Empty", client);
+			case TYPE_UNGAG:
+				Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Gag_Empty", client);
+			case TYPE_UNSILENCE:
+				Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Silence_Empty", client);
+			default:
+				Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Empty", client);
 		}
+		AddMenuItem(hMenu, "0", Title, ITEMDRAW_DISABLED);
 	}
 
 	DisplayMenu(hMenu, client, MENU_TIME_FOREVER);
@@ -1861,8 +1875,7 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			}
 			else if (strcmp("ServerID", key, false) == 0)
 			{
-				serverID = StringToInt(value);
-				if (serverID == 0)
+				if (!StringToIntEx(value, serverID) || serverID < 0)
 					serverID = -1;
 			}
 			else if (strcmp("DefaultTime", key, false) == 0)

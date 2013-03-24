@@ -4,17 +4,12 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.8.253"
+			"Latest"	"0.8.257"
 		}
 
 		"Notes"	"More info @ https://forums.alliedmods.net/showthread.php?t=207176 "
-		"Notes"	"Plugin on GitHub @ https://github.com/d-ai/SourceComms "
-		"Notes"	"A lot of code was refactored"
-		"Notes"	"Added *Servers White List* feature. More details in README at GitHub"
-		"Notes"	"Fixed console immunity value for punishments received from web"
-		"Notes"	"Added **natives** for . More details in README at GitHub"
-		"Notes"	"Fixed bug with unblocking commands, if they were called by console"
-
+		"Notes"	"Now already punished players are hided from menu"
+		"Notes"	"Allowed to use serverID = 0"
 	}
 
 	"Files"
