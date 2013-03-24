@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.8.256"
+#define PLUGIN_VERSION "0.8.257"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -760,20 +760,14 @@ AdminMenu_Target(client, type)
 				switch(type)
 				{
 					case TYPE_MUTE:
-					{
 						if (g_MuteType[i] > bNot)
 							continue;
-					}
 					case TYPE_GAG:
-					{
 						if (g_GagType[i] > bNot)
 							continue;
-					}
 					case TYPE_SILENCE:
-					{
 						if (g_MuteType[i] > bNot || g_GagType[i] > bNot)
 							continue;
-					}
 				}
 				iClients++;
 				strcopy(Title, sizeof(Title), g_sName[i]);
@@ -835,6 +829,8 @@ AdminMenu_Target(client, type)
 				Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Gag_Empty", client);
 			case TYPE_UNSILENCE:
 				Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Silence_Empty", client);
+			default:
+				Format(Title, sizeof(Title), "%T", "AdminMenu_Option_Empty", client);
 		}
 		AddMenuItem(hMenu, "0", Title, ITEMDRAW_DISABLED);
 	}

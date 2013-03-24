@@ -332,6 +332,11 @@
 		"en"		"No Punished Clients"
 		"ru"		"Нет наказанных игроков"
 	}
+	"AdminMenu_Option_Empty"
+	{
+		"en"		"No available players"
+		"ru"		"Нет доступных игроков"
+	}
 	"AdminMenu_UnGag"
 	{
 		"en"		"Remove Gag"

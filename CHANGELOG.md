@@ -1,5 +1,5 @@
 #Changelog
-* **0.8.256**
+* **0.8.257**
 	* Now already punished players are hided from menu. Thanks for idea to [wingblack](https://forums.alliedmods.net/member.php?u=219943).
 	* Allowed to use serverID = 0. Request from [bottiger](https://forums.alliedmods.net/member.php?u=101497).
 * **0.8.253**
