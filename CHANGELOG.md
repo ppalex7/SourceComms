@@ -9,7 +9,7 @@
 	* A lot of code was refactored.
 	* Added *Servers White List* feature. More details in README.
 	* Fixed console immunity value for punishments received from web.
-	* Added **natives** for . More details in README.
+	* Added **natives** for plugin developers. More details in README.
 	* Fixed bug with unblocking commands, if they were called by console.
 * **0.8.158**
 	* Fixed `Unknown command` reply in client console.
