@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.4"
+#define PLUGIN_VERSION "0.9.7"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -629,9 +629,19 @@ public Action:PrepareUnBlock(client, type_block, args)
 		LogToFile(logFile, "PrepareUnBlock(cl %L, type %d)", client, type_block);
 	#endif
 
-	new String:sBuffer[256], String:sArg[2][192];
+	new String:sBuffer[256], String:sArg[3][192];
 	GetCmdArgString(sBuffer, sizeof(sBuffer));
-	ExplodeString(sBuffer, " ", sArg, 2, 192, true);
+
+	if (ExplodeString(sBuffer, "\"", sArg, 3, 192, true) == 3 && strlen(sArg[0]) == 0)
+	{
+		TrimString(sArg[2]);
+		sArg[0] = sArg[1];		// target name
+		sArg[1] = sArg[2]; 		// reason; sArg[2] - not in use
+	}
+	else
+	{
+		ExplodeString(sBuffer, " ", sArg, 2, 192, true);
+	}
 
 	// Get the target, find target returns a message on failure so we do not
 	new target = FindTarget(client, sArg[0], true);

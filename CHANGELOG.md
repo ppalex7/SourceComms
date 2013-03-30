@@ -1,4 +1,5 @@
 #Changelog
+* **0.9.7** - Added the ability to use the player's name in quotes in console commands. Request from [lyric](https://forums.alliedmods.net/member.php?u=197409).
 * **0.9.1**
 	* Plugin was approved! Many thanks to [alongub](https://forums.alliedmods.net/member.php?u=58635).
 	* No changes were made, only version bump.
