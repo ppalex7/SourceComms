@@ -1,4 +1,8 @@
 #Changelog
+* **0.9.7** - Added the ability to use the player's name in quotes in console commands. Request from [lyric](https://forums.alliedmods.net/member.php?u=197409).
+* **0.9.1**
+	* Plugin was approved! Many thanks to [alongub](https://forums.alliedmods.net/member.php?u=58635).
+	* No changes were made, only version bump.
 * **0.8.257**
 	* Now already punished players are hided from menu. Thanks for idea to [wingblack](https://forums.alliedmods.net/member.php?u=219943).
 	* Allowed to use serverID = 0. Request from [bottiger](https://forums.alliedmods.net/member.php?u=101497).
@@ -6,7 +10,7 @@
 	* A lot of code was refactored.
 	* Added *Servers White List* feature. More details in README.
 	* Fixed console immunity value for punishments received from web.
-	* Added **natives** for . More details in README.
+	* Added **natives** for plugin developers. More details in README.
 	* Fixed bug with unblocking commands, if they were called by console.
 * **0.8.158**
 	* Fixed `Unknown command` reply in client console.
