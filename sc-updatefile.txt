@@ -4,12 +4,10 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.9.7"
+			"Latest"	"0.9.9"
 		}
 
-		"Notes"	"More info @ https://forums.alliedmods.net/showthread.php?t=207176 "
-		"Notes"	"Plugin was approved on alliedmods!"
-		"Notes"	"Added the ability to use the player's name in quotes in console commands."
+		"Notes"	"Added Polish translation"
 	}
 
 	"Files"
