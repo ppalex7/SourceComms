@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.23"
+#define PLUGIN_VERSION "0.9.24"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -770,7 +770,7 @@ AdminMenu_Target(client, type)
 			Format(Title, sizeof(Title), "%T", "AdminMenu_Select_Unsilence", client);
 	}
 
-	new Handle:hMenu = CreateMenu(MenuHandler_MenuTarget);	// Общая менюшка - список игроков. Почти полная для блокировок и почти пустая - для разблокировок
+	new Handle:hMenu = CreateMenu(MenuHandler_MenuTarget);	// Common menu - players list. Almost full for blocking, and almost empty for unblocking
 	SetMenuTitle(hMenu, Title);
 	SetMenuExitBackButton(hMenu, true);
 
@@ -948,7 +948,7 @@ public MenuHandler_MenuDuration(Handle:menu, MenuAction:action, param1, param2)
 				new type = StringToInt(sTemp[1]);
 				new lengthIndex = StringToInt(sTemp[2]);
 
-				if (iNumReasons) // есть что показывать (причины)
+				if (iNumReasons) // we have reasons to show
 					AdminMenu_Reason(param1, target, type, lengthIndex);
 				else
 					if(CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type, ""))
@@ -1000,7 +1000,7 @@ public MenuHandler_MenuReason(Handle:menu, MenuAction:action, param1, param2)
 				new reasonIndex = StringToInt(sTemp[2]);
 				new lengthIndex = StringToInt(sTemp[3]);
 				new length;
-				if (lengthIndex >= 0 && lengthIndex <= iNumTimes)	// а вдруг погода нелетная?
+				if (lengthIndex >= 0 && lengthIndex <= iNumTimes)
 					length = g_iTimeMinutes[lengthIndex];
 				else
 				{
@@ -2713,7 +2713,7 @@ stock SavePunishment(target, type, admin = 0)
 
 	if (DB_Connect())
 	{
-		UTIL_InsertBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp, dataPack); // длина блокировки, тип, имя игрока, стим игрока, причина, стим админа, ип админа
+		UTIL_InsertBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp, dataPack); // block length, type, player's name, player's SteamID, reason, admin's SteamId, admin's IP
 	} else {
 		UTIL_InsertTempBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp);
 		LogToFile(logFile, "Database unavailable, saving punishment to queue.");
