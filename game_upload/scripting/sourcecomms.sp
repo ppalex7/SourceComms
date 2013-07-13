@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.37"
+#define PLUGIN_VERSION "0.9.45"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1501,7 +1501,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					}
 				}
 
-				new Handle:dataPack = CreateDataPack();
+				new Handle:errorPack = CreateDataPack();
 				new String:unbanReason[sizeof(reason) * 2 + 1];
 				SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
 				decl String:query[1024];
@@ -1511,9 +1511,8 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				#if defined LOG_QUERIES
 					LogToFile(logQuery, "in SelectUnBlockCallback: Unblocking. QUERY: %s", query);
 				#endif
-				SQL_TQuery(g_hDatabase, ErrorCheckCallback, query, dataPack);
-				ResetPack(dataPack);
-				if (ReadPackCell(dataPack) == QUERY_OK)
+				SQL_TQuery(g_hDatabase, ErrorCheckCallback, query, errorPack);
+				if (ReadPackCell(errorPack) == QUERY_OK)
 				{
 					switch(cType)
 					{
@@ -1546,7 +1545,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 						PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
 					return; // FIXME
 				}
-				CloseHandle(dataPack);
+				CloseHandle(errorPack);
 			}
 			else
 			{
@@ -1641,21 +1640,23 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 			LogToFile(logQuery, "in ProcessQueueCallbackB: Insert to db. QUERY: %s", query);
 		#endif
 
-		SQL_TQuery(g_hDatabase, AddedFromSQLiteCallbackB, query, id);
-	}
-}
-
-public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[], any:data)
-{
-	decl String:buffer[128];
-	if (error[0] == '\0')
-	{
-		// The insert was successful so delete the record from the queue
-		FormatEx(buffer, sizeof(buffer), "DELETE FROM queue2 WHERE id = %d", data);
-		#if defined LOG_QUERIES
-			LogToFile(logQuery, "in AddedFromSQLiteCallbackB: DELETE FROM QUEUE. QUERY: %s", buffer);
-		#endif
-		SQL_TQuery(SQLiteDB, ErrorCheckCallback, buffer);
+		new Handle:errorPack = CreateDataPack();
+		SQL_TQuery(g_hDatabase, ErrorCheckCallback, query, errorPack);
+		if (ReadPackCell(errorPack) == QUERY_OK)
+		{
+			// The insert was successful so delete the record from the queue
+			decl String:queryDelete[128];
+			FormatEx(queryDelete, sizeof(queryDelete), "DELETE FROM queue2 WHERE id = %d", id);
+			#if defined LOG_QUERIES
+				LogToFile(logQuery, "after AddedFromSQLite: DELETE FROM QUEUE. QUERY: %s", queryDelete);
+			#endif
+			// reusing datapack for error checking
+			SQL_TQuery(SQLiteDB, ErrorCheckCallback, queryDelete, errorPack);
+			if (ReadPackCell(errorPack) == QUERY_FAILED)
+				LogToFile(logFile, "An error occured during removing punishment id #%d from local queue DB. Possible duplicating punishment in main DB!", id);
+		}
+		// else - leave record in the queue
+		CloseHandle(errorPack);
 	}
 }
 
@@ -1667,11 +1668,12 @@ public ErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], any:d
 	}
 	if (data != INVALID_HANDLE)
 	{
-		ResetPack(data, true);
+		ResetPack(data, true); // clean up
 		if (owner == INVALID_HANDLE || hndl == INVALID_HANDLE || error[0])
 			WritePackCell(data, QUERY_FAILED);
 		else
 			WritePackCell(data, QUERY_OK);
+		ResetPack(data);
 	}
 }
 
@@ -2016,8 +2018,21 @@ stock InitializeBackupDB()
 	if (SQLiteDB == INVALID_HANDLE)
 		SetFailState(error);
 
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "DROP TABLE IF EXISTS queue;");
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
+	new bool:hasErrors = false;
+	new Handle:errorPack = CreateDataPack();
+
+	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "DROP TABLE IF EXISTS queue;", errorPack);
+	if (ReadPackCell(errorPack) == QUERY_FAILED)
+		hasErrors = true;
+
+	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);", errorPack);
+	if (ReadPackCell(errorPack) == QUERY_FAILED)
+		hasErrors = true;
+
+	if (hasErrors)
+		SetFailState("Can't initialize SQLite backup db");
+
+	CloseHandle(errorPack);
 }
 
 stock bool:CreateBlock(client, target, length, type, String:reason[])
@@ -2351,13 +2366,26 @@ stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[],
 	SQL_EscapeString(SQLiteDB, auth, sAuthEscaped, sizeof(sAuthEscaped));
 	SQL_EscapeString(SQLiteDB, adminAuth, sAdminAuthEscaped, sizeof(sAdminAuthEscaped));
 
-	FormatEx(	query, sizeof(query), "INSERT INTO queue2 (steam_id, time, start_time, reason, name, admin_id, admin_ip, type) VALUES ('%s', %i, %i, '%s', '%s', '%s', '%s', %i)",
+	//steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER
+	FormatEx(query, sizeof(query), "INSERT INTO queue2 (steam_id, time, start_time, reason, name, admin_id, admin_ip, type) VALUES ('%s', %i, %i, '%s', '%s', '%s', '%s', %i)",
 				sAuthEscaped, time, GetTime(), banReason, banName, sAdminAuthEscaped, adminIp, type);
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", query);
 	#endif
-	//steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, query);
+
+	new Handle:errorPack = CreateDataPack();
+	SQL_TQuery(SQLiteDB, ErrorCheckCallback, query, errorPack);
+	new _:queryState = ReadPackCell(errorPack);
+	CloseHandle(errorPack);
+
+	if (queryState == QUERY_OK)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
 stock ServerInfo()
