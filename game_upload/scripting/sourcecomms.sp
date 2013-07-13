@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.9"
+#define PLUGIN_VERSION "0.9.23"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -133,7 +133,7 @@ public Plugin:myinfo =
 {
 	name = "SourceComms",
 	author = "Alex",
-	description = "Advanced punishments management for the Source engine in SourceBans style.",
+	description = "Advanced punishments management for the Source engine in SourceBans style",
 	version = PLUGIN_VERSION,
 	url = "https://forums.alliedmods.net/showthread.php?t=207176"
 };
@@ -619,7 +619,8 @@ public Action:PrepareBlock(client, type_block, args)
 		LogToFile(logFile, "Calling CreateBlock cl %d, target %d, time %d, type %d, reason %s", client, target, time, type_block, sArg[2]);
 	#endif
 
-	CreateBlock(client, target, time, type_block, sReason);
+	if (CreateBlock(client, target, time, type_block, sReason))
+		ShowActivityToServer(client, type_block, time, sReason, g_sName[target]);
 	return Plugin_Stop;
 }
 
@@ -950,7 +951,8 @@ public MenuHandler_MenuDuration(Handle:menu, MenuAction:action, param1, param2)
 				if (iNumReasons) // есть что показывать (причины)
 					AdminMenu_Reason(param1, target, type, lengthIndex);
 				else
-					CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type, "");
+					if(CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type, ""))
+						ShowActivityToServer(param1, type, g_iTimeMinutes[lengthIndex], "", g_sName[target]);
 			}
 		}
 	}
@@ -1006,7 +1008,8 @@ public MenuHandler_MenuReason(Handle:menu, MenuAction:action, param1, param2)
 					LogToFile(logFile, "It's a magic? wrong length index. using default time");
 				}
 
-				CreateBlock(param1, target, length, type, g_sReasonKey[reasonIndex]);
+				if (CreateBlock(param1, target, length, type, g_sReasonKey[reasonIndex]))
+					ShowActivityToServer(param1, type, length, g_sReasonKey[reasonIndex], g_sName[target]);
 			}
 		}
 	}
@@ -2061,28 +2064,6 @@ stock bool:CreateBlock(client, target, length, type, String:reason[])
 
 				PerformMute(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
-				if (length > 0)
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Muted player", g_sName[target], length);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Muted player reason", g_sName[target], length, reason);
-				}
-				else if (length == 0)
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Permamuted player", g_sName[target]);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Permamuted player reason", g_sName[target], reason);
-				}
-				else	// temp block
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Temp muted player", g_sName[target]);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Temp muted player reason", g_sName[target], reason);
-				}
-
 				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
 
 				SavePunishment(target, TYPE_MUTE, client);
@@ -2106,28 +2087,6 @@ stock bool:CreateBlock(client, target, length, type, String:reason[])
 				#endif
 
 				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
-
-				if (length > 0)
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Gagged player", g_sName[target], length);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Gagged player reason", g_sName[target], length, reason);
-				}
-				else if (length == 0)
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Permagagged player", g_sName[target]);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Permagagged player reason", g_sName[target], reason);
-				}
-				else	//temp block
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Temp gagged player", g_sName[target]);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Temp gagged player reason", g_sName[target], reason);
-				}
 
 				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
 
@@ -2153,28 +2112,6 @@ stock bool:CreateBlock(client, target, length, type, String:reason[])
 
 				PerformMute(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
-
-				if (length > 0)
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Silenced player", g_sName[target], length);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Silenced player reason", g_sName[target], length, reason);
-				}
-				else if (length == 0)
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Permasilenced player", g_sName[target]);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Permasilenced player reason", g_sName[target], reason);
-				}
-				else	//temp block
-				{
-					if (reason[0] == '\0')
-						ShowActivity2(client, PREFIX, "%t", "Temp silenced player", g_sName[target]);
-					else
-						ShowActivity2(client, PREFIX, "%t", "Temp silenced player reason", g_sName[target], reason);
-				}
 
 				LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
 
@@ -2781,7 +2718,52 @@ stock SavePunishment(target, type, admin = 0)
 		UTIL_InsertTempBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp);
 		LogToFile(logFile, "Database unavailable, saving punishment to queue.");
 	}
+}
 
+stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[])
+{
+	new String:actionName[32], String:translationName[64];
+	switch(type)
+	{
+		case TYPE_MUTE:
+		{
+			if (length > 0)
+				strcopy(actionName, sizeof(actionName), "Muted");
+			else if (length == 0)
+				strcopy(actionName, sizeof(actionName), "Permamuted");
+			else	// temp block
+				strcopy(actionName, sizeof(actionName), "Temp muted");
+		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_GAG:
+		{
+			if (length > 0)
+				strcopy(actionName, sizeof(actionName), "Gagged");
+			else if (length == 0)
+				strcopy(actionName, sizeof(actionName), "Permagagged");
+			else	//temp block
+				strcopy(actionName, sizeof(actionName), "Temp gagged");
+		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_SILENCE:
+		{
+			if (length > 0)
+				strcopy(actionName, sizeof(actionName), "Silenced");
+			else if (length == 0)
+				strcopy(actionName, sizeof(actionName), "Permasilenced");
+			else	//temp block
+				strcopy(actionName, sizeof(actionName), "Temp silenced");
+		}
+		default:
+		{
+			return;
+		}
+	}
+	Format(translationName, sizeof(translationName), "%s %s", actionName, reason[0] == '\0' ? "player" : "player reason");
+	if (length > 0)
+		ShowActivity2(admin, PREFIX, "%t", translationName, targetName, length, reason);
+	else
+		ShowActivity2(admin, PREFIX, "%t", translationName, targetName, reason);
 }
 
 // Natives //
