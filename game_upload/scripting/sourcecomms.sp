@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.24"
+#define PLUGIN_VERSION "0.9.37"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -46,15 +46,18 @@ enum State /* ConfigState */
 	ConfigStateConfig,
 	ConfigStateReasons,
 	ConfigStateTimes,
-	ConfigStateServers
+	ConfigStateServers,
 }
 enum DatabaseState /* Database connection state */
 {
 	DatabaseState_None = 0,
 	DatabaseState_Wait,
 	DatabaseState_Connecting,
-	DatabaseState_Connected
+	DatabaseState_Connected,
 }
+
+#define QUERY_FAILED 0
+#define QUERY_OK 1
 
 new DatabaseState:g_DatabaseState;
 new g_iConnectLock = 0;
@@ -107,7 +110,7 @@ enum PeskyPanels
 	curIndex,
 	viewingMute,
 	viewingGag,
-	viewingList
+	viewingList,
 }
 new g_iPeskyPanels[MAXPLAYERS + 1][PeskyPanels];
 
@@ -1399,6 +1402,9 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	new admin = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
+	new String:targetName[MAX_NAME_LENGTH];
+	strcopy(targetName, MAX_NAME_LENGTH, target && IsClientInGame(target) ? g_sName[target] : targetAuth);
+
 	new bool:hasErrors = false;
 	// If error is not an empty string the query failed
 	if (DB_Conn_Lost(hndl) || error[0] != '\0')
@@ -1471,38 +1477,33 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 			#endif
 
 			// Checking - has we acces to unblock?
-			if (iAID == cAID || AdmHasFlag(admin) || !admin || (DisUBImCheck == 0 && (GetAdmImmunity(admin) > cImmunity)))
+			if (iAID == cAID || (!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || (DisUBImCheck == 0 && (GetAdmImmunity(admin) > cImmunity)))
 			{
 				// Ok! we have rights to unblock
-
 				// UnMute/UnGag, Show & log activity
-				switch(cType)
+				if (target && IsClientInGame(target))
 				{
-					case TYPE_MUTE:
+					switch(cType)
 					{
-						PerformUnMute(target);
-						ShowActivity2(admin, PREFIX, "%t", "Unmuted player", g_sName[target]);
-						LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, reason);
-					}
-					//-------------------------------------------------------------------------------------------------
-					case TYPE_GAG:
-					{
-						PerformUnGag(target);
-						ShowActivity2(admin, PREFIX, "%t", "Ungagged player", g_sName[target]);
-						LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
+						case TYPE_MUTE:
+						{
+							PerformUnMute(target);
+							ShowActivity2(admin, PREFIX, "%t", "Unmuted player", g_sName[target]);
+							LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, reason);
+						}
+						//-------------------------------------------------------------------------------------------------
+						case TYPE_GAG:
+						{
+							PerformUnGag(target);
+							ShowActivity2(admin, PREFIX, "%t", "Ungagged player", g_sName[target]);
+							LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
+						}
 					}
 				}
 
-				// Packing data for next callback
 				new Handle:dataPack = CreateDataPack();
-				WritePackCell(dataPack, adminUserID);
-				WritePackCell(dataPack, targetUserID);
-				WritePackCell(dataPack, cType);
-				WritePackString(dataPack, g_sName[target]);
-
 				new String:unbanReason[sizeof(reason) * 2 + 1];
 				SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
-
 				decl String:query[1024];
 				Format(query, sizeof(query),
 					"UPDATE %s_comms SET RemovedBy = %d, RemoveType = 'U', RemovedOn = UNIX_TIMESTAMP(), ureason = '%s' WHERE bid = %d",
@@ -1510,7 +1511,42 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				#if defined LOG_QUERIES
 					LogToFile(logQuery, "in SelectUnBlockCallback: Unblocking. QUERY: %s", query);
 				#endif
-				SQL_TQuery(g_hDatabase, InsertUnBlockCallback, query, dataPack);
+				SQL_TQuery(g_hDatabase, ErrorCheckCallback, query, dataPack);
+				ResetPack(dataPack);
+				if (ReadPackCell(dataPack) == QUERY_OK)
+				{
+					switch(cType)
+					{
+						case TYPE_MUTE:
+						{
+							LogAction(admin, -1, "\"%L\" removed mute for %s from DB", admin, targetAuth);
+							if (admin && IsClientInGame(admin))
+							{
+								PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
+							} else {
+								PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, targetName);
+							}
+						}
+						//-------------------------------------------------------------------------------------------------
+						case TYPE_GAG:
+						{
+							LogAction(admin, -1, "\"%L\" removed gag for %s from DB", admin, targetAuth);
+							if (admin && IsClientInGame(admin))
+							{
+								PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
+							} else {
+								PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, targetName);
+							}
+						}
+					}
+				}
+				else
+				{
+					if (admin && IsClientInGame(admin))
+						PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
+					return; // FIXME
+				}
+				CloseHandle(dataPack);
 			}
 			else
 			{
@@ -1520,72 +1556,17 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					case TYPE_MUTE:
 					{
 						if (admin && IsClientInGame(admin))
-							PrintToChat(admin, "%s%t", PREFIX, "No permission unmute", g_sName[target]);
-						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute \"%L\" (reason \"%s\")", admin, target, reason);
+							PrintToChat(admin, "%s%t", PREFIX, "No permission unmute", targetName);
+						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute %s (reason \"%s\")", admin, targetAuth, reason);
 					}
 					//-------------------------------------------------------------------------------------------------
 					case TYPE_GAG:
 					{
 						if (admin && IsClientInGame(admin))
-							PrintToChat(admin, "%s%t", PREFIX, "No permission ungag", g_sName[target]);
-						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag \"%L\" (reason \"%s\")", admin, target, reason);
+							PrintToChat(admin, "%s%t", PREFIX, "No permission ungag", targetName);
+						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag %s (reason \"%s\")", admin, targetAuth, reason);
 					}
 				}
-			}
-		}
-	}
-}
-
-public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
-{
-	// if the pack is good unpack it and close the handle
-	new admin, target, type;
-	new String:clientName[MAX_NAME_LENGTH];
-	if (data != INVALID_HANDLE)
-	{
-		ResetPack(data);
-		admin = GetClientOfUserId(ReadPackCell(data));
-		target = GetClientOfUserId(ReadPackCell(data));
-		type = ReadPackCell(data);
-		ReadPackString(data, clientName, sizeof(clientName));
-		CloseHandle(data);
-	} else {
-		// Technically this should not be possible
-		ThrowError("Invalid Handle in InsertUnBlockCallback");
-	}
-
-	// If error is not an empty string the query failed
-	if (error[0] != '\0')
-	{
-		LogToFile(logFile, "UnBlock Insert Query Failed: %s", error);
-		if (admin && IsClientInGame(admin))
-		{
-			PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
-		}
-		return;
-	}
-
-	switch(type)
-	{
-		case TYPE_MUTE:
-		{
-			LogAction(admin, -1, "\"%L\" removed mute for \"%L\" from DB", admin, target);
-			if (admin && IsClientInGame(admin))
-			{
-				PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", clientName);
-			} else {
-				PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, clientName);
-			}
-		}
-		//-------------------------------------------------------------------------------------------------
-		case TYPE_GAG:
-		{
-			LogAction(admin, -1, "\"%L\" removed gag for \"%L\" from DB", admin, target);
-			if (admin && IsClientInGame(admin))
-			{
-				PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", clientName);
-			} else {
-				PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, clientName);
 			}
 		}
 	}
@@ -1678,11 +1659,19 @@ public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[],
 	}
 }
 
-public ErrorCheckCallback(Handle:owner, Handle:hndle, const String:error[], any:data)
+public ErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
 	if (error[0])
 	{
 		LogToFile(logFile, "Query Failed: %s", error);
+	}
+	if (data != INVALID_HANDLE)
+	{
+		ResetPack(data, true);
+		if (owner == INVALID_HANDLE || hndl == INVALID_HANDLE || error[0])
+			WritePackCell(data, QUERY_FAILED);
+		else
+			WritePackCell(data, QUERY_OK);
 	}
 }
 
@@ -2273,7 +2262,7 @@ stock TempUnBlock(&Handle:data)
 	#endif
 
 	// Check access for unblock without db changes (temporary unblock)
-	if (!admin || AdmHasFlag(admin) || AdmImCheck)	// can, if we are console or have special flag
+	if ((!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || AdmImCheck)	// can, if we are console or have special flag
 	{
 		switch(type)
 		{
@@ -2490,7 +2479,7 @@ stock bool:IsAllowedBlockLength(admin, length)
 
 stock bool:AdmHasFlag(admin)
 {
-	return CheckCommandAccess(admin, "", UNBLOCK_FLAG, true);
+	return admin && CheckCommandAccess(admin, "", UNBLOCK_FLAG, true);
 }
 
 stock _:GetAdmImmunity(admin)
