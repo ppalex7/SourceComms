@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.46"
+#define PLUGIN_VERSION "0.9.48"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2018,21 +2018,13 @@ stock InitializeBackupDB()
 	if (SQLiteDB == INVALID_HANDLE)
 		SetFailState(error);
 
-	new bool:hasErrors = false;
 	new Handle:errorPack = CreateDataPack();
-
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "DROP TABLE IF EXISTS queue;", errorPack);
-	if (ReadPackCell(errorPack) == QUERY_FAILED)
-		hasErrors = true;
-
 	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);", errorPack);
 	if (ReadPackCell(errorPack) == QUERY_FAILED)
-		hasErrors = true;
-
-	if (hasErrors)
+	{
+		CloseHandle(errorPack);
 		SetFailState("Can't initialize SQLite backup db");
-
-	CloseHandle(errorPack);
+	}
 }
 
 stock bool:CreateBlock(client, target, length, type, String:reason[])
