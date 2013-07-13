@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.45"
+#define PLUGIN_VERSION "0.9.46"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2384,6 +2384,7 @@ stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[],
 	}
 	else
 	{
+		LogToFile(logFile, "Inserting punishment into queue failed!");
 		return false;
 	}
 }
