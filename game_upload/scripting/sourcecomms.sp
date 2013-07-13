@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.49"
+#define PLUGIN_VERSION "0.9.70"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1339,48 +1339,6 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 	ForcePlayerRecheck();
 }
 
-public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:dataPack)
-{
-	if (dataPack == INVALID_HANDLE)
-	{
-		LogToFile(logFile, "Block Failed: %s", error);
-		return;
-	}
-
-	if (DB_Conn_Lost(hndl) || error[0])
-	{
-		LogToFile(logFile, "Verify Insert Query Failed: %s", error);
-
-		ResetPack(dataPack);
-		new time = ReadPackCell(dataPack);
-		new type = ReadPackCell(dataPack);
-		new Handle:reasonPack = Handle:ReadPackCell(dataPack);
-		decl String:reason[256];
-		ReadPackString(reasonPack, reason, sizeof(reason));
-		new String:name[MAX_NAME_LENGTH];
-		ReadPackString(dataPack, name, sizeof(name));
-		decl String:auth[64];
-		ReadPackString(dataPack, auth, sizeof(auth));
-		decl String:adminAuth[32];
-		ReadPackString(dataPack, adminAuth, sizeof(adminAuth));
-		decl String:adminIp[20];
-		ReadPackString(dataPack, adminIp, sizeof(adminIp));
-		ResetPack(dataPack);
-		ResetPack(reasonPack);
-
-		UTIL_InsertTempBlock(time, type, name, auth, reason, adminAuth, adminIp);
-
-		if (reasonPack != INVALID_HANDLE)
-		{
-			CloseHandle(reasonPack);
-		}
-		CloseHandle(dataPack);
-
-		return;
-	}
-	CloseHandle(dataPack);
-}
-
 public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
 	decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
@@ -2060,8 +2018,6 @@ stock bool:CreateBlock(client, target, length, type, String:reason[])
 				PerformMute(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
 				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
-
-				SavePunishment(target, TYPE_MUTE, client);
 			}
 			else
 			{
@@ -2084,8 +2040,6 @@ stock bool:CreateBlock(client, target, length, type, String:reason[])
 				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
 				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
-
-				SavePunishment(target, TYPE_GAG, client);
 			}
 			else
 			{
@@ -2109,9 +2063,6 @@ stock bool:CreateBlock(client, target, length, type, String:reason[])
 				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
 				LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
-
-				SavePunishment(target, TYPE_MUTE, client);
-				SavePunishment(target, TYPE_GAG, client);
 			}
 			else
 			{
@@ -2123,8 +2074,11 @@ stock bool:CreateBlock(client, target, length, type, String:reason[])
 			}
 		}
 		//-------------------------------------------------------------------------------------------------
+		default:
+			return false;	// impossible
 	}
-	return true;
+	return SavePunishment(target, type, client);
+	// theoretically, strange situations are possible, when the punishment applied to the player, but wasn't saved into db - and player&server will not be notified
 }
 
 stock bool:ProcessUnBlock(client, target, type, String:reason[])
@@ -2307,44 +2261,51 @@ stock TempUnBlock(&Handle:data)
 
 }
 
-stock UTIL_InsertBlock(time, type, const String:Name[], const String:Authid[], const String:Reason[], const String:AdminAuthid[], const String:AdminIp[], Handle:Pack)
+stock bool:UTIL_InsertBlock(time, type, const String:Name[], const String:AuthId[], const String:Reason[], const String:AdminAuthId[], const String:AdminIp[])
 {
 	// Accepts time in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
 	new String:banName[MAX_NAME_LENGTH * 2 + 1];
 	new String:banReason[256 * 2 + 1];
 	new String:sAuthidEscaped[64 * 2 + 1];
-	new String:sAdminAuthidEscaped[64 * 2 + 1];
-	new String:sAdminAuthidYZEscaped[64 * 2 + 1];
+	new String:sAdminAuthIdEscaped[64 * 2 + 1];
+	new String:sAdminAuthIdYZEscaped[64 * 2 + 1];
 	decl String:Query[1024];
 
+	// escaping everything
 	SQL_EscapeString(g_hDatabase, Name, banName, sizeof(banName));
 	SQL_EscapeString(g_hDatabase, Reason, banReason, sizeof(banReason));
-	SQL_EscapeString(g_hDatabase, Authid, sAuthidEscaped, sizeof(sAuthidEscaped));
-	SQL_EscapeString(g_hDatabase, AdminAuthid, sAdminAuthidEscaped, sizeof(sAdminAuthidEscaped));
-	SQL_EscapeString(g_hDatabase, AdminAuthid[8], sAdminAuthidYZEscaped, sizeof(sAdminAuthidYZEscaped));
+	SQL_EscapeString(g_hDatabase, AuthId, sAuthidEscaped, sizeof(sAuthidEscaped));
+	SQL_EscapeString(g_hDatabase, AdminAuthId, sAdminAuthIdEscaped, sizeof(sAdminAuthIdEscaped));
+	SQL_EscapeString(g_hDatabase, AdminAuthId[8], sAdminAuthIdYZEscaped, sizeof(sAdminAuthIdYZEscaped));
 
-	//bid	authid	name	created ends lenght reason aid adminip	sid	removedBy removedType removedon type ureason
+	// bid	authid	name	created ends lenght reason aid adminip	sid	removedBy removedType removedon type ureason
 	if ( serverID == -1 )
 	{
 		FormatEx(Query, sizeof(Query), "INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 						('%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'),'0'), '%s', \
 						(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)",
-						DatabasePrefix, sAuthidEscaped, banName, (time*60), (time*60), banReason, DatabasePrefix, sAdminAuthidEscaped, sAdminAuthidYZEscaped, AdminIp, DatabasePrefix, ServerIp, ServerPort, type);
-	}else{
+						DatabasePrefix, sAuthidEscaped, banName, (time*60), (time*60), banReason, DatabasePrefix, sAdminAuthIdEscaped, sAdminAuthIdYZEscaped, AdminIp, DatabasePrefix, ServerIp, ServerPort, type);
+	}
+	else
+	{
 		FormatEx(Query, sizeof(Query), "INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
 						('%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'),'0'), '%s', \
 						%d, %d)",
-						DatabasePrefix, sAuthidEscaped, banName, (time*60), (time*60), banReason, DatabasePrefix, sAdminAuthidEscaped, sAdminAuthidYZEscaped, AdminIp, serverID, type);
+						DatabasePrefix, sAuthidEscaped, banName, (time*60), (time*60), banReason, DatabasePrefix, sAdminAuthIdEscaped, sAdminAuthIdYZEscaped, AdminIp, serverID, type);
 	}
 
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "UTIL_InsertBlock. QUERY: %s", Query);
 	#endif
 
-	SQL_TQuery(g_hDatabase, VerifyInsertB, Query, Pack, DBPrio_High);
+	new Handle:errorPack = CreateDataPack();
+	SQL_TQuery(g_hDatabase, ErrorCheckCallback, Query, errorPack, DBPrio_High);
+	new bool:result = ReadPackCell(errorPack) == QUERY_OK ? true : false;
+	CloneHandle(errorPack);
+	return result;
 }
 
-stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
+stock bool:UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
 {
 	new String:banName[MAX_NAME_LENGTH * 2 + 1];
 	new String:banReason[256 * 2 + 1];
@@ -2352,6 +2313,7 @@ stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[],
 	new String:sAdminAuthEscaped[64 * 2 + 1];
 	decl String:query[1024];
 
+	// escaping everything
 	SQL_EscapeString(SQLiteDB, name, banName, sizeof(banName));
 	SQL_EscapeString(SQLiteDB, reason, banReason, sizeof(banReason));
 	SQL_EscapeString(SQLiteDB, auth, sAuthEscaped, sizeof(sAuthEscaped));
@@ -2366,18 +2328,13 @@ stock UTIL_InsertTempBlock(time, type, const String:name[], const String:auth[],
 
 	new Handle:errorPack = CreateDataPack();
 	SQL_TQuery(SQLiteDB, ErrorCheckCallback, query, errorPack);
-	new _:queryState = ReadPackCell(errorPack);
+	new bool:result = ReadPackCell(errorPack) == QUERY_OK ? true : false;
 	CloseHandle(errorPack);
 
-	if (queryState == QUERY_OK)
-	{
-		return true;
-	}
-	else
-	{
+	if (!result)
 		LogToFile(logFile, "Inserting punishment into queue failed!");
-		return false;
-	}
+
+	return result;
 }
 
 stock ServerInfo()
@@ -2666,10 +2623,10 @@ stock PerformGag(target, time = NOW, length = -1, const String:adminName[] = "CO
 	CreateGagExpireTimer(target, remaining_time);
 }
 
-stock SavePunishment(target, type, admin = 0)
+stock bool:SavePunishment(target, type, admin = 0)
 {
-	if (type != TYPE_MUTE && type != TYPE_GAG)
-		return;
+	if (type < TYPE_MUTE || type > TYPE_SILENCE)
+		return false;
 
 	// target information
 	new String:targetAuth[64];
@@ -2689,44 +2646,51 @@ stock SavePunishment(target, type, admin = 0)
 		strcopy(adminIp, sizeof(adminIp), ServerIp);
 	}
 
-	new length;
-	new String:sReason[256];
+	new gagLength, muteLength;
+	new String:sGagReason[256], String:sMuteReason[256];
+	new String:sName[MAX_NAME_LENGTH];
+	strcopy(sName, sizeof(sName), g_sName[target]);
 
-	switch(type)
+	if (type == TYPE_MUTE || type == TYPE_SILENCE)
 	{
-		case TYPE_MUTE:
-		{
-			strcopy(sReason, sizeof(sReason), g_sMuteReason[target]);
-			length = g_iMuteLength[target];
-		}
-		case TYPE_GAG:
-		{
-			strcopy(sReason, sizeof(sReason), g_sGagReason[target]);
-			length = g_iGagLength[target];
-		}
+		strcopy(sMuteReason, sizeof(sMuteReason), g_sMuteReason[target]);
+		muteLength = g_iMuteLength[target];
+	}
+	if (type == TYPE_GAG || type == TYPE_SILENCE)
+	{
+		strcopy(sGagReason, sizeof(sGagReason), g_sGagReason[target]);
+		gagLength = g_iGagLength[target];
 	}
 
-	// Pack everything into a data pack so we can retain it trough sql-callback
-	new Handle:dataPack = CreateDataPack();
-	new Handle:reasonPack = CreateDataPack();
-	WritePackString(reasonPack, sReason);
-	WritePackCell(dataPack, length);
-	WritePackCell(dataPack, type);
-	WritePackCell(dataPack, _:reasonPack);
-	WritePackString(dataPack, g_sName[target]);
-	WritePackString(dataPack, targetAuth);
-	WritePackString(dataPack, adminAuth);
-	WritePackString(dataPack, adminIp);
-	ResetPack(dataPack);
-	ResetPack(reasonPack);
-
-	if (DB_Connect())
+	// all data cached before calling asynchronous functions
+	new bool:result = true;
+	if (type == TYPE_MUTE || type == TYPE_SILENCE)
 	{
-		UTIL_InsertBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp, dataPack); // block length, type, player's name, player's SteamID, reason, admin's SteamId, admin's IP
-	} else {
-		UTIL_InsertTempBlock(length, type, g_sName[target], targetAuth, sReason, adminAuth, adminIp);
-		LogToFile(logFile, "Database unavailable, saving punishment to queue.");
+		if (!DB_Connect() || !UTIL_InsertBlock(muteLength, TYPE_MUTE, sName, targetAuth, sMuteReason, adminAuth, adminIp))
+		{
+			// DB Connect is INVALID OR failed Insert Block
+			LogToFile(logFile, "Insert mute into db failed: let's insert into queue");
+			result &= UTIL_InsertTempBlock(muteLength, TYPE_MUTE, sName, targetAuth, sMuteReason, adminAuth, adminIp);
+		}
+		else
+		{
+			// DB Connect is VALID and sucess Insert Block
+			result &= true;
+		}
 	}
+	if (type == TYPE_GAG || type == TYPE_SILENCE)
+	{
+		if (!DB_Connect() || !UTIL_InsertBlock(gagLength, TYPE_GAG, sName, targetAuth, sGagReason, adminAuth, adminIp))
+		{
+			LogToFile(logFile, "Insert gag into db failed: let's insert into queue");
+			result &= UTIL_InsertTempBlock(gagLength, TYPE_GAG, sName, targetAuth, sGagReason, adminAuth, adminIp);
+		}
+		else
+		{
+			result &= true;
+		}
+	}
+	return result;
 }
 
 stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[])
