@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.70"
+#define PLUGIN_VERSION "0.9.72"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1633,6 +1633,8 @@ public ErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], any:d
 			WritePackCell(data, QUERY_OK);
 		ResetPack(data);
 	}
+	// force reconnect
+	DB_Conn_Lost(hndl);
 }
 
 public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
