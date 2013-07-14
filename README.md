@@ -7,7 +7,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 ***********
 
 ## Requirements
-* Working sourcebans system *(yes, you need MySQL server and web server with PHP)*
+* Working sourcebans system *(yes, you need MySQL server and web server with PHP)*. Currently supported versions **1.4.*** (and 1.5.0 for sourcebans plugin). Integration into sourcebans 2.0 currently in development.
 * SourceMod **1.5.0-hg3761** or **newer** is required.
 
 ##Compatibility:
