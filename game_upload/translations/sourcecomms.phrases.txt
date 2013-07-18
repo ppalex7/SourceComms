@@ -645,7 +645,7 @@
 	"no access"
 	{
 		"en"		"The punishment for the specified time is not allowed for you."
-		"ru"		"Блокировка на указанное время недоступна дял вас."
+		"ru"		"Блокировка на указанное время недоступна для вас."
 		"pl"		"Nie możesz nakładać kar na określony czas."
 	}
 }
