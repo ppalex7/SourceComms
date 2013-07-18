@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.118"
+#define PLUGIN_VERSION "0.9.121"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1941,12 +1941,10 @@ stock InitializeBackupDB()
 stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[] = "", const String:sArgs[] = "")
 {
 	#if defined DEBUG
-		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s, %s)", client, targetId, length, type, reason, sArgs);
+		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s, %s)", client, targetId, length, type, sReason, sArgs);
 	#endif
 
-	decl String:reason[256];
-
-	decl target_list[MAXPLAYERS], target_count;
+	decl String:reason[256], target_list[MAXPLAYERS], target_count;
 	new bool:tn_is_ml = false;
 
 	// checking args
@@ -1993,7 +1991,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 		else
 			strcopy(reason, sizeof(reason), sArg[2]);
 
-		if(!IsAllowedBlockLength(client, length) || target_count > 1 && length > MAX_TIME_MULTI)
+		if(!IsAllowedBlockLength(client, length, target_count))
 		{
 			ReplyToCommand(client, "%s%t", PREFIX, "no access");
 			return;
@@ -2005,20 +2003,6 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 	}
 
 	new admImmunity = GetAdmImmunity(client);
-
-/* pack common
-
-i   STACK with targets
-i	type
-i	length
-i	silent
-i	saveOnly ???
-s	reason
-s	adminUserId
-s	adminAuthID
-s	adminIp
-
-*/
 
 	for (new i = 0; i < target_count; i++)
 	{
@@ -2106,18 +2090,12 @@ s	adminIp
 				}
 			}
 		}
-
-
-
 	}
+
 	if (target_count == 1)
 		SavePunishment(client, target_list[0], type, length, reason);
 
-
-
-
 	return;
-	// theoretically, strange situations are possible, when the punishment applied to the player, but wasn't saved into db - and player&server will not be notified
 }
 
 stock bool:ProcessUnBlock(client, target, type, String:reason[])
@@ -2510,18 +2488,29 @@ bool:Bool_ValidMenuTarget(client, target)
 	return true;
 }
 
-stock bool:IsAllowedBlockLength(admin, length)
+stock bool:IsAllowedBlockLength(admin, length, target_count = 1)
 {
-	if (!ConfigMaxLength)
-		return true;	// Restriction disabled
-	if (!admin)
-		return true;	// all allowed for console
-	if (AdmHasFlag(admin))
-		return true;	// all allowed for admins with special flag
-	if (!length || length > ConfigMaxLength)
-		return false;
+	if (target_count == 1) {
+		if (!ConfigMaxLength)
+			return true;	// Restriction disabled
+		if (!admin)
+			return true;	// all allowed for console
+		if (AdmHasFlag(admin))
+			return true;	// all allowed for admins with special flag
+		if (!length || length > ConfigMaxLength)
+			return false;
+		else
+			return true;
+	}
 	else
-		return true;
+	{
+		if (!length)
+			return false;
+		if (length > MAX_TIME_MULTI)
+			return false;
+		else
+			return true;
+	}
 }
 
 stock bool:AdmHasFlag(admin)
