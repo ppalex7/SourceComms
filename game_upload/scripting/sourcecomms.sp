@@ -17,10 +17,12 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.108"
+#define PLUGIN_VERSION "0.9.118"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
+
+#define MAX_TIME_MULTI 10
 
 #define NOW 0
 #define TYPE_MUTE 1
@@ -55,9 +57,6 @@ enum DatabaseState /* Database connection state */
 	DatabaseState_Connecting,
 	DatabaseState_Connected,
 }
-
-#define QUERY_FAILED 0
-#define QUERY_OK 1
 
 new DatabaseState:g_DatabaseState;
 new g_iConnectLock = 0;
@@ -493,7 +492,10 @@ public Action:CommandGag(client, const String:command[], args)
 		return Plugin_Stop;
 	}
 
-	PrepareBlock(client, TYPE_GAG, args);
+	new String:sBuffer[256];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	CreateBlock(client, _, _, TYPE_GAG, _, sBuffer);
+
 	return Plugin_Stop;
 }
 
@@ -509,7 +511,10 @@ public Action:CommandMute(client, const String:command[], args)
 		return Plugin_Stop;
 	}
 
-	PrepareBlock(client, TYPE_MUTE, args);
+	new String:sBuffer[256];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	CreateBlock(client, _, _, TYPE_MUTE, _, sBuffer);
+
 	return Plugin_Stop;
 }
 
@@ -525,7 +530,10 @@ public Action:CommandSilence(client, const String:command[], args)
 		return Plugin_Stop;
 	}
 
-	PrepareBlock(client, TYPE_SILENCE, args);
+	new String:sBuffer[256];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	CreateBlock(client, _, _, TYPE_SILENCE, _, sBuffer);
+
 	return Plugin_Stop;
 }
 
@@ -571,59 +579,6 @@ public Action:CommandUnSilence(client, const String:command[], args)
 	}
 
 	PrepareUnBlock(client, TYPE_SILENCE, args);
-	return Plugin_Stop;
-}
-
-public Action:PrepareBlock(client, type_block, args)
-{
-	#if defined DEBUG
-		LogToFile(logFile, "PrepareBlock(cl %L, type %d)", client, type_block);
-	#endif
-
-	new String:sBuffer[256], String:sArg[3][192], String:sReason[256];
-	new target, time;
-	GetCmdArgString(sBuffer, sizeof(sBuffer));
-
-	if (ExplodeString(sBuffer, "\"", sArg, 3, 192, true) == 3 && strlen(sArg[0]) == 0)
-	{
-		TrimString(sArg[2]);
-		sArg[0] = sArg[1];		// target name
-		new String:sTempArg[2][192];
-		ExplodeString(sArg[2], " ", sTempArg, 2, 192, true); // get time and reason
-		sArg[1] = sTempArg[0];	// time
-		sArg[2] = sTempArg[1];	// reason
-	}
-	else
-	{
-		ExplodeString(sBuffer, " ", sArg, 3, 192, true);
-	}
-
-	// Get the target, find target returns a message on failure so we do not
-	target = FindTarget(client, sArg[0], true);
-	if (target == -1)
-		return Plugin_Stop;
-
-	// Get the ban time
-	if(!StringToIntEx(sArg[1], time))	// not valid number in second argument
-	{
-		time = DefaultTime;
-		Format(sReason, sizeof(sReason), "%s %s", sArg[1], sArg[2]);
-	}
-	else
-		strcopy(sReason, sizeof(sReason), sArg[2]);
-
-	if(!IsAllowedBlockLength(client, time))
-	{
-		ReplyToCommand(client, "%s%t", PREFIX, "no access");
-		return Plugin_Stop;
-	}
-
-	#if defined DEBUG
-		LogToFile(logFile, "Calling CreateBlock cl %d, target %d, time %d, type %d, reason %s", client, target, time, type_block, sArg[2]);
-	#endif
-
-	if (CreateBlock(client, target, time, type_block, sReason))
-		ShowActivityToServer(client, type_block, time, sReason, g_sName[target]);
 	return Plugin_Stop;
 }
 
@@ -954,8 +909,7 @@ public MenuHandler_MenuDuration(Handle:menu, MenuAction:action, param1, param2)
 				if (iNumReasons) // we have reasons to show
 					AdminMenu_Reason(param1, target, type, lengthIndex);
 				else
-					if(CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type, ""))
-						ShowActivityToServer(param1, type, g_iTimeMinutes[lengthIndex], "", g_sName[target]);
+					CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type, "");
 			}
 		}
 	}
@@ -1011,8 +965,7 @@ public MenuHandler_MenuReason(Handle:menu, MenuAction:action, param1, param2)
 					LogToFile(logFile, "It's a magic? wrong length index. using default time");
 				}
 
-				if (CreateBlock(param1, target, length, type, g_sReasonKey[reasonIndex]))
-					ShowActivityToServer(param1, type, length, g_sReasonKey[reasonIndex], g_sName[target]);
+				CreateBlock(param1, target, length, type, g_sReasonKey[reasonIndex]);
 			}
 		}
 	}
@@ -1985,137 +1938,185 @@ stock InitializeBackupDB()
 	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
 }
 
-stock bool:CreateBlock(client, target = 0, length = -1, type = TYPE_SILENCE, const String:reason[] = "", bool:silent = false, bool:saveOnly, const String:sArgs[] = "")
+stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[] = "", const String:sArgs[] = "")
 {
 	#if defined DEBUG
-		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s, %b, %s)", client, target, length, type, reason, silent, sArgs);
+		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s, %s)", client, targetId, length, type, reason, sArgs);
 	#endif
 
-	decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml;
+	decl String:reason[256];
+
+	decl target_list[MAXPLAYERS], target_count;
+	new bool:tn_is_ml = false;
+
 	// checking args
-	if (target)
+	if (targetId)
 	{
-		target_list[0] = target;
+		target_list[0] = targetId;
 		target_count = 1;
-		tn_is_ml = false;
+		strcopy(reason, sizeof(reason), sReason);
 	}
 	else if (strlen(sArgs))
 	{
-		/* code */
+		new String:sArg[3][192];
+
+		if (ExplodeString(sArgs, "\"", sArg, 3, 192, true) == 3 && strlen(sArg[0]) == 0)	// exploding by quotes
+		{
+			TrimString(sArg[2]);
+			sArg[0] = sArg[1];		// target name
+			new String:sTempArg[2][192];
+			ExplodeString(sArg[2], " ", sTempArg, 2, 192, true); // get time and reason
+			sArg[1] = sTempArg[0];	// time
+			sArg[2] = sTempArg[1];	// reason
+		}
+		else
+		{
+			ExplodeString(sArgs, " ", sArg, 3, 192, true);	// exploding by spaces
+		}
+
+		// TODO -> replace to ProcessTargetString
+		// Get the target, find target returns a message on failure so we do not
+		targetId = FindTarget(client, sArg[0], true);
+		if (targetId == -1)
+			return;
+
+		/* TODO */
+		target_list[0] = targetId;
+		target_count = 1;
+
+		// Get the ban time
+		if(!StringToIntEx(sArg[1], length))	// not valid number in second argument
+		{
+			length = DefaultTime;
+			Format(reason, sizeof(reason), "%s %s", sArg[1], sArg[2]);
+		}
+		else
+			strcopy(reason, sizeof(reason), sArg[2]);
+
+		if(!IsAllowedBlockLength(client, length) || target_count > 1 && length > MAX_TIME_MULTI)
+		{
+			ReplyToCommand(client, "%s%t", PREFIX, "no access");
+			return;
+		}
 	}
 	else
 	{
-		return false;
+		return;
 	}
+
+	new admImmunity = GetAdmImmunity(client);
 
 /* pack common
 
-	type
-	length
-	silent
-	saveOnly ???
-	reason
-	adminUserId
-	adminAuthID
-	adminIp
+i   STACK with targets
+i	type
+i	length
+i	silent
+i	saveOnly ???
+s	reason
+s	adminUserId
+s	adminAuthID
+s	adminIp
 
 */
 
-/* pack target
-
-
-*/
-
-
-
-
-	if (!g_bPlayerStatus[target])
+	for (new i = 0; i < target_count; i++)
 	{
-		// The target has not been blocks verify. It must be completed before you can block anyone.
-		ReplyToCommand(client, "%s%t", PREFIX, "Player Comms Not Verified");
-		return false;
+		new target = target_list[i];
+
+		#if defined DEBUG
+			decl String:auth[64];
+			GetClientAuthString(target, auth, sizeof(auth));
+			LogToFile(logFile, "Processing block for %s", auth);
+		#endif
+
+		if (!g_bPlayerStatus[target])
+		{
+			// The target has not been blocks verify. It must be completed before you can block anyone.
+			ReplyToCommand(client, "%s%t", PREFIX, "Player Comms Not Verified");
+			continue;
+		}
+
+		switch(type)
+		{
+			case TYPE_MUTE:
+			{
+				if (!BaseComm_IsClientMuted(target))
+				{
+					#if defined DEBUG
+						LogToFile(logFile, "%s not muted. Mute him, creating unmute timer and add record to DB", auth);
+					#endif
+
+					PerformMute(target, _, length, g_sName[client], admImmunity, reason);
+
+					LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+				}
+				else
+				{
+					#if defined DEBUG
+						LogToFile(logFile, "%s already muted", auth);
+					#endif
+					ReplyToCommand(client, "%s%t", PREFIX, "Player already muted", g_sName[target]);
+					continue;
+				}
+			}
+			//-------------------------------------------------------------------------------------------------
+			case TYPE_GAG:
+			{
+				if (!BaseComm_IsClientGagged(target))
+				{
+					#if defined DEBUG
+						LogToFile(logFile, "%s not gagged. Gag him, creating ungag timer and add record to DB", auth);
+					#endif
+
+					PerformGag(target, _, length, g_sName[client], admImmunity, reason);
+
+					LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+				}
+				else
+				{
+					#if defined DEBUG
+						LogToFile(logFile, "%s already gagged", auth);
+					#endif
+					ReplyToCommand(client, "%s%t", PREFIX, "Player already gagged", g_sName[target]);
+					continue;
+				}
+			}
+			//-------------------------------------------------------------------------------------------------
+			case TYPE_SILENCE:
+			{
+				if (!BaseComm_IsClientGagged(target) && !BaseComm_IsClientMuted(target))
+				{
+					#if defined DEBUG
+						LogToFile(logFile, "%s not silenced. Silence him, creating ungag & unmute timers and add records to DB", auth);
+					#endif
+
+					PerformMute(target, _, length, g_sName[client], admImmunity, reason);
+					PerformGag(target, _, length, g_sName[client], admImmunity, reason);
+
+					LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+				}
+				else
+				{
+					#if defined DEBUG
+						LogToFile(logFile, "%s already gagged or/and muted", auth);
+					#endif
+					ReplyToCommand(client, "%s%t", PREFIX, "Player already silenced", g_sName[target]);
+					continue;
+				}
+			}
+		}
+
+
+
 	}
+	if (target_count == 1)
+		SavePunishment(client, target_list[0], type, length, reason);
 
-	#if defined DEBUG
-		decl String:auth[64];
-		GetClientAuthString(target, auth, sizeof(auth));
-		LogToFile(logFile, "Processing block for %s", auth);
-	#endif
 
-	switch(type)
-	{
-		case TYPE_MUTE:
-		{
-			if (!BaseComm_IsClientMuted(target))
-			{
-				#if defined DEBUG
-					LogToFile(logFile, "%s not muted. Mute him, creating unmute timer and add record to DB", auth);
-				#endif
 
-				PerformMute(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
 
-				LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
-			}
-			else
-			{
-				#if defined DEBUG
-					LogToFile(logFile, "%s already muted", auth);
-				#endif
-				ReplyToCommand(client, "%s%t", PREFIX, "Player already muted", g_sName[target]);
-				return false;
-			}
-		}
-		//-------------------------------------------------------------------------------------------------
-		case TYPE_GAG:
-		{
-			if (!BaseComm_IsClientGagged(target))
-			{
-				#if defined DEBUG
-					LogToFile(logFile, "%s not gagged. Gag him, creating ungag timer and add record to DB", auth);
-				#endif
-
-				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
-
-				LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
-			}
-			else
-			{
-				#if defined DEBUG
-					LogToFile(logFile, "%s already gagged", auth);
-				#endif
-				ReplyToCommand(client, "%s%t", PREFIX, "Player already gagged", g_sName[target]);
-				return false;
-			}
-		}
-		//-------------------------------------------------------------------------------------------------
-		case TYPE_SILENCE:
-		{
-			if (!BaseComm_IsClientGagged(target) && !BaseComm_IsClientMuted(target))
-			{
-				#if defined DEBUG
-					LogToFile(logFile, "%s not silenced. Silence him, creating ungag & unmute timers and add records to DB", auth);
-				#endif
-
-				PerformMute(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
-				PerformGag(target, _, length, g_sName[client], GetAdmImmunity(client), reason);
-
-				LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
-			}
-			else
-			{
-				#if defined DEBUG
-					LogToFile(logFile, "%s already gagged or/and muted", auth);
-				#endif
-				ReplyToCommand(client, "%s%t", PREFIX, "Player already silenced", g_sName[target]);
-				return false;
-			}
-		}
-		//-------------------------------------------------------------------------------------------------
-		default:
-			return false;	// impossible
-	}
-	SavePunishment(client, target, type, length, reason);
-	return true;
+	return;
 	// theoretically, strange situations are possible, when the punishment applied to the player, but wasn't saved into db - and player&server will not be notified
 }
 
