@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.102"
+#define PLUGIN_VERSION "0.9.107"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1992,21 +1992,52 @@ stock InitializeBackupDB()
 	if (SQLiteDB == INVALID_HANDLE)
 		SetFailState(error);
 
-	new Handle:errorPack = CreateDataPack();
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);", errorPack);
-	new _:qState = ReadPackCell(errorPack);
-	CloseHandle(errorPack);
-	if (qState == QUERY_FAILED)
-		SetFailState("Can't initialize SQLite backup db");
+	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
 }
 
-stock bool:CreateBlock(client, target, length, type, String:reason[])
+stock bool:CreateBlock(client, target = 0, length = -1, type = TYPE_SILENCE, const String:reason[] = "", bool:silent = false, bool:saveOnly, const String:sArgs[] = "")
 {
 	#if defined DEBUG
-		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s)", client, target, length, type, reason);
-		if (type > 3 || type < 1)
-			LogToFile(logFile, "WOW! How do you do that?!");
+		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s, %b, %s)", client, target, length, type, reason, silent, sArgs);
 	#endif
+
+	decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml;
+	// checking args
+	if (target)
+	{
+		target_list[0] = target;
+		target_count = 1;
+		tn_is_ml = false;
+	}
+	else if (strlen(sArgs))
+	{
+		/* code */
+	}
+	else
+	{
+		return false;
+	}
+
+/* pack common
+
+	type
+	length
+	silent
+	saveOnly ???
+	reason
+	adminUserId
+	adminAuthID
+	adminIp
+
+*/
+
+/* pack target
+
+
+*/
+
+
+
 
 	if (!g_bPlayerStatus[target])
 	{
