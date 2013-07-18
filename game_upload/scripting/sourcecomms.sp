@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.107"
+#define PLUGIN_VERSION "0.9.108"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -101,7 +101,7 @@ new ConsoleImmunity = 0;
 new ConfigMaxLength = 0;
 new ConfigWhiteListOnly = 0;
 
-new serverID = -1;
+new serverID = 0;
 
 /* List menu */
 enum PeskyPanels
@@ -1600,22 +1600,12 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		else
 			continue;
 		// all blocks should be entered into db!
-		if ( serverID == -1 )
-		{
-			FormatEx(query, sizeof(query),
-					"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
-					('%s', '%s', %d, %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), '%s', \
-					(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 0,1), %d)",
-					DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, DatabasePrefix, ServerIp, ServerPort, type);
-		}
-		else
-		{
-			FormatEx(query, sizeof(query),
-					"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
-					('%s', '%s', %d, %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), '%s', \
-					%d, %d)",
-					DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, serverID, type);
-		}
+
+		FormatEx(query, sizeof(query),
+				"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES \
+				('%s', '%s', %d, %d, %d, '%s', IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), '%s', \
+				%d, %d)",
+				DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, serverID, type);
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in ProcessQueueCallbackB: Insert to db. QUERY: %s", query);
 		#endif
@@ -1866,8 +1856,8 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
 			}
 			else if (strcmp("ServerID", key, false) == 0)
 			{
-				if (!StringToIntEx(value, serverID) || serverID < 0)
-					serverID = -1;
+				if (!StringToIntEx(value, serverID) || serverID < 1)
+					serverID = 0;
 			}
 			else if (strcmp("DefaultTime", key, false) == 0)
 			{
@@ -2317,7 +2307,7 @@ stock UTIL_InsertBlock(length, type, const String:Name[], const String:AuthId[],
 	new String:sAuthidEscaped[64 * 2 + 1];
 	new String:sAdminAuthIdEscaped[64 * 2 + 1];
 	new String:sAdminAuthIdYZEscaped[64 * 2 + 1];
-	decl String:sQuery[4096], String:sQuerySrv[512], String:sQueryAdm[512], String:sQueryVal[1024];
+	decl String:sQuery[4096], String:sQueryAdm[512], String:sQueryVal[1024];
 	new String:sQueryMute[1024], String:sQueryGag[1024];
 
 	// escaping everything
@@ -2328,16 +2318,6 @@ stock UTIL_InsertBlock(length, type, const String:Name[], const String:AuthId[],
 	SQL_EscapeString(g_hDatabase, AdminAuthId[8], sAdminAuthIdYZEscaped, sizeof(sAdminAuthIdYZEscaped));
 
 	// bid	authid	name	created ends lenght reason aid adminip	sid	removedBy removedType removedon type ureason
-	if ( serverID == -1 )
-	{
-		FormatEx(sQuerySrv, sizeof(sQuerySrv),
-			"(SELECT sid FROM %s_servers WHERE ip = '%s' AND port = '%s' LIMIT 1)",
-			DatabasePrefix, ServerIp, ServerPort);
-	}
-	else
-	{
-		FormatEx(sQuerySrv, sizeof(sQuerySrv), "%d", serverID);
-	}
 
 	FormatEx(sQueryAdm, sizeof(sQueryAdm),
 		"IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), 0)",
@@ -2345,9 +2325,8 @@ stock UTIL_InsertBlock(length, type, const String:Name[], const String:AuthId[],
 
 	// authid name, created, ends, length, reason, aid, adminIp, sid
 	FormatEx(sQueryVal, sizeof(sQueryVal),
-		"'%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', %s, '%s', %s",
-		sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, AdminIp, sQuerySrv);
-
+		"'%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', %s, '%s', %d",
+		sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, AdminIp, serverID);
 
 	if (type == TYPE_MUTE || type == TYPE_SILENCE)
 	{
@@ -2468,10 +2447,14 @@ stock ReadConfig()
 			iNumReasons--;
 		if (iNumTimes)
 			iNumTimes--;
-		if (ConfigWhiteListOnly && serverID == -1)
+		if (serverID == 0)
 		{
-			LogError("You must set valid `ServerID` value in sourcebans.cfg to use ServersWhiteList option.");
-			ConfigWhiteListOnly = 0;
+			LogError("You must set valid `ServerID` value in sourcebans.cfg!");
+			if (ConfigWhiteListOnly)
+			{
+				LogError("ServersWhiteList feature disabled!");
+				ConfigWhiteListOnly = 0;
+			}
 		}
 	} else {
 		decl String:Error[PLATFORM_MAX_PATH + 64];
