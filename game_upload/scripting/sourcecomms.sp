@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.123"
+#define PLUGIN_VERSION "0.9.127"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1434,9 +1434,15 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					}
 				}
 
-				new Handle:errorPack = CreateDataPack();
+				new Handle:dataPack = CreateDataPack();
+				WritePackCell(dataPack, adminUserID);
+				WritePackCell(dataPack, cType);
+				WritePackString(dataPack, g_sName[target]);
+				WritePackString(dataPack, targetAuth);
+
 				new String:unbanReason[sizeof(reason) * 2 + 1];
 				SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
+
 				decl String:query[1024];
 				Format(query, sizeof(query),
 					"UPDATE %s_comms SET RemovedBy = %d, RemoveType = 'U', RemovedOn = UNIX_TIMESTAMP(), ureason = '%s' WHERE bid = %d",
@@ -1444,41 +1450,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				#if defined LOG_QUERIES
 					LogToFile(logQuery, "in SelectUnBlockCallback: Unblocking. QUERY: %s", query);
 				#endif
-				SQL_TQuery(g_hDatabase, ErrorCheckCallback, query, errorPack);
-				if (ReadPackCell(errorPack) == QUERY_OK)
-				{
-					switch(cType)
-					{
-						case TYPE_MUTE:
-						{
-							LogAction(admin, -1, "\"%L\" removed mute for %s from DB", admin, targetAuth);
-							if (admin && IsClientInGame(admin))
-							{
-								PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
-							} else {
-								PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, targetName);
-							}
-						}
-						//-------------------------------------------------------------------------------------------------
-						case TYPE_GAG:
-						{
-							LogAction(admin, -1, "\"%L\" removed gag for %s from DB", admin, targetAuth);
-							if (admin && IsClientInGame(admin))
-							{
-								PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
-							} else {
-								PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, targetName);
-							}
-						}
-					}
-				}
-				else
-				{
-					if (admin && IsClientInGame(admin))
-						PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
-					return; // FIXME
-				}
-				CloseHandle(errorPack);
+				SQL_TQuery(g_hDatabase, InsertUnBlockCallback, query, dataPack);
 			}
 			else
 			{
@@ -1499,6 +1471,61 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag %s (reason \"%s\")", admin, targetAuth, reason);
 					}
 				}
+			}
+		}
+	}
+}
+
+public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
+{
+	// if the pack is good unpack it and close the handle
+	new admin, type;
+	new String:targetName[MAX_NAME_LENGTH], String:targetAuth[30];
+	if (data != INVALID_HANDLE)
+	{
+		ResetPack(data);
+		admin = GetClientOfUserId(ReadPackCell(data));
+		type = ReadPackCell(data);
+		ReadPackString(data, targetName, sizeof(targetName));
+		ReadPackString(data, targetAuth, sizeof(targetAuth));
+		CloseHandle(data);
+	} else {
+		// Technically this should not be possible
+		ThrowError("Invalid Handle in InsertUnBlockCallback");
+	}
+
+	// If error is not an empty string the query failed
+	if (error[0] != '\0')
+	{
+		LogToFile(logFile, "UnBlock Insert Query Failed: %s", error);
+		if (admin && IsClientInGame(admin))
+		{
+			PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
+		}
+		return;
+	}
+
+	switch(type)
+	{
+		case TYPE_MUTE:
+		{
+			LogAction(admin, -1, "\"%L\" removed mute for %s from DB", admin, targetAuth);
+			if (admin && IsClientInGame(admin))
+			{
+				PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
+			} else {
+				PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, targetName);
+			}
+		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_GAG:
+		{
+			LogAction(admin, -1, "\"%L\" removed gag for %s from DB", admin, targetAuth);
+			if (admin && IsClientInGame(admin))
+			{
+				PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
+			} else {
+				PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, targetName);
 			}
 		}
 	}
