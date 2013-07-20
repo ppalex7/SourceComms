@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.128"
+#define PLUGIN_VERSION "0.9.135"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1294,22 +1294,51 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 
 public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
+	ResetPack(data);
+	new adminUserID = ReadPackCell(data);
+	new length = ReadPackCell(data);
+	new type = ReadPackCell(data);
+	new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
+	ReadPackString(data, reason, sizeof(reason));
+	ReadPackString(data, name, sizeof(name));
+	ReadPackString(data, auth, sizeof(auth));
+	ReadPackString(data, adminAuth, sizeof(adminAuth));
+	ReadPackString(data, adminIp, sizeof(adminIp));
+
 	if (DB_Conn_Lost(hndl) || error[0])
 	{
 		LogToFile(logFile, "Inserting punishments Query Failed: %s", error);
 
-		ResetPack(data);
+		UTIL_InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp, data);
+	}
+	else
+	{
+		CloseHandle(data);
+		ShowActivityToServer(GetClientOfUserId(adminUserID), type, length, reason, name);
+	}
+}
 
-		new length = ReadPackCell(data);
-		new type = ReadPackCell(data);
-		new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
-		ReadPackString(data, reason, sizeof(reason));
-		ReadPackString(data, name, sizeof(name));
-		ReadPackString(data, auth, sizeof(auth));
-		ReadPackString(data, adminAuth, sizeof(adminAuth));
-		ReadPackString(data, adminIp, sizeof(adminIp));
+public VerifyInsertQueue(Handle:owner, Handle:hndl, const String:error[], any:data)
+{
+	ResetPack(data);
+	new admin = GetClientOfUserId(ReadPackCell(data));
+	new length = ReadPackCell(data);
+	new type = ReadPackCell(data);
+	new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
+	ReadPackString(data, reason, sizeof(reason));
+	ReadPackString(data, name, sizeof(name));
+	ReadPackString(data, auth, sizeof(auth));
+	ReadPackString(data, adminAuth, sizeof(adminAuth));
+	ReadPackString(data, adminIp, sizeof(adminIp));
 
-		UTIL_InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp);
+	if (DB_Conn_Lost(hndl) || error[0])
+	{
+		LogToFile(logFile, "Inserting punishments to queue Failed: %s", error);
+		ReplyToCommand(admin, "FIXME error inserting intro q");
+	}
+	else
+	{
+		ShowActivityToServer(admin, type, length, reason, name);
 	}
 	CloseHandle(data);
 }
@@ -2114,10 +2143,10 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 				}
 			}
 		}
+		if (target_count == 1)
+			SavePunishment(client, target_list[0], type, length, reason);
 	}
 
-	if (target_count == 1)
-		SavePunishment(client, target_list[0], type, length, reason);
 
 	return;
 }
@@ -2299,71 +2328,9 @@ stock TempUnBlock(&Handle:data)
 			PrintToServer("%s%T", PREFIX, "No db error unlock perm", LANG_SERVER); //seriously? is it possible?
 		}
 	}
-
 }
 
-stock UTIL_InsertBlock(length, type, const String:Name[], const String:AuthId[], const String:Reason[], const String:AdminAuthId[], const String:AdminIp[])
-{
-	// Accepts time in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
-	new String:banName[MAX_NAME_LENGTH * 2 + 1];
-	new String:banReason[256 * 2 + 1];
-	new String:sAuthidEscaped[64 * 2 + 1];
-	new String:sAdminAuthIdEscaped[64 * 2 + 1];
-	new String:sAdminAuthIdYZEscaped[64 * 2 + 1];
-	decl String:sQuery[4096], String:sQueryAdm[512], String:sQueryVal[1024];
-	new String:sQueryMute[1024], String:sQueryGag[1024];
-
-	// escaping everything
-	SQL_EscapeString(g_hDatabase, Name, banName, sizeof(banName));
-	SQL_EscapeString(g_hDatabase, Reason, banReason, sizeof(banReason));
-	SQL_EscapeString(g_hDatabase, AuthId, sAuthidEscaped, sizeof(sAuthidEscaped));
-	SQL_EscapeString(g_hDatabase, AdminAuthId, sAdminAuthIdEscaped, sizeof(sAdminAuthIdEscaped));
-	SQL_EscapeString(g_hDatabase, AdminAuthId[8], sAdminAuthIdYZEscaped, sizeof(sAdminAuthIdYZEscaped));
-
-	// bid	authid	name	created ends lenght reason aid adminip	sid	removedBy removedType removedon type ureason
-
-	FormatEx(sQueryAdm, sizeof(sQueryAdm),
-		"IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), 0)",
-		DatabasePrefix, sAdminAuthIdEscaped, sAdminAuthIdYZEscaped);
-
-	// authid name, created, ends, length, reason, aid, adminIp, sid
-	FormatEx(sQueryVal, sizeof(sQueryVal),
-		"'%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', %s, '%s', %d",
-		sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, AdminIp, serverID);
-
-	if (type == TYPE_MUTE || type == TYPE_SILENCE)
-	{
-		FormatEx(sQueryMute, sizeof(sQueryMute), "(%s, %d)", sQueryVal, TYPE_MUTE);
-	}
-	if (type == TYPE_GAG || type == TYPE_SILENCE)
-	{
-		FormatEx(sQueryGag, sizeof(sQueryGag), "(%s, %d)", sQueryVal, TYPE_GAG);
-	}
-
-	// litle fucking magic - one query for all actions
-	FormatEx(sQuery, sizeof(sQuery),
-		"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES %s%s%s",
-		DatabasePrefix, sQueryMute, type == TYPE_SILENCE ? ", " : "", sQueryGag);
-
-	#if defined LOG_QUERIES
-		LogToFile(logQuery, "UTIL_InsertBlock. QUERY: %s", sQuery);
-	#endif
-
-	// pack all data to pass throug callback (used for possible calling UTIL_InsertTempBlock)
-	new Handle:dataPack = CreateDataPack();
-	WritePackCell(dataPack, length);
-	WritePackCell(dataPack, type);
-	WritePackString(dataPack, Reason);
-	WritePackString(dataPack, Name);
-	WritePackString(dataPack, AuthId);
-	WritePackString(dataPack, AdminAuthId);
-	WritePackString(dataPack, AdminIp);
-
-	SQL_TQuery(g_hDatabase, VerifyInsertB, sQuery, dataPack, DBPrio_High);
-
-}
-
-stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
+stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[], Handle:pack)
 {
 	LogToFile(logFile, "Inserting punishment for %s into queue", auth);
 
@@ -2402,7 +2369,7 @@ stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", sQuery);
 	#endif
 
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, sQuery);
+	SQL_TQuery(SQLiteDB, VerifyInsertQueue, sQuery, pack);
 }
 
 stock ServerInfo()
@@ -2735,10 +2702,66 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 	strcopy(sName, sizeof(sName), g_sName[target]);
 
 	// all data cached before calling asynchronous functions
+	new Handle:dataPack = CreateDataPack();
+	WritePackCell(dataPack, GetClientUserId2(admin));
+	WritePackCell(dataPack, length);
+	WritePackCell(dataPack, type);
+	WritePackString(dataPack, reason);
+	WritePackString(dataPack, sName);
+	WritePackString(dataPack, targetAuth);
+	WritePackString(dataPack, adminAuth);
+	WritePackString(dataPack, adminIp);
+
 	if (DB_Connect())
-		UTIL_InsertBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
+	{
+		// Accepts time in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
+		new String:banName[MAX_NAME_LENGTH * 2 + 1];
+		new String:banReason[256 * 2 + 1];
+		new String:sAuthidEscaped[64 * 2 + 1];
+		new String:sAdminAuthIdEscaped[64 * 2 + 1];
+		new String:sAdminAuthIdYZEscaped[64 * 2 + 1];
+		decl String:sQuery[4096], String:sQueryAdm[512], String:sQueryVal[1024];
+		new String:sQueryMute[1024], String:sQueryGag[1024];
+
+		// escaping everything
+		SQL_EscapeString(g_hDatabase, sName, banName, sizeof(banName));
+		SQL_EscapeString(g_hDatabase, reason, banReason, sizeof(banReason));
+		SQL_EscapeString(g_hDatabase, targetAuth, sAuthidEscaped, sizeof(sAuthidEscaped));
+		SQL_EscapeString(g_hDatabase, adminAuth, sAdminAuthIdEscaped, sizeof(sAdminAuthIdEscaped));
+		SQL_EscapeString(g_hDatabase, adminAuth[8], sAdminAuthIdYZEscaped, sizeof(sAdminAuthIdYZEscaped));
+
+		// bid	authid	name	created ends lenght reason aid adminip	sid	removedBy removedType removedon type ureason
+		FormatEx(sQueryAdm, sizeof(sQueryAdm),
+			"IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), 0)",
+			DatabasePrefix, sAdminAuthIdEscaped, sAdminAuthIdYZEscaped);
+
+		// authid name, created, ends, length, reason, aid, adminIp, sid
+		FormatEx(sQueryVal, sizeof(sQueryVal),
+			"'%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', %s, '%s', %d",
+			sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, adminIp, serverID);
+
+		if (type == TYPE_MUTE || type == TYPE_SILENCE)
+		{
+			FormatEx(sQueryMute, sizeof(sQueryMute), "(%s, %d)", sQueryVal, TYPE_MUTE);
+		}
+		if (type == TYPE_GAG || type == TYPE_SILENCE)
+		{
+			FormatEx(sQueryGag, sizeof(sQueryGag), "(%s, %d)", sQueryVal, TYPE_GAG);
+		}
+
+		// litle fucking magic - one query for all actions
+		FormatEx(sQuery, sizeof(sQuery),
+			"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES %s%s%s",
+			DatabasePrefix, sQueryMute, type == TYPE_SILENCE ? ", " : "", sQueryGag);
+
+		#if defined LOG_QUERIES
+			LogToFile(logQuery, "UTIL_InsertBlock. QUERY: %s", sQuery);
+		#endif
+
+		SQL_TQuery(g_hDatabase, VerifyInsertB, sQuery, dataPack, DBPrio_High);
+	}
 	else
-		UTIL_InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
+		UTIL_InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp, dataPack);
 }
 
 stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[])
