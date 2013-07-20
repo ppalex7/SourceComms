@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.127"
+#define PLUGIN_VERSION "0.9.128"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2528,6 +2528,8 @@ stock bool:IsAllowedBlockLength(admin, length, target_count = 1)
 	}
 	else
 	{
+		if (length < 0)
+			return true;
 		if (!length)
 			return false;
 		if (length > MAX_TIME_MULTI)
