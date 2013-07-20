@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.121"
+#define PLUGIN_VERSION "0.9.123"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1562,24 +1562,21 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in ProcessQueueCallbackB: Insert to db. QUERY: %s", query);
 		#endif
+		SQL_TQuery(g_hDatabase, AddedFromSQLiteCallbackB, query, id);
+	}
+}
 
-		new Handle:errorPack = CreateDataPack();
-		SQL_TQuery(g_hDatabase, ErrorCheckCallback, query, errorPack);
-		if (ReadPackCell(errorPack) == QUERY_OK)
-		{
-			// The insert was successful so delete the record from the queue
-			decl String:queryDelete[128];
-			FormatEx(queryDelete, sizeof(queryDelete), "DELETE FROM queue2 WHERE id = %d", id);
-			#if defined LOG_QUERIES
-				LogToFile(logQuery, "after AddedFromSQLite: DELETE FROM QUEUE. QUERY: %s", queryDelete);
-			#endif
-			// reusing datapack for error checking
-			SQL_TQuery(SQLiteDB, ErrorCheckCallback, queryDelete, errorPack);
-			if (ReadPackCell(errorPack) == QUERY_FAILED)
-				LogToFile(logFile, "An error occured during removing punishment id #%d from local queue DB. Possible duplicating punishment in main DB!", id);
-		}
-		// else - leave record in the queue
-		CloseHandle(errorPack);
+public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[], any:data)
+{
+	decl String:buffer[128];
+	if (error[0] == '\0')
+	{
+		// The insert was successful so delete the record from the queue
+		FormatEx(buffer, sizeof(buffer), "DELETE FROM queue2 WHERE id = %d", data);
+		#if defined LOG_QUERIES
+			LogToFile(logQuery, "in AddedFromSQLiteCallbackB: DELETE FROM QUEUE. QUERY: %s", buffer);
+		#endif
+		SQL_TQuery(SQLiteDB, ErrorCheckCallback, buffer);
 	}
 }
 
