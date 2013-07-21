@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.135"
+#define PLUGIN_VERSION "0.9.142"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1295,26 +1295,22 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
 	ResetPack(data);
-	new adminUserID = ReadPackCell(data);
+
 	new length = ReadPackCell(data);
 	new type = ReadPackCell(data);
 	new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
-	ReadPackString(data, reason, sizeof(reason));
 	ReadPackString(data, name, sizeof(name));
 	ReadPackString(data, auth, sizeof(auth));
+	ReadPackString(data, reason, sizeof(reason));
 	ReadPackString(data, adminAuth, sizeof(adminAuth));
 	ReadPackString(data, adminIp, sizeof(adminIp));
+	CloseHandle(data);
 
 	if (DB_Conn_Lost(hndl) || error[0])
 	{
 		LogToFile(logFile, "Inserting punishments Query Failed: %s", error);
 
-		UTIL_InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp, data);
-	}
-	else
-	{
-		CloseHandle(data);
-		ShowActivityToServer(GetClientOfUserId(adminUserID), type, length, reason, name);
+		UTIL_InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp);
 	}
 }
 
@@ -2071,7 +2067,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 		{
 			// The target has not been blocks verify. It must be completed before you can block anyone.
 			ReplyToCommand(client, "%s%t", PREFIX, "Player Comms Not Verified");
-			continue;
+			continue; // skip
 		}
 
 		switch(type)
@@ -2144,9 +2140,17 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 			}
 		}
 		if (target_count == 1)
+		{
 			SavePunishment(client, target_list[0], type, length, reason);
+			ShowActivityToServer(client, type, length, reason, g_sName[target]);
+		}
 	}
 
+	//FIXME
+	// decl String:targetName[MAX_NAME_LENGTH];
+	// strcopy(targetName, sizeof(targetName), g_sName[target_list[0]]);
+
+	// ShowActivityToServer(client, type, length, reason, targetName);
 
 	return;
 }
@@ -2330,7 +2334,7 @@ stock TempUnBlock(&Handle:data)
 	}
 }
 
-stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[], Handle:pack)
+stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
 {
 	LogToFile(logFile, "Inserting punishment for %s into queue", auth);
 
@@ -2369,7 +2373,7 @@ stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", sQuery);
 	#endif
 
-	SQL_TQuery(SQLiteDB, VerifyInsertQueue, sQuery, pack);
+	SQL_TQuery(SQLiteDB, VerifyInsertQueue, sQuery);
 }
 
 stock ServerInfo()
@@ -2701,17 +2705,6 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 	new String:sName[MAX_NAME_LENGTH];
 	strcopy(sName, sizeof(sName), g_sName[target]);
 
-	// all data cached before calling asynchronous functions
-	new Handle:dataPack = CreateDataPack();
-	WritePackCell(dataPack, GetClientUserId2(admin));
-	WritePackCell(dataPack, length);
-	WritePackCell(dataPack, type);
-	WritePackString(dataPack, reason);
-	WritePackString(dataPack, sName);
-	WritePackString(dataPack, targetAuth);
-	WritePackString(dataPack, adminAuth);
-	WritePackString(dataPack, adminIp);
-
 	if (DB_Connect())
 	{
 		// Accepts time in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
@@ -2749,7 +2742,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 			FormatEx(sQueryGag, sizeof(sQueryGag), "(%s, %d)", sQueryVal, TYPE_GAG);
 		}
 
-		// litle fucking magic - one query for all actions
+		// litle magic - one query for all actions (mute, gag or silence)
 		FormatEx(sQuery, sizeof(sQuery),
 			"INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES %s%s%s",
 			DatabasePrefix, sQueryMute, type == TYPE_SILENCE ? ", " : "", sQueryGag);
@@ -2758,10 +2751,20 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 			LogToFile(logQuery, "UTIL_InsertBlock. QUERY: %s", sQuery);
 		#endif
 
+		// all data cached before calling asynchronous functions
+		new Handle:dataPack = CreateDataPack();
+		WritePackCell(dataPack, length);
+		WritePackCell(dataPack, type);
+		WritePackString(dataPack, sName);
+		WritePackString(dataPack, targetAuth);
+		WritePackString(dataPack, reason);
+		WritePackString(dataPack, adminAuth);
+		WritePackString(dataPack, adminIp);
+
 		SQL_TQuery(g_hDatabase, VerifyInsertB, sQuery, dataPack, DBPrio_High);
 	}
 	else
-		UTIL_InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp, dataPack);
+		UTIL_InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
 }
 
 stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[])
