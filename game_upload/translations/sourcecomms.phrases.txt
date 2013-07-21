@@ -97,28 +97,28 @@
 	//--------------------------------------------------------------------------------
 	"Permagagged player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Issued a permanent gag on {1}."
 		"ru"			"Игроку {1} навсегда отключен чат."
 		"pl"			"Permanentnie zakneblowano {1}."
 	}
 	"Permagagged player reason"
 	{
-		"#format"		"{1:s},{2:s}"
+		"#format"		"{1:t},{2:s}"
 		"en"			"Issued a permanent gag on {1} (reason: {2})."
 		"ru"			"Игроку {1} навсегда отключен чат (причина: {2})."
 		"pl"			"Permanentnie zakneblowano {1} (powód: {2})."
 	}
 	"Gagged player"
 	{
-		"#format"	"{1:s},{2:d}"
+		"#format"	"{1:t},{2:d}"
 		"en"		"Issued an extended gag on {1} for {2} minutes."
 		"ru"		"Игроку {1} отключен чат на {2} минут."
 		"pl"			"Zakneblowano {1} na {2} minut."
 	}
 	"Gagged player reason"
 	{
-		"#format"	"{1:s},{2:d},{3:s}"
+		"#format"	"{1:t},{2:d},{3:s}"
 		"en"		"Issued an extended gag on {1} for {2} minutes (reason: {3})."
 		"ru"		"Игроку {1} отключен чат на {2} минут (причина: {3})."
 		"pl"			"Zakneblowano {1} na {2} minut (powód: {3})."
@@ -126,28 +126,28 @@
 	//--------------------------------------------------------------------------------
 	"Permamuted player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Issued a permanent mute on {1}."
 		"ru"			"Игроку {1} навсегда отключен микрофон."
 		"pl"			"Permanentnie wyciszono {1}."
 	}
 	"Permamuted player reason"
 	{
-		"#format"		"{1:s},{2:s}"
+		"#format"		"{1:t},{2:s}"
 		"en"			"Issued a permanent mute on {1} (reason: {2})."
 		"ru"			"Игроку {1} навсегда отключен микрофон (причина: {2})."
 		"pl"			"Permanentnie wyciszono {1} (powód: {2})."
 	}
 	"Muted player"
 	{
-		"#format"	"{1:s},{2:d}"
+		"#format"	"{1:t},{2:d}"
 		"en"		"Issued an extended mute on {1} for {2} minutes."
 		"ru"		"Игроку {1} отключен микрофон на {2} минут."
 		"pl"			"Wyciszono {1} na {2} minut."
 	}
 	"Muted player reason"
 	{
-		"#format"	"{1:s},{2:d},{3:s}"
+		"#format"	"{1:t},{2:d},{3:s}"
 		"en"		"Issued an extended mute on {1} for {2} minutes (reason: {3})."
 		"ru"		"Игроку {1} отключен микрофон на {2} минут (причина: {3})."
 		"pl"			"Wyciszono {1} na {2} minut (powód: {3})."
@@ -155,28 +155,28 @@
 	//--------------------------------------------------------------------------------
 	"Permasilenced player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Issued a permanent silence on {1}."
 		"ru"			"Игроку {1} навсегда отключен чат и микрофон."
 		"pl"			"Permanentnie całkowicie wyciszono {1}."
 	}
 	"Permasilenced player reason"
 	{
-		"#format"		"{1:s},{2:s}"
+		"#format"		"{1:t},{2:s}"
 		"en"			"Issued a permanent silence on {1} (reason: {2})."
 		"ru"			"Игроку {1} навсегда отключен чат и микрофон (причина: {2})."
 		"pl"			"Permanentnie całkowicie wyciszono {1} (powód: {2})."
 	}
 	"Silenced player"
 	{
-		"#format"	"{1:s},{2:d}"
+		"#format"	"{1:t},{2:d}"
 		"en"		"Issued an extended silence on {1} for {2} minutes."
 		"ru"		"Игроку {1} отключен чат и микрофон на {2} минут."
 		"pl"			"Całkowicie wyciszono {1} na {2} minut."
 	}
 	"Silenced player reason"
 	{
-		"#format"	"{1:s},{2:d},{3:s}"
+		"#format"	"{1:t},{2:d},{3:s}"
 		"en"		"Issued an extended silence on {1} for {2} minutes (reason: {3})."
 		"ru"		"Игроку {1} отключен чат и микрофон на {2} минут (причина: {3})."
 		"pl"			"Całkowicie wyciszono {1} na {2} minut (powód: {3})."

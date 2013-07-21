@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.144"
+#define PLUGIN_VERSION "0.9.155"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1964,8 +1964,8 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 		LogToFile(logFile, "CreateBlock(%d, %d, %d, %d, %s, %s)", client, targetId, length, type, sReason, sArgs);
 	#endif
 
-	decl String:reason[256], target_list[MAXPLAYERS], target_count;
-	new bool:tn_is_ml = false;
+	decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml, String:target_name[MAX_NAME_LENGTH], String:reason[256];
+	new bool:skipped = false;
 
 	// checking args
 	if (targetId)
@@ -1992,15 +1992,20 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 			ExplodeString(sArgs, " ", sArg, 3, 192, true);	// exploding by spaces
 		}
 
-		// TODO -> replace to ProcessTargetString
 		// Get the target, find target returns a message on failure so we do not
-		targetId = FindTarget(client, sArg[0], true);
-		if (targetId == -1)
+		if ((target_count = ProcessTargetString(
+				sArg[0],
+				client,
+				target_list,
+				MAXPLAYERS,
+				COMMAND_FILTER_NO_BOTS,
+				target_name,
+				sizeof(target_name),
+				tn_is_ml)) <= 0)
+		{
+			ReplyToTargetError(client, target_count);
 			return;
-
-		/* TODO */
-		target_list[0] = targetId;
-		target_count = 1;
+		}
 
 		// Get the ban time
 		if(!StringToIntEx(sArg[1], length))	// not valid number in second argument
@@ -2038,6 +2043,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 		{
 			// The target has not been blocks verify. It must be completed before you can block anyone.
 			ReplyToCommand(client, "%s%t", PREFIX, "Player Comms Not Verified");
+			skipped = true;
 			continue; // skip
 		}
 
@@ -2061,6 +2067,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 						LogToFile(logFile, "%s already muted", auth);
 					#endif
 					ReplyToCommand(client, "%s%t", PREFIX, "Player already muted", g_sName[target]);
+					skipped = true;
 					continue;
 				}
 			}
@@ -2083,6 +2090,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 						LogToFile(logFile, "%s already gagged", auth);
 					#endif
 					ReplyToCommand(client, "%s%t", PREFIX, "Player already gagged", g_sName[target]);
+					skipped = true;
 					continue;
 				}
 			}
@@ -2106,22 +2114,16 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 						LogToFile(logFile, "%s already gagged or/and muted", auth);
 					#endif
 					ReplyToCommand(client, "%s%t", PREFIX, "Player already silenced", g_sName[target]);
+					skipped = true;
 					continue;
 				}
 			}
 		}
 		if (target_count == 1)
-		{
 			SavePunishment(client, target_list[0], type, length, reason);
-			ShowActivityToServer(client, type, length, reason, g_sName[target]);
-		}
 	}
-
-	//FIXME
-	// decl String:targetName[MAX_NAME_LENGTH];
-	// strcopy(targetName, sizeof(targetName), g_sName[target_list[0]]);
-
-	// ShowActivityToServer(client, type, length, reason, targetName);
+	if (target_count > 1 || !skipped)
+		ShowActivityToServer(client, type, length, reason, target_name, tn_is_ml);
 
 	return;
 }
@@ -2738,7 +2740,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 		UTIL_InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
 }
 
-stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[])
+stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[], bool:ml = false)
 {
 	new String:actionName[32], String:translationName[64];
 	switch(type)
@@ -2779,9 +2781,19 @@ stock ShowActivityToServer(admin, type, length, String:reason[], String:targetNa
 	}
 	Format(translationName, sizeof(translationName), "%s %s", actionName, reason[0] == '\0' ? "player" : "player reason");
 	if (length > 0)
-		ShowActivity2(admin, PREFIX, "%t", translationName, targetName, length, reason);
+	{
+		if (ml)
+			ShowActivity2(admin, PREFIX, "%t", translationName, targetName, length, reason);
+		else
+			ShowActivity2(admin, PREFIX, "%t", translationName, "_s", targetName, length, reason);
+	}
 	else
-		ShowActivity2(admin, PREFIX, "%t", translationName, targetName, reason);
+	{
+		if (ml)
+			ShowActivity2(admin, PREFIX, "%t", translationName, targetName, reason);
+		else
+			ShowActivity2(admin, PREFIX, "%t", translationName, "_s", targetName, reason);
+	}
 }
 
 // Natives //
