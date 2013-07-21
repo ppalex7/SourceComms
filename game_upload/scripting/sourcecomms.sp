@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.143"
+#define PLUGIN_VERSION "0.9.144"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1294,24 +1294,23 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 
 public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	ResetPack(data);
-
-	new length = ReadPackCell(data);
-	new type = ReadPackCell(data);
-	new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
-	ReadPackString(data, name, sizeof(name));
-	ReadPackString(data, auth, sizeof(auth));
-	ReadPackString(data, reason, sizeof(reason));
-	ReadPackString(data, adminAuth, sizeof(adminAuth));
-	ReadPackString(data, adminIp, sizeof(adminIp));
-	CloseHandle(data);
-
 	if (DB_Conn_Lost(hndl) || error[0])
 	{
 		LogToFile(logFile, "Inserting punishments Query Failed: %s", error);
 
+		ResetPack(data);
+		new length = ReadPackCell(data);
+		new type = ReadPackCell(data);
+		new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
+		ReadPackString(data, name, sizeof(name));
+		ReadPackString(data, auth, sizeof(auth));
+		ReadPackString(data, reason, sizeof(reason));
+		ReadPackString(data, adminAuth, sizeof(adminAuth));
+		ReadPackString(data, adminIp, sizeof(adminIp));
+
 		UTIL_InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp);
 	}
+	CloseHandle(data);
 }
 
 public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
