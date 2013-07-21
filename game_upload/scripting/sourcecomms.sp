@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.142"
+#define PLUGIN_VERSION "0.9.143"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1314,31 +1314,6 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:data)
 	}
 }
 
-public VerifyInsertQueue(Handle:owner, Handle:hndl, const String:error[], any:data)
-{
-	ResetPack(data);
-	new admin = GetClientOfUserId(ReadPackCell(data));
-	new length = ReadPackCell(data);
-	new type = ReadPackCell(data);
-	new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
-	ReadPackString(data, reason, sizeof(reason));
-	ReadPackString(data, name, sizeof(name));
-	ReadPackString(data, auth, sizeof(auth));
-	ReadPackString(data, adminAuth, sizeof(adminAuth));
-	ReadPackString(data, adminIp, sizeof(adminIp));
-
-	if (DB_Conn_Lost(hndl) || error[0])
-	{
-		LogToFile(logFile, "Inserting punishments to queue Failed: %s", error);
-		ReplyToCommand(admin, "FIXME error inserting intro q");
-	}
-	else
-	{
-		ShowActivityToServer(admin, type, length, reason, name);
-	}
-	CloseHandle(data);
-}
-
 public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
 	decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
@@ -1634,13 +1609,10 @@ public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[],
 
 public ErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	if (error[0])
+	if (DB_Conn_Lost(hndl) || error[0])
 	{
-		LogToFile(logFile, "%s - Query Failed: %s", data, error);
+		LogToFile(logFile, "Query Failed: %s", error);
 	}
-
-	// force reconnect if needed
-	DB_Conn_Lost(hndl);
 }
 
 public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
@@ -2373,7 +2345,7 @@ stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", sQuery);
 	#endif
 
-	SQL_TQuery(SQLiteDB, VerifyInsertQueue, sQuery);
+	SQL_TQuery(SQLiteDB, ErrorCheckCallback, sQuery);
 }
 
 stock ServerInfo()
