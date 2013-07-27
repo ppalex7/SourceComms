@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.155"
+#define PLUGIN_VERSION "0.9.160"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -281,7 +281,7 @@ public OnClientPostAdminCheck(client)
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "Checking blocks for: %s. QUERY: %s", clientAuth, Query);
 		#endif
-		SQL_TQuery(g_hDatabase, VerifyBlocks, Query, GetClientUserId(client), DBPrio_High);
+		SQL_TQuery(g_hDatabase, Query_VerifyBlock, Query, GetClientUserId(client), DBPrio_High);
 	}
 }
 
@@ -909,7 +909,7 @@ public MenuHandler_MenuDuration(Handle:menu, MenuAction:action, param1, param2)
 				if (iNumReasons) // we have reasons to show
 					AdminMenu_Reason(param1, target, type, lengthIndex);
 				else
-					CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type, "");
+					CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type);
 			}
 		}
 	}
@@ -1249,7 +1249,7 @@ public PanelHandler_ListTargetReason(Handle:menu, MenuAction:action, param1, par
 	}
 }
 
-// QUERY CALL BACKS //
+// SQL CALLBACKS //
 
 public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
@@ -1283,7 +1283,7 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 	#if defined LOG_QUERIES
 		LogToFile(logQuery, "Set encoding. QUERY: %s", query);
 	#endif
-	SQL_TQuery(g_hDatabase, ErrorCheckCallback, query);
+	SQL_TQuery(g_hDatabase, Query_ErrorCheck, query);
 
 	// Process queue
 	SQL_TQuery(SQLiteDB, ProcessQueueCallbackB, "SELECT id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type FROM queue2");
@@ -1292,7 +1292,7 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
 	ForcePlayerRecheck();
 }
 
-public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:data)
+public Query_AddBlockInsert(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
 	if (DB_Conn_Lost(hndl) || error[0])
 	{
@@ -1308,7 +1308,7 @@ public VerifyInsertB(Handle:owner, Handle:hndl, const String:error[], any:data)
 		ReadPackString(data, adminAuth, sizeof(adminAuth));
 		ReadPackString(data, adminIp, sizeof(adminIp));
 
-		UTIL_InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp);
+		InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp);
 	}
 	CloseHandle(data);
 }
@@ -1408,7 +1408,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 				LogToFile(logFile, "Fetched from DB: bid %d, iAID: %d, cAID: %d, cImmunity: %d, cType: %d", bid, iAID, cAID, cImmunity, cType);
 			#endif
 
-			// Checking - has we acces to unblock?
+			// Checking - has we access to unblock?
 			if (iAID == cAID || (!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || (DisUBImCheck == 0 && (GetAdmImmunity(admin) > cImmunity)))
 			{
 				// Ok! we have rights to unblock
@@ -1602,19 +1602,17 @@ public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[],
 		#if defined LOG_QUERIES
 			LogToFile(logQuery, "in AddedFromSQLiteCallbackB: DELETE FROM QUEUE. QUERY: %s", buffer);
 		#endif
-		SQL_TQuery(SQLiteDB, ErrorCheckCallback, buffer);
+		SQL_TQuery(SQLiteDB, Query_ErrorCheck, buffer);
 	}
 }
 
-public ErrorCheckCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
+public Query_ErrorCheck(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
 	if (DB_Conn_Lost(hndl) || error[0])
-	{
-		LogToFile(logFile, "Query Failed: %s", error);
-	}
+		LogError("%T (%s)", "Failed to query database", LANG_SERVER, error);
 }
 
-public VerifyBlocks(Handle:owner, Handle:hndl, const String:error[], any:userid)
+public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:userid)
 {
 	decl String:clientAuth[64];
 	new client = GetClientOfUserId(userid);
@@ -1955,7 +1953,7 @@ stock InitializeBackupDB()
 	if (SQLiteDB == INVALID_HANDLE)
 		SetFailState(error);
 
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
+	SQL_TQuery(SQLiteDB, Query_ErrorCheck, "CREATE TABLE IF NOT EXISTS queue2 (id INTEGER PRIMARY KEY, steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER);");
 }
 
 stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[] = "", const String:sArgs[] = "")
@@ -1983,8 +1981,8 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 			TrimString(sArg[2]);
 			sArg[0] = sArg[1];		// target name
 			new String:sTempArg[2][192];
-			ExplodeString(sArg[2], " ", sTempArg, 2, 192, true); // get time and reason
-			sArg[1] = sTempArg[0];	// time
+			ExplodeString(sArg[2], " ", sTempArg, 2, 192, true); // get length and reason
+			sArg[1] = sTempArg[0];	// lenght
 			sArg[2] = sTempArg[1];	// reason
 		}
 		else
@@ -2007,7 +2005,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 			return;
 		}
 
-		// Get the ban time
+		// Get the block length
 		if(!StringToIntEx(sArg[1], length))	// not valid number in second argument
 		{
 			length = DefaultTime;
@@ -2119,9 +2117,9 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 				}
 			}
 		}
-		if (target_count == 1)
-			SavePunishment(client, target_list[0], type, length, reason);
 	}
+	if (target_count == 1 && !skipped)
+		SavePunishment(client, target_list[0], type, length, reason);
 	if (target_count > 1 || !skipped)
 		ShowActivityToServer(client, type, length, reason, target_name, tn_is_ml);
 
@@ -2203,7 +2201,7 @@ stock bool:ProcessUnBlock(client, target, type, String:reason[])
 	WritePackString(dataPack, reason);
 	ResetPack(dataPack);
 
-	if (DB_Connect())
+	if (DB_Connect()) // TODO - OR state - TEMP
 	{
 		new String:sAdminAuthEscaped[sizeof(adminAuth) * 2 + 1];
 		new String:sAdminAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
@@ -2307,7 +2305,7 @@ stock TempUnBlock(&Handle:data)
 	}
 }
 
-stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
+stock InsertTempBlock(length, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
 {
 	LogToFile(logFile, "Inserting punishment for %s into queue", auth);
 
@@ -2346,7 +2344,7 @@ stock UTIL_InsertTempBlock(length, type, const String:name[], const String:auth[
 		LogToFile(logQuery, "Insert into queue. QUERY: %s", sQuery);
 	#endif
 
-	SQL_TQuery(SQLiteDB, ErrorCheckCallback, sQuery);
+	SQL_TQuery(SQLiteDB, Query_ErrorCheck, sQuery);
 }
 
 stock ServerInfo()
@@ -2680,7 +2678,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 
 	if (DB_Connect())
 	{
-		// Accepts time in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
+		// Accepts length in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
 		new String:banName[MAX_NAME_LENGTH * 2 + 1];
 		new String:banReason[256 * 2 + 1];
 		new String:sAuthidEscaped[64 * 2 + 1];
@@ -2721,7 +2719,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 			DatabasePrefix, sQueryMute, type == TYPE_SILENCE ? ", " : "", sQueryGag);
 
 		#if defined LOG_QUERIES
-			LogToFile(logQuery, "UTIL_InsertBlock. QUERY: %s", sQuery);
+			LogToFile(logQuery, "Saving punishment. QUERY: %s", sQuery);
 		#endif
 
 		// all data cached before calling asynchronous functions
@@ -2734,10 +2732,10 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 		WritePackString(dataPack, adminAuth);
 		WritePackString(dataPack, adminIp);
 
-		SQL_TQuery(g_hDatabase, VerifyInsertB, sQuery, dataPack, DBPrio_High);
+		SQL_TQuery(g_hDatabase, Query_AddBlockInsert, sQuery, dataPack, DBPrio_High);
 	}
 	else
-		UTIL_InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
+		InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
 }
 
 stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[], bool:ml = false)
