@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.176"
+#define PLUGIN_VERSION "0.9.183"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1925,6 +1925,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 		target_list[0] = targetId;
 		target_count = 1;
 		tn_is_ml = false;
+		strcopy(target_name, sizeof(target_name), g_sName[targetId]);
 		strcopy(reason, sizeof(reason), sReason);
 	}
 	else if (strlen(sArgs))
@@ -2094,6 +2095,7 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
 		target_list[0] = targetId;
 		target_count = 1;
 		tn_is_ml = false;
+		strcopy(target_name, sizeof(target_name), g_sName[targetId]);
 		strcopy(reason, sizeof(reason), sReason);
 	}
 	else
@@ -2167,6 +2169,11 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
 		decl String:typeWHERE[100];
 		new bool:dontCheckDB = false;
 		new target = target_list[0];
+
+		if (IsClientInGame(target))
+			GetClientAuthString(target, targetAuth, sizeof(targetAuth));
+		else
+			return;
 
 		switch(type)
 		{

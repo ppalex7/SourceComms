@@ -588,42 +588,42 @@
 	//---------------------------------------------------------------------------------
 	"Temp muted player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Muted {1}."
 		"ru"			"Игроку {1} отключен микрофон."
 		"pl"			"Wyciszono {1}."
 	}
 	"Temp muted player reason"
 	{
-		"#format"		"{1:s},{2:s}"
+		"#format"		"{1:t},{2:s}"
 		"en"			"Muted {1} (reason: {2})."
 		"ru"			"Игроку {1} отключен микрофон (причина: {2})."
 		"pl"			"Wyciszono {1} (powód: {2})."
 	}
 	"Temp gagged player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Gagged {1}."
 		"ru"			"Игроку {1} отключен чат."
 		"pl"			"Zakneblowano {1}."
 	}
 	"Temp gagged player reason"
 	{
-		"#format"		"{1:s},{2:s}"
+		"#format"		"{1:t},{2:s}"
 		"en"			"Gagged {1} (reason: {2})."
 		"ru"			"Игроку {1} отключен чат (причина: {2})."
 		"pl"			"Zakneblowano {1} (powód: {2})."
 	}
 	"Temp silenced player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Silenced {1}."
 		"ru"			"Игроку {1} отключен чат и микрофон."
 		"pl"			"Całkowicie wyciszono {1}."
 	}
 	"Temp silenced player reason"
 	{
-		"#format"		"{1:s},{2:s}"
+		"#format"		"{1:t},{2:s}"
 		"en"			"Silenced {1} (reason: {2})."
 		"ru"			"Игроку {1} отключен чат и микрофон (причина: {2})."
 		"pl"			"Całkowicie wyciszono {1} (powód: {2})."
