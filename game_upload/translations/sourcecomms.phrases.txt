@@ -184,21 +184,21 @@
 	//--------------------------------------------------------------------------------
 	"Temp unmuted player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Temporary removed mute from {1}."
 		"ru"			"Игроку {1} временно включен микрофон."
 		"pl"			"Tymczasowo usunięto wyciszenie {1}."
 	}
 	"Temp ungagged player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Temporary removed gag from {1}."
 		"ru"			"Игроку {1} временно включен чат."
 		"pl"			"Tymczasowo usunięto knebel {1}."
 	}
 	"Temp unsilenced player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Temporary removed silence from {1}."
 		"ru"			"Игроку {1} временно включен чат и микрофон."
 		"pl"			"Tymczasowo usunięto całkowite wyciszenie {1}."
@@ -239,14 +239,14 @@
 	}
 	"Unmuted player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Removed an extended mute from {1}."
 		"ru"			"Игроку {1} включен микрофон."
 		"pl"			"Usunięto wyciszenie {1}."
 	}
 	"Ungagged player"
 	{
-		"#format"		"{1:s}"
+		"#format"		"{1:t}"
 		"en"			"Removed an extended gag from {1}."
 		"ru"			"Игроку {1} включен чат."
 		"pl"			"Usunięto knebel {1}."

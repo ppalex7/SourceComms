@@ -17,24 +17,30 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.160"
+#define PLUGIN_VERSION "0.9.176"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
-#define MAX_TIME_MULTI 10
+#define MAX_TIME_MULTI 30
 
+#define TYPE_UN_SHIFT 3
+#define TYPE_TEMP_SHIFT 10
 #define NOW 0
 #define TYPE_MUTE 1
 #define TYPE_GAG 2
 #define TYPE_SILENCE 3
-#define TYPE_UNMUTE 4
-#define TYPE_UNGAG 5
-#define TYPE_UNSILENCE 6
+#define TYPE_UNMUTE 4 			// TYPE_UN_SHIFT   + TYPE_MUTE
+#define TYPE_UNGAG 5 			// TYPE_UN_SHIFT   + TYPE_GAG
+#define TYPE_UNSILENCE 6 		// TYPE_UN_SHIFT   + TYPE_SILENCE
+#define TYPE_TEMP_UNMUTE 14 	// TYPE_TEMP_SHIFT + TYPE_UNMUTE
+#define TYPE_TEMP_UNGAG 15  	// TYPE_TEMP_SHIFT + TYPE_UNGAG
+#define TYPE_TEMP_UNSILENCE 16	// TYPE_TEMP_SHIFT + TYPE_UNSILENCE
 
 #define MAX_REASONS 32
 #define DISPLAY_SIZE 64
 #define REASON_SIZE 192
+
 new iNumReasons;
 new String:g_sReasonDisplays[MAX_REASONS][DISPLAY_SIZE], String:g_sReasonKey[MAX_REASONS][REASON_SIZE];
 
@@ -90,7 +96,7 @@ new bool:g_bPlayerStatus[MAXPLAYERS + 1];
 /* Log Stuff */
 new String:logFile[256];
 #if defined LOG_QUERIES
-new String:logQuery[256];
+	new String:logQuery[256];
 #endif
 
 new Float:RetryTime = 15.0;
@@ -548,7 +554,9 @@ public Action:CommandUnGag(client, const String:command[], args)
 		return Plugin_Stop;
 	}
 
-	PrepareUnBlock(client, TYPE_GAG, args);
+	new String:sBuffer[256];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	ProcessUnBlock(client, _, TYPE_UNGAG, _, sBuffer);
 	return Plugin_Stop;
 }
 
@@ -563,7 +571,9 @@ public Action:CommandUnMute(client, const String:command[], args)
 		return Plugin_Stop;
 	}
 
-	PrepareUnBlock(client, TYPE_MUTE, args);
+	new String:sBuffer[256];
+	GetCmdArgString(sBuffer, sizeof(sBuffer));
+	ProcessUnBlock(client, _, TYPE_UNMUTE, _, sBuffer);
 	return Plugin_Stop;
 }
 
@@ -578,40 +588,9 @@ public Action:CommandUnSilence(client, const String:command[], args)
 		return Plugin_Stop;
 	}
 
-	PrepareUnBlock(client, TYPE_SILENCE, args);
-	return Plugin_Stop;
-}
-
-public Action:PrepareUnBlock(client, type_block, args)
-{
-	#if defined DEBUG
-		LogToFile(logFile, "PrepareUnBlock(cl %L, type %d)", client, type_block);
-	#endif
-
-	new String:sBuffer[256], String:sArg[3][192];
+	new String:sBuffer[256];
 	GetCmdArgString(sBuffer, sizeof(sBuffer));
-
-	if (ExplodeString(sBuffer, "\"", sArg, 3, 192, true) == 3 && strlen(sArg[0]) == 0)
-	{
-		TrimString(sArg[2]);
-		sArg[0] = sArg[1];		// target name
-		sArg[1] = sArg[2]; 		// reason; sArg[2] - not in use
-	}
-	else
-	{
-		ExplodeString(sBuffer, " ", sArg, 2, 192, true);
-	}
-
-	// Get the target, find target returns a message on failure so we do not
-	new target = FindTarget(client, sArg[0], true);
-	if (target == -1)
-		return Plugin_Stop;
-
-	#if defined DEBUG
-		LogToFile(logFile, "Calling ProcessUnBlock cl %d, target %d, type %d, reason %s", client, target, type_block, sArg[1]);
-	#endif
-
-	ProcessUnBlock(client, target, type_block, sArg[1]);
+	ProcessUnBlock(client, _, TYPE_UNSILENCE, _, sBuffer);
 	return Plugin_Stop;
 }
 
@@ -841,22 +820,10 @@ public MenuHandler_MenuTarget(Handle:menu, MenuAction:action, param1, param2)
 			if (Bool_ValidMenuTarget(param1, target))
 			{
 				new type = StringToInt(Temp[1]);
-				if (type <= 3)
-				{
+				if (type <= TYPE_SILENCE)
 					AdminMenu_Duration(param1, target, type);
-				}
 				else
-				{
-					switch(type)
-					{
-						case TYPE_UNMUTE:
-							ProcessUnBlock(param1, target, TYPE_MUTE, "");
-						case TYPE_UNGAG:
-							ProcessUnBlock(param1, target, TYPE_GAG, "");
-						case TYPE_UNSILENCE:
-							ProcessUnBlock(param1, target, TYPE_SILENCE, "");
-					}
-				}
+					ProcessUnBlock(param1, target, type);
 			}
 		}
 	}
@@ -1313,43 +1280,33 @@ public Query_AddBlockInsert(Handle:owner, Handle:hndl, const String:error[], any
 	CloseHandle(data);
 }
 
-public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
+public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
 	decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
 
 	ResetPack(data);
-	new adminUserID = ReadPackCell(data);
+	new adminUserID  = ReadPackCell(data);
 	new targetUserID = ReadPackCell(data);
-
-	#if defined DEBUG
-		new type = ReadPackCell(data);
-	#else
-		ReadPackCell(data);	// Skip `type` row
-	#endif
-
-	ReadPackString(data, adminAuth, sizeof(adminAuth));
+	new type 		 = ReadPackCell(data);	// not in use unless DEBUG
+	ReadPackString(data, adminAuth,  sizeof(adminAuth));
 	ReadPackString(data, targetAuth, sizeof(targetAuth));
-	ReadPackString(data, reason, sizeof(reason));
+	ReadPackString(data, reason, 	 sizeof(reason));
 
-	new admin = GetClientOfUserId(adminUserID);
+	new admin  = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
 	new String:targetName[MAX_NAME_LENGTH];
-	strcopy(targetName, MAX_NAME_LENGTH, target && IsClientInGame(target) ? g_sName[target] : targetAuth);
+	strcopy(targetName, MAX_NAME_LENGTH, target && IsClientInGame(target) ? g_sName[target] : targetAuth);		//FIXME
 
 	new bool:hasErrors = false;
 	// If error is not an empty string the query failed
 	if (DB_Conn_Lost(hndl) || error[0] != '\0')
 	{
-		LogToFile(logFile, "Unblock Select Query Failed: %s", error);
+		LogError("Query_UnBlockSelect failed: %s", error);
 		if (admin && IsClientInGame(admin))
-		{
-			PrintToChat(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
-		}
+			ReplyToCommand(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
 		else
-		{
 			PrintToServer("%s%T", PREFIX, "Unblock Select Failed", LANG_SERVER, targetAuth);
-		}
 		hasErrors = true;
 	}
 
@@ -1358,7 +1315,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	{
 		if (admin && IsClientInGame(admin))
 		{
-			PrintToChat(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
+			ReplyToCommand(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
 		} else {
 			PrintToServer("%s%T", PREFIX, "No blocks found", LANG_SERVER, targetAuth);
 		}
@@ -1368,7 +1325,7 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	if (hasErrors)
 	{
 		#if defined DEBUG
-			LogToFile(logFile, "Calling TempUnBlock from SelectUnBlockCallback");
+			LogToFile(logFile, "Calling TempUnBlock from Query_UnBlockSelect");
 		#endif
 
 		TempUnBlock(data);	// Datapack closed inside.
@@ -1388,11 +1345,12 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 			// Oh noes! What happened?!
 			if (!SQL_FetchRow(hndl))
 				continue;
-			new bid = SQL_FetchInt(hndl, 0);
-			new iAID = SQL_FetchInt(hndl, 1);
-			new cAID = SQL_FetchInt(hndl, 2);
+
+			new bid 	  = SQL_FetchInt(hndl, 0);
+			new iAID 	  = SQL_FetchInt(hndl, 1);
+			new cAID 	  = SQL_FetchInt(hndl, 2);
 			new cImmunity = SQL_FetchInt(hndl, 3);
-			new cType = SQL_FetchInt(hndl, 4);
+			new cType 	  = SQL_FetchInt(hndl, 4);
 
 			#if defined DEBUG
 				// WHO WE ARE?
@@ -1420,17 +1378,16 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 						case TYPE_MUTE:
 						{
 							PerformUnMute(target);
-							ShowActivity2(admin, PREFIX, "%t", "Unmuted player", g_sName[target]);
 							LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 						}
 						//-------------------------------------------------------------------------------------------------
 						case TYPE_GAG:
 						{
 							PerformUnGag(target);
-							ShowActivity2(admin, PREFIX, "%t", "Ungagged player", g_sName[target]);
 							LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 						}
 					}
+					ShowActivityToServer(admin, type + TYPE_UN_SHIFT, _, _, g_sName[target], _);
 				}
 
 				new Handle:dataPack = CreateDataPack();
@@ -1444,12 +1401,17 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 
 				decl String:query[1024];
 				Format(query, sizeof(query),
-					"UPDATE %s_comms SET RemovedBy = %d, RemoveType = 'U', RemovedOn = UNIX_TIMESTAMP(), ureason = '%s' WHERE bid = %d",
+				   "UPDATE %s_comms \
+					SET 	RemovedBy = %d, \
+							RemoveType = 'U', \
+							RemovedOn = UNIX_TIMESTAMP(), \
+							ureason = '%s' \
+					WHERE 	bid = %d",
 					DatabasePrefix, iAID, unbanReason, bid);
 				#if defined LOG_QUERIES
-					LogToFile(logQuery, "in SelectUnBlockCallback: Unblocking. QUERY: %s", query);
+					LogToFile(logQuery, "in Query_UnBlockSelect: Unblocking. QUERY: %s", query);
 				#endif
-				SQL_TQuery(g_hDatabase, InsertUnBlockCallback, query, dataPack);
+				SQL_TQuery(g_hDatabase, Query_UnBlockUpdate, query, dataPack);
 			}
 			else
 			{
@@ -1459,14 +1421,14 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 					case TYPE_MUTE:
 					{
 						if (admin && IsClientInGame(admin))
-							PrintToChat(admin, "%s%t", PREFIX, "No permission unmute", targetName);
+							ReplyToCommand(admin, "%s%t", PREFIX, "No permission unmute", targetName);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute %s (reason \"%s\")", admin, targetAuth, reason);
 					}
 					//-------------------------------------------------------------------------------------------------
 					case TYPE_GAG:
 					{
 						if (admin && IsClientInGame(admin))
-							PrintToChat(admin, "%s%t", PREFIX, "No permission ungag", targetName);
+							ReplyToCommand(admin, "%s%t", PREFIX, "No permission ungag", targetName);
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag %s (reason \"%s\")", admin, targetAuth, reason);
 					}
 				}
@@ -1475,32 +1437,28 @@ public SelectUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 	}
 }
 
-public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], any:data)
+public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	// if the pack is good unpack it and close the handle
 	new admin, type;
 	new String:targetName[MAX_NAME_LENGTH], String:targetAuth[30];
 	if (data != INVALID_HANDLE)
 	{
 		ResetPack(data);
 		admin = GetClientOfUserId(ReadPackCell(data));
-		type = ReadPackCell(data);
+		type  = 				  ReadPackCell(data);
 		ReadPackString(data, targetName, sizeof(targetName));
 		ReadPackString(data, targetAuth, sizeof(targetAuth));
 		CloseHandle(data);
 	} else {
 		// Technically this should not be possible
-		ThrowError("Invalid Handle in InsertUnBlockCallback");
+		ThrowError("Invalid Handle in Query_UnBlockUpdate");
 	}
 
-	// If error is not an empty string the query failed
-	if (error[0] != '\0')
+	if (DB_Conn_Lost(hndl) || error[0] != '\0')
 	{
-		LogToFile(logFile, "UnBlock Insert Query Failed: %s", error);
+		LogError("Query_UnBlockUpdate failed: %s", error);
 		if (admin && IsClientInGame(admin))
-		{
-			PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
-		}
+			ReplyToCommand(admin, "%s%t", PREFIX, "Unblock insert failed");
 		return;
 	}
 
@@ -1510,22 +1468,18 @@ public InsertUnBlockCallback(Handle:owner, Handle:hndl, const String:error[], an
 		{
 			LogAction(admin, -1, "\"%L\" removed mute for %s from DB", admin, targetAuth);
 			if (admin && IsClientInGame(admin))
-			{
-				PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
-			} else {
+				ReplyToCommand(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
+			else
 				PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, targetName);
-			}
 		}
 		//-------------------------------------------------------------------------------------------------
 		case TYPE_GAG:
 		{
 			LogAction(admin, -1, "\"%L\" removed gag for %s from DB", admin, targetAuth);
 			if (admin && IsClientInGame(admin))
-			{
-				PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
-			} else {
+				ReplyToCommand(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
+			else
 				PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, targetName);
-			}
 		}
 	}
 }
@@ -1970,6 +1924,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 	{
 		target_list[0] = targetId;
 		target_count = 1;
+		tn_is_ml = false;
 		strcopy(reason, sizeof(reason), sReason);
 	}
 	else if (strlen(sArgs))
@@ -2126,11 +2081,52 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
 	return;
 }
 
-stock bool:ProcessUnBlock(client, target, type, String:reason[])
+stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const String:sArgs[] = "")
 {
 	#if defined DEBUG
-		LogToFile(logFile, "ProcessUnBlock(%d, %s)", type, reason);
+		LogToFile(logFile, "ProcessUnBlock(%d, %d, %d, %s, %s)", client, targetId, type, sReason, sArgs);
 	#endif
+
+	decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml, String:target_name[MAX_NAME_LENGTH], String:reason[256];
+
+	if(targetId)
+	{
+		target_list[0] = targetId;
+		target_count = 1;
+		tn_is_ml = false;
+		strcopy(reason, sizeof(reason), sReason);
+	}
+	else
+	{
+		new String:sBuffer[256], String:sArg[3][192];
+		GetCmdArgString(sBuffer, sizeof(sBuffer));
+
+		if (ExplodeString(sBuffer, "\"", sArg, 3, 192, true) == 3 && strlen(sArg[0]) == 0)
+		{
+			TrimString(sArg[2]);
+			sArg[0] = sArg[1];		// target name
+			sArg[1] = sArg[2]; 		// reason; sArg[2] - not in use
+		}
+		else
+		{
+			ExplodeString(sBuffer, " ", sArg, 2, 192, true);
+		}
+
+		// Get the target, find target returns a message on failure so we do not
+		if ((target_count = ProcessTargetString(
+				sArg[0],
+				client,
+				target_list,
+				MAXPLAYERS,
+				COMMAND_FILTER_NO_BOTS,
+				target_name,
+				sizeof(target_name),
+				tn_is_ml)) <= 0)
+		{
+			ReplyToTargetError(client, target_count);
+			return;
+		}
+	}
 
 	decl String:adminAuth[64];
 	decl String:targetAuth[64];
@@ -2143,105 +2139,139 @@ stock bool:ProcessUnBlock(client, target, type, String:reason[])
 		GetClientAuthString(client, adminAuth, sizeof(adminAuth));
 	}
 
-	if (IsClientInGame(target))
-		GetClientAuthString(target, targetAuth, sizeof(targetAuth));
-
-	decl String:typeWHERE[100];
-
-	// Check current player status
-	switch(type)
+	if (target_count > 1)
 	{
-		case TYPE_MUTE:
+		for (new i = 0; i < target_count; i++)
 		{
-			if (!BaseComm_IsClientMuted(target))
-			{
-				ReplyToCommand(client, "%s%t", PREFIX, "Player not muted");
-				return false;
-			}
+			new target = target_list[i];
+
+			if (IsClientInGame(target))
+				GetClientAuthString(target, targetAuth, sizeof(targetAuth));
 			else
-			{
-				FormatEx(typeWHERE, sizeof(typeWHERE), "c.type = '%d'", TYPE_MUTE);
-			}
+				continue;
+
+			new Handle:dataPack = CreateDataPack();
+			WritePackCell(dataPack, GetClientUserId2(client));
+			WritePackCell(dataPack, GetClientUserId(target));
+			WritePackCell(dataPack, type);
+			WritePackString(dataPack, adminAuth);
+			WritePackString(dataPack, targetAuth);	// not in use in this case
+			WritePackString(dataPack, reason);
+
+			TempUnBlock(dataPack);
 		}
-		//-------------------------------------------------------------------------------------------------
-		case TYPE_GAG:
-		{
-			if (!BaseComm_IsClientGagged(target))
-			{
-				ReplyToCommand(client, "%s%t", PREFIX, "Player not gagged");
-				return false;
-			}
-			else
-			{
-				FormatEx(typeWHERE, sizeof(typeWHERE), "c.type = '%d'", TYPE_GAG);
-			}
-		}
-		//-------------------------------------------------------------------------------------------------
-		case TYPE_SILENCE:
-		{
-			if (!BaseComm_IsClientMuted(target) || !BaseComm_IsClientGagged(target))
-			{
-				ReplyToCommand(client, "%s%t", PREFIX, "Player not silenced");
-				return false;
-			}
-			else
-			{
-				FormatEx(typeWHERE, sizeof(typeWHERE), "(c.type = '%d' OR c.type = '%d')", TYPE_MUTE, TYPE_GAG);
-			}
-		}
-	}
-
-	// Pack everything into a data pack so we can retain it
-	new Handle:dataPack = CreateDataPack();
-	WritePackCell(dataPack, GetClientUserId2(client));
-	WritePackCell(dataPack, GetClientUserId(target));
-	WritePackCell(dataPack, type);
-	WritePackString(dataPack, adminAuth);
-	WritePackString(dataPack, targetAuth);
-	WritePackString(dataPack, reason);
-	ResetPack(dataPack);
-
-	if (DB_Connect()) // TODO - OR state - TEMP
-	{
-		new String:sAdminAuthEscaped[sizeof(adminAuth) * 2 + 1];
-		new String:sAdminAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
-		new String:sTargetAuthEscaped[sizeof(targetAuth) * 2 + 1];
-		new String:sTargetAuthYZEscaped[sizeof(targetAuth) * 2 + 1];
-
-		SQL_EscapeString(g_hDatabase, adminAuth, sAdminAuthEscaped, sizeof(sAdminAuthEscaped));
-		SQL_EscapeString(g_hDatabase, adminAuth[8], sAdminAuthYZEscaped, sizeof(sAdminAuthYZEscaped));
-		SQL_EscapeString(g_hDatabase, targetAuth, sTargetAuthEscaped, sizeof(sTargetAuthEscaped));
-		SQL_EscapeString(g_hDatabase, targetAuth[8], sTargetAuthYZEscaped, sizeof(sTargetAuthYZEscaped));
-
-		decl String:query[1024];
-		Format(query, sizeof(query),
-			"SELECT c.bid, IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, c.aid, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type FROM %s_comms c \
-			LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group WHERE RemoveType IS NULL AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND %s",
-			DatabasePrefix, sAdminAuthEscaped, sAdminAuthYZEscaped, DatabasePrefix, DatabasePrefix, DatabasePrefix, sTargetAuthEscaped, sTargetAuthYZEscaped, typeWHERE);
-
-		#if defined LOG_QUERIES
-			LogToFile(logQuery, "Unblocking select. QUERY: %s", query);
-		#endif
-
-		SQL_TQuery(g_hDatabase, SelectUnBlockCallback, query, dataPack);
+		ShowActivityToServer(client, type + TYPE_TEMP_SHIFT, _, _, target_name, tn_is_ml);
 	}
 	else
 	{
-		#if defined DEBUG
-			LogToFile(logFile, "Calling TempUnBlock from ProcessUnBlock");
-		#endif
-		TempUnBlock(dataPack);
-	}
+		decl String:typeWHERE[100];
+		new bool:dontCheckDB = false;
+		new target = target_list[0];
 
-	return true;
+		switch(type)
+		{
+			case TYPE_UNMUTE:
+			{
+				if (!BaseComm_IsClientMuted(target))
+				{
+					ReplyToCommand(client, "%s%t", PREFIX, "Player not muted");
+					return;
+				}
+				else
+				{
+					FormatEx(typeWHERE, sizeof(typeWHERE), "c.type = '%d'", TYPE_MUTE);
+					if (g_MuteType[target] == bSess)
+						dontCheckDB = true;
+				}
+			}
+			//-------------------------------------------------------------------------------------------------
+			case TYPE_UNGAG:
+			{
+				if (!BaseComm_IsClientGagged(target))
+				{
+					ReplyToCommand(client, "%s%t", PREFIX, "Player not gagged");
+					return;
+				}
+				else
+				{
+					FormatEx(typeWHERE, sizeof(typeWHERE), "c.type = '%d'", TYPE_GAG);
+					if (g_GagType[target] == bSess)
+						dontCheckDB = true;
+				}
+			}
+			//-------------------------------------------------------------------------------------------------
+			case TYPE_UNSILENCE:
+			{
+				if (!BaseComm_IsClientMuted(target) || !BaseComm_IsClientGagged(target))
+				{
+					ReplyToCommand(client, "%s%t", PREFIX, "Player not silenced");
+					return;
+				}
+				else
+				{
+					FormatEx(typeWHERE, sizeof(typeWHERE), "(c.type = '%d' OR c.type = '%d')", TYPE_MUTE, TYPE_GAG);
+					if (g_MuteType[target] == bSess && g_GagType[target] == bSess)
+						dontCheckDB = true;
+				}
+			}
+		}
+
+		// Pack everything into a data pack so we can retain it
+		new Handle:dataPack = CreateDataPack();
+		WritePackCell(dataPack, GetClientUserId2(client));
+		WritePackCell(dataPack, GetClientUserId(target));
+		WritePackCell(dataPack, type);
+		WritePackString(dataPack, adminAuth);
+		WritePackString(dataPack, targetAuth);
+		WritePackString(dataPack, reason);
+
+		// Check current player status. If player has temporary punishment - don't get info from DB
+		if (!dontCheckDB &&	DB_Connect())
+		{
+			new String:sAdminAuthEscaped[sizeof(adminAuth) * 2 + 1];
+			new String:sAdminAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
+			new String:sTargetAuthEscaped[sizeof(targetAuth) * 2 + 1];
+			new String:sTargetAuthYZEscaped[sizeof(targetAuth) * 2 + 1];
+
+			SQL_EscapeString(g_hDatabase, adminAuth, sAdminAuthEscaped, sizeof(sAdminAuthEscaped));
+			SQL_EscapeString(g_hDatabase, adminAuth[8], sAdminAuthYZEscaped, sizeof(sAdminAuthYZEscaped));
+			SQL_EscapeString(g_hDatabase, targetAuth, sTargetAuthEscaped, sizeof(sTargetAuthEscaped));
+			SQL_EscapeString(g_hDatabase, targetAuth[8], sTargetAuthYZEscaped, sizeof(sTargetAuthYZEscaped));
+
+			decl String:query[1024];
+			Format(query, sizeof(query),
+			   "SELECT 		c.bid, \
+							IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, \
+							c.aid, IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.type \
+				FROM 		%s_comms c \
+				LEFT JOIN 	%s_admins a ON a.aid=c.aid \
+				LEFT JOIN 	%s_srvgroups g ON g.name = a.srv_group \
+				WHERE 		RemoveType IS NULL \
+							AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') \
+							AND (length = '0' OR ends > UNIX_TIMESTAMP()) \
+							AND %s",
+				DatabasePrefix, sAdminAuthEscaped, sAdminAuthYZEscaped, DatabasePrefix, DatabasePrefix, DatabasePrefix, sTargetAuthEscaped, sTargetAuthYZEscaped, typeWHERE);
+
+			#if defined LOG_QUERIES
+				LogToFile(logQuery, "Unblocking select. QUERY: %s", query);
+			#endif
+
+			SQL_TQuery(g_hDatabase, Query_UnBlockSelect, query, dataPack);
+		}
+		else
+		{
+			#if defined DEBUG
+				LogToFile(logFile, "Calling TempUnBlock from ProcessUnBlock");
+			#endif
+
+			if (TempUnBlock(dataPack))
+				ShowActivityToServer(client, type + TYPE_TEMP_SHIFT, _, _, g_sName[target], _);
+		}
+	}
 }
 
-stock TempUnBlock(&Handle:data)
+stock bool:TempUnBlock(Handle:data)
 {
-	#if defined DEBUG
-		LogToFile(logFile, "TemporaryUnblock");
-	#endif
-
 	decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
 	ResetPack(data);
 	new adminUserID = ReadPackCell(data);
@@ -2254,6 +2284,8 @@ stock TempUnBlock(&Handle:data)
 
 	new admin = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
+	if (!target)
+		return false; // target has gone away
 
 	new AdmImmunity = GetAdmImmunity(admin);
 	new bool:AdmImCheck = (DisUBImCheck == 0 && ((type == TYPE_MUTE && AdmImmunity > g_iMuteLevel[target]) || (type == TYPE_GAG && AdmImmunity > g_iGagLevel[target]) || (type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target] && AdmImmunity > g_iGagLevel[target]) ) );
@@ -2274,14 +2306,12 @@ stock TempUnBlock(&Handle:data)
 			case TYPE_MUTE:
 			{
 				PerformUnMute(target);
-				ShowActivity2(admin, PREFIX, "%t", "Temp unmuted player", g_sName[target]);
 				LogAction(admin, target, "\"%L\" temporary unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
 			case TYPE_GAG:
 			{
 				PerformUnGag(target);
-				ShowActivity2(admin, PREFIX, "%t", "Temp ungagged player", g_sName[target]);
 				LogAction(admin, target, "\"%L\" temporary ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
@@ -2289,19 +2319,16 @@ stock TempUnBlock(&Handle:data)
 			{
 				PerformUnMute(target);
 				PerformUnGag(target);
-				ShowActivity2(admin, PREFIX, "%t", "Temp unsilenced player", g_sName[target]);
 				LogAction(admin, target, "\"%L\" temporary unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 		}
+		return true;
 	}
 	else
 	{
 		if (admin && IsClientInGame(admin))
-		{
-			PrintToChat(admin, "%s%t", PREFIX, "No db error unlock perm");
-		} else {
-			PrintToServer("%s%T", PREFIX, "No db error unlock perm", LANG_SERVER); //seriously? is it possible?
-		}
+			ReplyToCommand(admin, "%s%t", PREFIX, "No db error unlock perm");
+		return false;
 	}
 }
 
@@ -2475,6 +2502,8 @@ stock bool:IsAllowedBlockLength(admin, length, target_count = 1)
 		if (!length)
 			return false;
 		if (length > MAX_TIME_MULTI)
+			return false;
+		if (length > DefaultTime)
 			return false;
 		else
 			return true;
@@ -2738,7 +2767,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 		InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
 }
 
-stock ShowActivityToServer(admin, type, length, String:reason[], String:targetName[], bool:ml = false)
+stock ShowActivityToServer(admin, type, length = 0, String:reason[] = "", String:targetName[], bool:ml = false)
 {
 	new String:actionName[32], String:translationName[64];
 	switch(type)
@@ -2772,6 +2801,32 @@ stock ShowActivityToServer(admin, type, length, String:reason[], String:targetNa
 			else	//temp block
 				strcopy(actionName, sizeof(actionName), "Temp silenced");
 		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_UNMUTE:
+		{
+			strcopy(actionName, sizeof(actionName), "Unmuted");
+		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_UNGAG:
+		{
+			strcopy(actionName, sizeof(actionName), "Ungagged");
+		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_TEMP_UNMUTE:
+		{
+			strcopy(actionName, sizeof(actionName), "Temp unmuted");
+		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_TEMP_UNGAG:
+		{
+			strcopy(actionName, sizeof(actionName), "Temp ungagged");
+		}
+		//-------------------------------------------------------------------------------------------------
+		case TYPE_TEMP_UNSILENCE:
+		{
+			strcopy(actionName, sizeof(actionName), "Temp unsilenced");
+		}
+		//-------------------------------------------------------------------------------------------------
 		default:
 		{
 			return;

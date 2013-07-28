@@ -1,4 +1,8 @@
 #Changelog
+* **0.9.XXX**
+	* Added ability to use @all, @blue, @ct, etc. as punishment target (without saving to DB).
+	* Added ability to temporary mass-removing punishements (with @all, @blue, @ct, etc targets) - without removing from DB.
+	* Some bugs fixes.
 * **0.9.9** - Added Polish translation. Thanks to [killerps](https://forums.alliedmods.net/member.php?u=145192).
 * **0.9.7** - Added the ability to use the player's name in quotes in console commands. Request from [lyric](https://forums.alliedmods.net/member.php?u=197409).
 * **0.9.1**
