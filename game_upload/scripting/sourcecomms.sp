@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.190"
+#define PLUGIN_VERSION "0.9.194"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -269,7 +269,7 @@ public OnClientPostAdminCheck(client)
 	GetClientAuthString(client, clientAuth, sizeof(clientAuth));
 	GetClientName(client, g_sName[client], sizeof(g_sName[]));
 
-	/* Do not check bots nor check player with lan steamid. */
+	/* Do not check bots or check player with lan steamid. */
 	if (clientAuth[0] == 'B' || clientAuth[9] == 'L' || !DB_Connect())
 	{
 		g_bPlayerStatus[client] = true;
@@ -2303,6 +2303,10 @@ stock bool:TempUnBlock(Handle:data)
 	ReadPackString(data, reason, sizeof(reason));
 	CloseHandle(data);	// Need to close datapack
 
+	#if defined DEBUG
+		PrintToServer("TempUnBlock(adminUID: %d, targetUID: %d, type: %d, adminAuth: %s, targetAuth: %s, reason: %s)", adminUserID, targetUserID, type, adminAuth, targetAuth, reason);
+	#endif
+
 	new admin = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 	if (!target)
@@ -2312,11 +2316,11 @@ stock bool:TempUnBlock(Handle:data)
 	new bool:AdmImCheck = (DisUBImCheck == 0 && ((type == TYPE_MUTE && AdmImmunity > g_iMuteLevel[target]) || (type == TYPE_GAG && AdmImmunity > g_iGagLevel[target]) || (type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target] && AdmImmunity > g_iGagLevel[target]) ) );
 
 	#if defined DEBUG
-		LogToFile(logFile, "WHO WE ARE CHECKING!");
+		PrintToServer("WHO WE ARE CHECKING!");
 		if (!admin)
-			LogToFile(logFile, "we are console (possibly)");
+			PrintToServer("we are console (possibly)");
 		if (AdmHasFlag(admin))
-			LogToFile(logFile, "we have special flag");
+			PrintToServer("we have special flag");
 	#endif
 
 	// Check access for unblock without db changes (temporary unblock)
@@ -2324,23 +2328,27 @@ stock bool:TempUnBlock(Handle:data)
 	{
 		switch(type)
 		{
-			case TYPE_MUTE:
+			case TYPE_UNMUTE:
 			{
 				PerformUnMute(target);
 				LogAction(admin, target, "\"%L\" temporary unmuted \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
-			case TYPE_GAG:
+			case TYPE_UNGAG:
 			{
 				PerformUnGag(target);
 				LogAction(admin, target, "\"%L\" temporary ungagged \"%L\" (reason \"%s\")", admin, target, reason);
 			}
 			//-------------------------------------------------------------------------------------------------
-			case TYPE_SILENCE:
+			case TYPE_UNSILENCE:
 			{
 				PerformUnMute(target);
 				PerformUnGag(target);
 				LogAction(admin, target, "\"%L\" temporary unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
+			}
+			default:
+			{
+				return false;
 			}
 		}
 		return true;
