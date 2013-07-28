@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.198"
+#define PLUGIN_VERSION "0.9.200"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1323,9 +1323,14 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
 	{
 		LogError("Query_UnBlockSelect failed: %s", error);
 		if (admin && IsClientInGame(admin))
-			ReplyToCommand(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
+		{
+			PrintToChat(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
+			PrintToConsole(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
+		}
 		else
+		{
 			PrintToServer("%s%T", PREFIX, "Unblock Select Failed", LANG_SERVER, targetAuth);
+		}
 		hasErrors = true;
 	}
 
@@ -1334,8 +1339,11 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
 	{
 		if (admin && IsClientInGame(admin))
 		{
-			ReplyToCommand(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
-		} else {
+			PrintToChat(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
+			PrintToConsole(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
+		}
+		else
+		{
 			PrintToServer("%s%T", PREFIX, "No blocks found", LANG_SERVER, targetAuth);
 		}
 		hasErrors = true;
@@ -1438,14 +1446,20 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
 					case TYPE_MUTE:
 					{
 						if (admin && IsClientInGame(admin))
-							ReplyToCommand(admin, "%s%t", PREFIX, "No permission unmute", targetName);
+						{
+							PrintToChat(admin, "%s%t", PREFIX, "No permission unmute", targetName);
+							PrintToConsole(admin, "%s%t", PREFIX, "No permission unmute", targetName);
+						}
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute %s (reason \"%s\")", admin, targetAuth, reason);
 					}
 					//-------------------------------------------------------------------------------------------------
 					case TYPE_GAG:
 					{
 						if (admin && IsClientInGame(admin))
-							ReplyToCommand(admin, "%s%t", PREFIX, "No permission ungag", targetName);
+						{
+							PrintToChat(admin, "%s%t", PREFIX, "No permission ungag", targetName);
+							PrintToConsole(admin, "%s%t", PREFIX, "No permission ungag", targetName);
+						}
 						LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag %s (reason \"%s\")", admin, targetAuth, reason);
 					}
 				}
@@ -1495,7 +1509,10 @@ public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:
 	{
 		LogError("Query_UnBlockUpdate failed: %s", error);
 		if (admin && IsClientInGame(admin))
-			ReplyToCommand(admin, "%s%t", PREFIX, "Unblock insert failed");
+		{
+			PrintToChat(admin, "%s%t", PREFIX, "Unblock insert failed");
+			PrintToConsole(admin, "%s%t", PREFIX, "Unblock insert failed");
+		}
 		return;
 	}
 
@@ -1505,18 +1522,27 @@ public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:
 		{
 			LogAction(admin, -1, "\"%L\" removed mute for %s from DB", admin, targetAuth);
 			if (admin && IsClientInGame(admin))
-				ReplyToCommand(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
+			{
+				PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
+				PrintToConsole(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
+			}
 			else
+			{
 				PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, targetName);
+			}
 		}
 		//-------------------------------------------------------------------------------------------------
 		case TYPE_GAG:
 		{
 			LogAction(admin, -1, "\"%L\" removed gag for %s from DB", admin, targetAuth);
-			if (admin && IsClientInGame(admin))
-				ReplyToCommand(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
+			if (admin && IsClientInGame(admin)){
+				PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
+				PrintToConsole(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
+			}
 			else
+			{
 				PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, targetName);
+			}
 		}
 	}
 }
@@ -2383,7 +2409,10 @@ stock bool:TempUnBlock(Handle:data)
 	else
 	{
 		if (admin && IsClientInGame(admin))
-			ReplyToCommand(admin, "%s%t", PREFIX, "No db error unlock perm");
+		{
+			PrintToChat(admin, "%s%t", PREFIX, "No db error unlock perm");
+			PrintToConsole(admin, "%s%t", PREFIX, "No db error unlock perm");
+		}
 		return false;
 	}
 }
