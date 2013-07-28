@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.194"
+#define PLUGIN_VERSION "0.9.198"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1309,6 +1309,11 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
 	new admin  = GetClientOfUserId(adminUserID);
 	new target = GetClientOfUserId(targetUserID);
 
+	#if defined DEBUG
+		PrintToServer("Query_UnBlockSelect(adminUID: %d/%d, targetUID: %d/%d, type: %d, adminAuth: %s, targetAuth: %s, reason: %s)",
+			adminUserID, admin, targetUserID, target, type, adminAuth, targetAuth, reason);
+	#endif
+
 	new String:targetName[MAX_NAME_LENGTH];
 	strcopy(targetName, MAX_NAME_LENGTH, target && IsClientInGame(target) ? g_sName[target] : targetAuth);		//FIXME
 
@@ -1347,8 +1352,6 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
 	}
 	else
 	{
-		CloseHandle(data);	// Need to close datapack
-
 		#if defined DEBUG
 			LogToFile(logFile, "Processing unblock. Type: %d, admin %s, target %s,", type, adminAuth, targetAuth);
 		#endif
@@ -1448,7 +1451,27 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
 				}
 			}
 		}
+
+		if (target && IsClientInGame(target) && type == TYPE_UNSILENCE)
+		{
+			// check result for possible combination with temp and time punishments (temp was skipped in code above)
+			SetPackPosition(data, 16);
+			if (g_MuteType[target] > bNot)
+			{
+				WritePackCell(data, TYPE_UNMUTE);
+				TempUnBlock(data);
+				data = INVALID_HANDLE;
+			}
+			else if (g_GagType[target] > bNot)
+			{
+				WritePackCell(data, TYPE_UNGAG);
+				TempUnBlock(data);
+				data = INVALID_HANDLE;
+			}
+		}
 	}
+	if (data != INVALID_HANDLE)
+		CloneHandle(data);
 }
 
 public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:data)
@@ -1585,15 +1608,19 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
 	decl String:clientAuth[64];
 	new client = GetClientOfUserId(userid);
 
+	#if defined DEBUG
+		PrintToServer("Query_VerifyBlock(userid: %d, client: %d)", userid, client);
+	#endif
+
 	if (!client)
 		return;
 
 	/* Failure happen. Do retry with delay */
 	if (DB_Conn_Lost(hndl))
 	{
-		LogToFile(logFile, "Verify Blocks Query Failed: %s", error);
+		LogError("Query_VerifyBlock failed: %s", error);
 		if (g_hPlayerRecheck[client] == INVALID_HANDLE)
-			g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, GetClientUserId(client));
+			g_hPlayerRecheck[client] = CreateTimer(RetryTime, ClientRecheck, userid);
 		return;
 	}
 
