@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.183"
+#define PLUGIN_VERSION "0.9.190"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL    "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -278,6 +278,20 @@ public OnClientPostAdminCheck(client)
 
 	if (client > 0 && IsClientInGame(client) && !IsFakeClient(client))
 	{
+		// if plugin was late loaded
+		if (BaseComm_IsClientMuted(client))
+		{
+			g_MuteType[client]   = bSess;
+			g_iMuteTime[client]  = GetTime();
+			g_sMuteAdmin[client] = "CONSOLE";
+		}
+		if (BaseComm_IsClientGagged(client))
+		{
+			g_GagType[client]   = bSess;
+			g_iGagTime[client]  = GetTime();
+			g_sGagAdmin[client] = "CONSOLE";
+		}
+
 		new String:sClAuthYZEscaped[sizeof(clientAuth) * 2 + 1];
 		SQL_EscapeString(g_hDatabase, clientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
 
