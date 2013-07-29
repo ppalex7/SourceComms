@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.220"
+#define PLUGIN_VERSION "0.9.221"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -25,15 +25,14 @@
 #define MAX_TIME_MULTI 30       // maximum mass-target punishment length
 
 #define NOW 0
-#define TYPE_UN_SHIFT 3
 #define TYPE_TEMP_SHIFT 10
 
 #define TYPE_MUTE 1
 #define TYPE_GAG 2
 #define TYPE_SILENCE 3
-#define TYPE_UNMUTE 4           // TYPE_UN_SHIFT   + TYPE_MUTE
-#define TYPE_UNGAG 5            // TYPE_UN_SHIFT   + TYPE_GAG
-#define TYPE_UNSILENCE 6        // TYPE_UN_SHIFT   + TYPE_SILENCE
+#define TYPE_UNMUTE 4
+#define TYPE_UNGAG 5
+#define TYPE_UNSILENCE 6
 #define TYPE_TEMP_UNMUTE 14     // TYPE_TEMP_SHIFT + TYPE_UNMUTE
 #define TYPE_TEMP_UNGAG 15      // TYPE_TEMP_SHIFT + TYPE_UNGAG
 #define TYPE_TEMP_UNSILENCE 16  // TYPE_TEMP_SHIFT + TYPE_UNSILENCE
@@ -1437,7 +1436,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
                             LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
                         }
                     }
-                    ShowActivityToServer(admin, type + TYPE_UN_SHIFT, _, _, g_sName[target], _);
+                    ShowActivityToServer(admin, type, _, _, g_sName[target], _);
                 }
 
                 new Handle:dataPack = CreateDataPack();
