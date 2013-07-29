@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.216"
+#define PLUGIN_VERSION "0.9.217"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1845,11 +1845,17 @@ public SMCResult:ReadConfig_NewSection(Handle:smc, const String:name[], bool:opt
         if (strcmp("Config", name, false) == 0)
         {
             ConfigState = ConfigStateConfig;
-        } else if (strcmp("CommsReasons", name, false) == 0) {
+        }
+        else if (strcmp("CommsReasons", name, false) == 0)
+        {
             ConfigState = ConfigStateReasons;
-        } else if (strcmp("CommsTimes", name, false) == 0) {
+        }
+        else if (strcmp("CommsTimes", name, false) == 0)
+        {
             ConfigState = ConfigStateTimes;
-        } else if (strcmp("ServersWhiteList", name, false) == 0) {
+        }
+        else if (strcmp("ServersWhiteList", name, false) == 0)
+        {
             ConfigState = ConfigStateServers;
         }
     }
