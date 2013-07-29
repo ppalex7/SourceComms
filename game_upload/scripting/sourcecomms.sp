@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.215"
+#define PLUGIN_VERSION "0.9.216"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -170,16 +170,16 @@ public OnPluginStart()
     g_hServersWhiteList = CreateArray();
 
     CreateConVar("sourcecomms_version", PLUGIN_VERSION, _, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
-    AddCommandListener(CommandGag, "sm_gag");
-    AddCommandListener(CommandUnGag, "sm_ungag");
-    AddCommandListener(CommandMute, "sm_mute");
-    AddCommandListener(CommandUnMute, "sm_unmute");
-    AddCommandListener(CommandSilence, "sm_silence");
+    AddCommandListener(CommandGag,       "sm_gag");
+    AddCommandListener(CommandUnGag,     "sm_ungag");
+    AddCommandListener(CommandMute,      "sm_mute");
+    AddCommandListener(CommandUnMute,    "sm_unmute");
+    AddCommandListener(CommandSilence,   "sm_silence");
     AddCommandListener(CommandUnSilence, "sm_unsilence");
-    RegServerCmd("sc_fw_block", FWBlock, "Blocking player comms by command from sourceban web site", FCVAR_PLUGIN);
-    RegServerCmd("sc_fw_ungag", FWUngag, "Ungagging player by command from sourceban web site", FCVAR_PLUGIN);
-    RegServerCmd("sc_fw_unmute",FWUnmute, "Unmuting player by command from sourceban web site", FCVAR_PLUGIN);
-    RegConsoleCmd("sm_comms", CommandComms, "Shows current player communications status", FCVAR_PLUGIN);
+    RegServerCmd("sc_fw_block", FWBlock,      "Blocking player comms by command from sourceban web site", FCVAR_PLUGIN);
+    RegServerCmd("sc_fw_ungag", FWUngag,      "Ungagging player by command from sourceban web site", FCVAR_PLUGIN);
+    RegServerCmd("sc_fw_unmute",FWUnmute,     "Unmuting player by command from sourceban web site", FCVAR_PLUGIN);
+    RegConsoleCmd("sm_comms",   CommandComms, "Shows current player communications status", FCVAR_PLUGIN);
 
     HookEvent("player_changename", Event_OnPlayerName, EventHookMode_Post);
 
@@ -304,21 +304,21 @@ public OnClientPostAdminCheck(client)
 
         decl String:Query[512];
         FormatEx(Query, sizeof(Query),
-           "SELECT      (c.ends - UNIX_TIMESTAMP()) as remaining \
+           "SELECT      (c.ends - UNIX_TIMESTAMP()) AS remaining \
                         c.length, \
                         c.type, \
                         c.created, \
                         c.reason, \
                         a.user, \
-                        IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, \
+                        IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) AS immunity, \
                         c.aid, \
                         c.sid \
-            FROM        %s_comms c \
-            LEFT JOIN   %s_admins a     ON a.aid = c.aid \
-            LEFT JOIN   %s_srvgroups g  ON g.name = a.srv_group \
+            FROM        %s_comms     AS c \
+            LEFT JOIN   %s_admins    AS a  ON a.aid = c.aid \
+            LEFT JOIN   %s_srvgroups AS g  ON g.name = a.srv_group \
             WHERE       RemoveType IS NULL \
-                        AND c.authid REGEXP '^STEAM_[0-9]:%s$' \
-                        AND (length = '0' OR ends > UNIX_TIMESTAMP())",
+                          AND c.authid REGEXP '^STEAM_[0-9]:%s$' \
+                          AND (length = '0' OR ends > UNIX_TIMESTAMP())",
             DatabasePrefix, DatabasePrefix, DatabasePrefix, sClAuthYZEscaped);
         #if defined LOG_QUERIES
             LogToFile(logQuery, "OnClientPostAdminCheck for: %s. QUERY: %s", clientAuth, Query);
@@ -1301,7 +1301,7 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
     // Process queue
     SQL_TQuery(SQLiteDB, Query_ProcessQueue,
        "SELECT  id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type \
-        FROM     queue2");
+        FROM    queue2");
 
     // Force recheck players
     ForcePlayersRecheck();
@@ -2401,13 +2401,13 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
                             c.aid, \
                             IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, \
                             c.type \
-                FROM        %s_comms c \
-                LEFT JOIN   %s_admins a ON a.aid = c.aid \
-                LEFT JOIN   %s_srvgroups g ON g.name = a.srv_group \
+                FROM        %s_comms     AS c \
+                LEFT JOIN   %s_admins    AS a ON a.aid = c.aid \
+                LEFT JOIN   %s_srvgroups AS g ON g.name = a.srv_group \
                 WHERE       RemoveType IS NULL \
-                            AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') \
-                            AND (length = '0' OR ends > UNIX_TIMESTAMP()) \
-                            AND %s",
+                              AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') \
+                              AND (length = '0' OR ends > UNIX_TIMESTAMP()) \
+                              AND %s",
                 DatabasePrefix, sAdminAuthEscaped, sAdminAuthYZEscaped, DatabasePrefix, DatabasePrefix, DatabasePrefix, sTargetAuthEscaped, sTargetAuthYZEscaped, typeWHERE);
 
             #if defined LOG_QUERIES
