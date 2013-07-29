@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.221"
+#define PLUGIN_VERSION "0.9.229"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -169,12 +169,12 @@ public OnPluginStart()
     g_hServersWhiteList = CreateArray();
 
     CreateConVar("sourcecomms_version", PLUGIN_VERSION, _, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
-    AddCommandListener(CommandGag,       "sm_gag");
-    AddCommandListener(CommandUnGag,     "sm_ungag");
-    AddCommandListener(CommandMute,      "sm_mute");
-    AddCommandListener(CommandUnMute,    "sm_unmute");
-    AddCommandListener(CommandSilence,   "sm_silence");
-    AddCommandListener(CommandUnSilence, "sm_unsilence");
+    AddCommandListener(CommandCallback,       "sm_gag");
+    AddCommandListener(CommandCallback,       "sm_mute");
+    AddCommandListener(CommandCallback,       "sm_silence");
+    AddCommandListener(CommandCallback,       "sm_ungag");
+    AddCommandListener(CommandCallback,       "sm_unmute");
+    AddCommandListener(CommandCallback,       "sm_unsilence");
     RegServerCmd("sc_fw_block", FWBlock,      "Blocking player comms by command from sourceban web site", FCVAR_PLUGIN);
     RegServerCmd("sc_fw_ungag", FWUngag,      "Ungagging player by command from sourceban web site", FCVAR_PLUGIN);
     RegServerCmd("sc_fw_unmute",FWUnmute,     "Unmuting player by command from sourceban web site", FCVAR_PLUGIN);
@@ -517,111 +517,44 @@ public Action:FWUnmute(args)
     return Plugin_Handled;
 }
 
-public Action:CommandGag(client, const String:command[], args)
+
+public Action:CommandCallback(client, const String:command[], args)
 {
-    if (client && !CheckCommandAccess(client, "sm_gag", ADMFLAG_CHAT))
+    if (client && !CheckCommandAccess(client, command, ADMFLAG_CHAT))
         return Plugin_Continue;
+
+    new type;
+    if (StrEqual(command, "sm_gag", false))
+        type = TYPE_GAG;
+    else if (StrEqual(command, "sm_mute", false))
+        type = TYPE_MUTE;
+    else if (StrEqual(command, "sm_ungag", false))
+        type = TYPE_UNGAG;
+    else if (StrEqual(command, "sm_unmute", false))
+        type = TYPE_UNMUTE;
+    else if (StrEqual(command, "sm_silence", false))
+        type = TYPE_SILENCE;
+    else if (StrEqual(command, "sm_unsilence", false))
+        type = TYPE_UNSILENCE;
+    else
+        return Plugin_Stop;
 
     if (args < 1)
     {
-        ReplyToCommand(client, "%sUsage: sm_gag <#userid|name> [time|0] [reason]", PREFIX);
-        ReplyToCommand(client, "%s%t", PREFIX, "Usage_time", DefaultTime);
+        ReplyToCommand(client, "%sUsage: %s <#userid|name> %s", PREFIX, command, type <= TYPE_SILENCE ? "[time|0] [reason]" : "[reason]");
+        if (type <= TYPE_SILENCE)
+            ReplyToCommand(client, "%sUsage: %s <#userid|name> [reason]", PREFIX, command);
         return Plugin_Stop;
     }
 
     new String:sBuffer[256];
     GetCmdArgString(sBuffer, sizeof(sBuffer));
-    CreateBlock(client, _, _, TYPE_GAG, _, sBuffer);
 
-    return Plugin_Stop;
-}
+    if (type <= TYPE_SILENCE)
+        CreateBlock(client, _, _, type, _, sBuffer);
+    else
+        ProcessUnBlock(client, _, type, _, sBuffer);
 
-public Action:CommandMute(client, const String:command[], args)
-{
-    if (client && !CheckCommandAccess(client, "sm_mute", ADMFLAG_CHAT))
-        return Plugin_Continue;
-
-    if (args < 1)
-    {
-        ReplyToCommand(client, "%sUsage: sm_mute <#userid|name> [time|0] [reason]", PREFIX);
-        ReplyToCommand(client, "%s%t", PREFIX, "Usage_time", DefaultTime);
-        return Plugin_Stop;
-    }
-
-    new String:sBuffer[256];
-    GetCmdArgString(sBuffer, sizeof(sBuffer));
-    CreateBlock(client, _, _, TYPE_MUTE, _, sBuffer);
-
-    return Plugin_Stop;
-}
-
-public Action:CommandSilence(client, const String:command[], args)
-{
-    if (client && !CheckCommandAccess(client, "sm_silence", ADMFLAG_CHAT))
-        return Plugin_Continue;
-
-    if (args < 1)
-    {
-        ReplyToCommand(client, "%sUsage: sm_silence <#userid|name> [time|0] [reason]", PREFIX);
-        ReplyToCommand(client, "%s%t", PREFIX, "Usage_time", DefaultTime);
-        return Plugin_Stop;
-    }
-
-    new String:sBuffer[256];
-    GetCmdArgString(sBuffer, sizeof(sBuffer));
-    CreateBlock(client, _, _, TYPE_SILENCE, _, sBuffer);
-
-    return Plugin_Stop;
-}
-
-public Action:CommandUnGag(client, const String:command[], args)
-{
-    if (client && !CheckCommandAccess(client, "sm_ungag", ADMFLAG_CHAT))
-        return Plugin_Continue;
-
-    if (args < 1)
-    {
-        ReplyToCommand(client, "%sUsage: sm_ungag <#userid|name> [reason]", PREFIX);
-        return Plugin_Stop;
-    }
-
-    new String:sBuffer[256];
-    GetCmdArgString(sBuffer, sizeof(sBuffer));
-    ProcessUnBlock(client, _, TYPE_UNGAG, _, sBuffer);
-    return Plugin_Stop;
-}
-
-public Action:CommandUnMute(client, const String:command[], args)
-{
-    if (client && !CheckCommandAccess(client, "sm_unmute", ADMFLAG_CHAT))
-        return Plugin_Continue;
-
-    if (args < 1)
-    {
-        ReplyToCommand(client, "%sUsage: sm_unmute <#userid|name> [reason]", PREFIX);
-        return Plugin_Stop;
-    }
-
-    new String:sBuffer[256];
-    GetCmdArgString(sBuffer, sizeof(sBuffer));
-    ProcessUnBlock(client, _, TYPE_UNMUTE, _, sBuffer);
-    return Plugin_Stop;
-}
-
-public Action:CommandUnSilence(client, const String:command[], args)
-{
-    if (client && !CheckCommandAccess(client, "sm_unsilence", ADMFLAG_CHAT))
-        return Plugin_Continue;
-
-    if (args < 1)
-    {
-        ReplyToCommand(client, "%sUsage: sm_unsilence <#userid|name> [reason]", PREFIX);
-        return Plugin_Stop;
-    }
-
-    new String:sBuffer[256];
-    GetCmdArgString(sBuffer, sizeof(sBuffer));
-    ProcessUnBlock(client, _, TYPE_UNSILENCE, _, sBuffer);
     return Plugin_Stop;
 }
 
