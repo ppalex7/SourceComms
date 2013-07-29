@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.217"
+#define PLUGIN_VERSION "0.9.219"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -302,17 +302,12 @@ public OnClientPostAdminCheck(client)
         new String:sClAuthYZEscaped[sizeof(clientAuth) * 2 + 1];
         SQL_EscapeString(g_hDatabase, clientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
 
-        decl String:Query[512];
+        decl String:Query[4096];
         FormatEx(Query, sizeof(Query),
-           "SELECT      (c.ends - UNIX_TIMESTAMP()) AS remaining \
-                        c.length, \
-                        c.type, \
-                        c.created, \
-                        c.reason, \
-                        a.user, \
+           "SELECT      (c.ends - UNIX_TIMESTAMP()) AS remaining, \
+                        c.length, c.type, c.created, c.reason, a.user, \
                         IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) AS immunity, \
-                        c.aid, \
-                        c.sid \
+                        c.aid, c.sid \
             FROM        %s_comms     AS c \
             LEFT JOIN   %s_admins    AS a  ON a.aid = c.aid \
             LEFT JOIN   %s_srvgroups AS g  ON g.name = a.srv_group \
@@ -1454,7 +1449,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
                 new String:unbanReason[sizeof(reason) * 2 + 1];
                 SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
 
-                decl String:query[1024];
+                decl String:query[2048];
                 Format(query, sizeof(query),
                    "UPDATE  %s_comms \
                     SET     RemovedBy = %d, \
@@ -1585,7 +1580,7 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
     new String:name[MAX_NAME_LENGTH];
     decl String:reason[256];
     decl String:adminAuth[64], String:adminIp[20];
-    decl String:query[1024];
+    decl String:query[4096];
 
     while(SQL_MoreRows(hndl))
     {
@@ -1624,16 +1619,9 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
 
         FormatEx(query, sizeof(query),
                "INSERT INTO     %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) \
-/* authid */    VALUES         ('%s', \
-/* name */                      '%s', \
-/* created */                   %d, \
-/* ends */                      %d, \
-/* length */                    %d, \
-/* reason */                    '%s', \
-/* admin id */                  IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), \
-/* admin ip */                  '%s', \
-/* server id */                 %d, \
-/* type */                      %d)",
+                VALUES         ('%s', '%s', %d, %d, %d, '%s', \
+                                IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), \
+                                '%s', %d, %d)",
                 DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, serverID, type);
         #if defined LOG_QUERIES
             LogToFile(logQuery, "Query_ProcessQueue. QUERY: %s", query);
@@ -1644,18 +1632,18 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
 
 public Query_AddBlockFromQueue(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-    decl String:buffer[128];
+    decl String:query[512];
     if (error[0] == '\0')
     {
         // The insert was successful so delete the record from the queue
-        FormatEx(buffer, sizeof(buffer),
+        FormatEx(query, sizeof(query),
            "DELETE FROM queue2 \
             WHERE       id = %d",
             data);
         #if defined LOG_QUERIES
-            LogToFile(logQuery, "Query_AddBlockFromQueue. QUERY: %s", buffer);
+            LogToFile(logQuery, "Query_AddBlockFromQueue. QUERY: %s", query);
         #endif
-        SQL_TQuery(SQLiteDB, Query_ErrorCheck, buffer);
+        SQL_TQuery(SQLiteDB, Query_ErrorCheck, query);
     }
 }
 
@@ -2400,7 +2388,7 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
             SQL_EscapeString(g_hDatabase, targetAuth,    sTargetAuthEscaped,   sizeof(sTargetAuthEscaped));
             SQL_EscapeString(g_hDatabase, targetAuth[8], sTargetAuthYZEscaped, sizeof(sTargetAuthYZEscaped));
 
-            decl String:query[1024];
+            decl String:query[4096];
             Format(query, sizeof(query),
                "SELECT      c.bid, \
                             IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, \
