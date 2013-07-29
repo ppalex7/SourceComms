@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.211"
+#define PLUGIN_VERSION "0.9.212"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -94,7 +94,6 @@ new Handle:g_hMuteExpireTimer[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
 
 
 /* Log Stuff */
-new String:logFile[256];
 #if defined LOG_QUERIES
     new String:logQuery[256];
 #endif
@@ -182,8 +181,6 @@ public OnPluginStart()
     RegConsoleCmd("sm_comms", CommandComms, "Shows current player communications status", FCVAR_PLUGIN);
 
     HookEvent("player_changename", Event_OnPlayerName, EventHookMode_Post);
-
-    BuildPath(Path_SM, logFile, sizeof(logFile), "logs/sourcecomms.log");
 
     #if defined LOG_QUERIES
         BuildPath(Path_SM, logQuery, sizeof(logQuery), "logs/sourcecomms-q.log");
@@ -421,13 +418,13 @@ public Action:FWBlock(args)
                 {
                     PerformMute(i, _, length / 60, _, ConsoleImmunity, _);
                     PrintToChat(i, "%s%t", PREFIX, "Muted on connect");
-                    LogToFile(logFile, "%s is muted from web", clientAuth);
+                    LogMessage("%s is muted from web", clientAuth);
                 }
                 if (g_GagType[i] == bNot && (type == 2 || type == 3))
                 {
                     PerformGag(i, _, length / 60, _, ConsoleImmunity, _);
                     PrintToChat(i, "%s%t", PREFIX, "Gagged on connect");
-                    LogToFile(logFile, "%s is gagged from web", clientAuth);
+                    LogToFile("%s is gagged from web", clientAuth);
                 }
                 break;
             }
@@ -465,7 +462,7 @@ public Action:FWUngag(args)
                 {
                     PerformUnGag(i);
                     PrintToChat(i, "%s%t", PREFIX, "FWUngag");
-                    LogToFile(logFile, "%s is ungagged from web", clientAuth);
+                    LogMessage("%s is ungagged from web", clientAuth);
                 }
                 else
                     LogError("Can't ungag %s from web, it isn't gagged", clientAuth);
@@ -504,7 +501,7 @@ public Action:FWUnmute(args)
                 {
                     PerformUnMute(i);
                     PrintToChat(i, "%s%t", PREFIX, "FWUnmute");
-                    LogToFile(logFile, "%s is unmuted from web", clientAuth);
+                    LogMessage("%s is unmuted from web", clientAuth);
                 }
                 else
                     LogError("Can't unmute %s from web, it isn't muted", clientAuth);
@@ -1942,7 +1939,7 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
                 {
                     PushArrayCell(g_hServersWhiteList, srvID);
                     #if defined DEBUG
-                        PrintToServer(logFile, "Loaded white list server id %d", srvID);
+                        PrintToServer("Loaded white list server id %d", srvID);
                     #endif
                 }
             }
@@ -1961,7 +1958,7 @@ public SMCResult:ReadConfig_EndSection(Handle:smc)
 stock bool:DB_Connect()
 {
     #if defined DEBUG
-        PrintToServer(logFile, "DB_Connect(handle %d, state %d, lock %d)", g_hDatabase, g_DatabaseState, g_iConnectLock);
+        PrintToServer("DB_Connect(handle %d, state %d, lock %d)", g_hDatabase, g_DatabaseState, g_iConnectLock);
     #endif
 
     if (g_hDatabase)
@@ -1991,7 +1988,7 @@ stock bool:DB_Conn_Lost(Handle:hndl)
     {
         if (g_hDatabase != INVALID_HANDLE)
         {
-            LogToFile(logFile, "Lost connection to DB. Reconnect after delay.");
+            LogError("Lost connection to DB. Reconnect after delay.");
             CloseHandle(g_hDatabase);
             g_hDatabase = INVALID_HANDLE;
         }
