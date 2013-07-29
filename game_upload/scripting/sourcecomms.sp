@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.219"
+#define PLUGIN_VERSION "0.9.220"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2938,6 +2938,11 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 
 stock ShowActivityToServer(admin, type, length = 0, String:reason[] = "", String:targetName[], bool:ml = false)
 {
+    #if defined DEBUG
+        PrintToServer("ShowActivityToServer(admin: %d, type: %d, length: %d, reason: %s, name: %s, ml: %b",
+            admin, type, length, reason, targetName, ml);
+    #endif
+
     new String:actionName[32], String:translationName[64];
     switch(type)
     {
@@ -3001,7 +3006,12 @@ stock ShowActivityToServer(admin, type, length = 0, String:reason[] = "", String
             return;
         }
     }
+
     Format(translationName, sizeof(translationName), "%s %s", actionName, reason[0] == '\0' ? "player" : "player reason");
+    #if defined DEBUG
+        PrintToServer("translation name: %s", translationName);
+    #endif
+
     if (length > 0)
     {
         if (ml)
