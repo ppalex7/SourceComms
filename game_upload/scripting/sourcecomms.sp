@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.212"
+#define PLUGIN_VERSION "0.9.213"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1281,7 +1281,7 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
     SQL_TQuery(g_hDatabase, Query_ErrorCheck, query);
 
     // Process queue
-    SQL_TQuery(SQLiteDB, ProcessQueueCallbackB,
+    SQL_TQuery(SQLiteDB, Query_ProcessQueue,
        "SELECT  id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type \
         FROM     queue2");
 
@@ -1555,11 +1555,11 @@ public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:
 }
 
 // ProcessQueueCallback is called as the result of selecting all the rows from the queue table
-public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], any:data)
+public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
     if (hndl == INVALID_HANDLE || error[0])
     {
-        LogError("Failed to retrieve queued blocks from sqlite database, %s", error);
+        LogError("Query_ProcessQueue failed: %s", error);
         return;
     }
 
@@ -1618,13 +1618,13 @@ public ProcessQueueCallbackB(Handle:owner, Handle:hndl, const String:error[], an
 /* type */                      %d)",
                 DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, serverID, type);
         #if defined LOG_QUERIES
-            LogToFile(logQuery, "in ProcessQueueCallbackB. QUERY: %s", query);
+            LogToFile(logQuery, "Query_ProcessQueue. QUERY: %s", query);
         #endif
-        SQL_TQuery(g_hDatabase, AddedFromSQLiteCallbackB, query, id);
+        SQL_TQuery(g_hDatabase, Query_AddBlockFromQueue, query, id);
     }
 }
 
-public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[], any:data)
+public Query_AddBlockFromQueue(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
     decl String:buffer[128];
     if (error[0] == '\0')
@@ -1635,7 +1635,7 @@ public AddedFromSQLiteCallbackB(Handle:owner, Handle:hndl, const String:error[],
             WHERE       id = %d",
             data);
         #if defined LOG_QUERIES
-            LogToFile(logQuery, "in AddedFromSQLiteCallbackB. QUERY: %s", buffer);
+            LogToFile(logQuery, "Query_AddBlockFromQueue. QUERY: %s", buffer);
         #endif
         SQL_TQuery(SQLiteDB, Query_ErrorCheck, buffer);
     }
