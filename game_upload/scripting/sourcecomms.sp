@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.213"
+#define PLUGIN_VERSION "0.9.214"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -151,6 +151,7 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
     CreateNative("SourceComms_SetClientGag",        Native_SetClientGag);
     CreateNative("SourceComms_GetClientMuteType",   Native_GetClientMuteType);
     CreateNative("SourceComms_GetClientGagType",    Native_GetClientGagType);
+    MarkNativeAsOptional("SQL_SetCharset");
     RegPluginLibrary("sourcecomms");
     return APLRes_Success;
 }
@@ -1273,12 +1274,19 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
     }
 
     // Set character set to UTF-8 in the database
-    decl String:query[128];
-    FormatEx(query, sizeof(query), "SET NAMES 'UTF8'");
-    #if defined LOG_QUERIES
-        LogToFile(logQuery, "Set encoding. QUERY: %s", query);
-    #endif
-    SQL_TQuery(g_hDatabase, Query_ErrorCheck, query);
+    if (GetFeatureStatus(FeatureType_Native, "SQL_SetCharset") == FeatureStatus_Available)
+    {
+        SQL_SetCharset(g_hDatabase, "utf8");
+    }
+    else
+    {
+        decl String:query[128];
+        FormatEx(query, sizeof(query), "SET NAMES 'UTF8'");
+        #if defined LOG_QUERIES
+            LogToFile(logQuery, "Set encoding. QUERY: %s", query);
+        #endif
+        SQL_TQuery(g_hDatabase, Query_ErrorCheck, query);
+    }
 
     // Process queue
     SQL_TQuery(SQLiteDB, Query_ProcessQueue,

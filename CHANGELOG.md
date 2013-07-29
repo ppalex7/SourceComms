@@ -4,6 +4,7 @@
 	* Added ability to temporary mass-removing punishements (with @all, @blue, @ct, etc targets) - without removing from DB.
 	* Fixed bugs with permissions check on removing punishments.
 	* Fixed bug with unsilence on players which has combination of temp and time/perm punishments.
+    * Fixed [bug](https://bugs.alliedmods.net/show_bug.cgi?id=5786) with broken mysql connection encoding after reconnect. Supported on SM builds greather than **1.6.0-dev+3947**.
 	* Some bugs fixes.
 	* Code improvements.
 * **0.9.9** - Added Polish translation. Thanks to [killerps](https://forums.alliedmods.net/member.php?u=145192).
