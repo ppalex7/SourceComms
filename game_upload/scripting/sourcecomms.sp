@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.214"
+#define PLUGIN_VERSION "0.9.215"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -232,6 +232,16 @@ public OnLibraryRemoved(const String:name[])
 public OnMapStart()
 {
     ReadConfig();
+}
+
+public OnMapEnd()
+{
+    // Clean up on map end just so we can start a fresh connection when we need it later.
+    // Also it is necessary for using SQL_SetCharset
+    if(g_hDatabase)
+        CloseHandle(g_hDatabase);
+
+    g_hDatabase = INVALID_HANDLE;
 }
 
 
