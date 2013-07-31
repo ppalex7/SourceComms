@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.229"
+#define PLUGIN_VERSION "0.9.232"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1369,7 +1369,6 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
                             LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
                         }
                     }
-                    ShowActivityToServer(admin, type, _, _, g_sName[target], _);
                 }
 
                 new Handle:dataPack = CreateDataPack();
@@ -1423,21 +1422,25 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             }
         }
 
-        if (target && IsClientInGame(target) && type == TYPE_UNSILENCE)
+        if (target && IsClientInGame(target))
         {
-            // check result for possible combination with temp and time punishments (temp was skipped in code above)
-            SetPackPosition(data, 16);
-            if (g_MuteType[target] > bNot)
+            ShowActivityToServer(admin, type, _, _, g_sName[target], _);
+            if (type == TYPE_UNSILENCE)
             {
-                WritePackCell(data, TYPE_UNMUTE);
-                TempUnBlock(data);
-                data = INVALID_HANDLE;
-            }
-            else if (g_GagType[target] > bNot)
-            {
-                WritePackCell(data, TYPE_UNGAG);
-                TempUnBlock(data);
-                data = INVALID_HANDLE;
+                // check result for possible combination with temp and time punishments (temp was skipped in code above)
+                SetPackPosition(data, 16);
+                if (g_MuteType[target] > bNot)
+                {
+                    WritePackCell(data, TYPE_UNMUTE);
+                    TempUnBlock(data);
+                    data = INVALID_HANDLE;
+                }
+                else if (g_GagType[target] > bNot)
+                {
+                    WritePackCell(data, TYPE_UNGAG);
+                    TempUnBlock(data);
+                    data = INVALID_HANDLE;
+                }
             }
         }
     }
@@ -2308,7 +2311,7 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
         WritePackString(dataPack, reason);
 
         // Check current player status. If player has temporary punishment - don't get info from DB
-        if (!dontCheckDB &&    DB_Connect())
+        if (!dontCheckDB && DB_Connect())
         {
             new String:sAdminAuthEscaped[sizeof(adminAuth) * 2 + 1];
             new String:sAdminAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
