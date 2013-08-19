@@ -7,7 +7,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 ***********
 
 ## Requirements
-* Working sourcebans system *(yes, you need MySQL server and web server with PHP)*
+* Working sourcebans system *(yes, you need MySQL server and web server with PHP)*. Currently supported versions **1.4.*** (and 1.5.0 for sourcebans plugin). Integration into sourcebans 2.0 currently in development.
 * SourceMod **1.5.0-hg3761** or **newer** is required.
 
 ##Compatibility:
@@ -25,6 +25,11 @@ Also includes files and instructions to integration to existing sourcebans web-p
 	* Extended punishments will automatically expire in-game at the designated time.
 	* Permanent punishments remain on the player until an administrator removes them.
 	* If the server has problems with access to the database, the punishments will store in SQLite database and would be added in the main database when connection is restored. *(like in sourcebans plugin, yes)*
+* Also you could apply punishments to multi-targets (such as `@all`, `@ct`, `@blue`, etc...)^
+	* Multi-target punishments will **not** be saved in db.
+    * Removing punishments from multi-targets will removed punishments **temporary** (not from db).
+    * Allowed session (temporary) punishments and extended with length less than 30 minutes **and** less than `DefaultTime` settings.
+    * Permanent multi-target punishments **is not available**.
 * SourceComms has support for protecting current punishments based on immunity levels.
 	* When a punishment is issued, the administrator responsible has their immunity level attached to the punishment. In order to remove that punishment, the second administrator must have **higher** immunity level or special admin flag (<i>ADMFLAG\_CUSTOM2</i> by default. You may change it in sourcecode). Also, punishment can be removed by console or his author.
 	* Punishments issued by *CONSOLE* has some immunity level (which is set in config, option *"ConsoleImmunity"*).
@@ -55,8 +60,8 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * `sm_ungag <player> <optional:reason>` - Restores a player's ability to use in-game chat.
 * `sm_unsilence <player> <optional:reason>` - Restores a player's ability to use in-game voice and chat.
 
-The **player** parameter could be Name *(only as single word, without whitespaces)* or UserID.<br/>
-The **time** parameter controls how long the player is punished. (`< 0` == Temporary, `0` == Permanent, `#` == Minutes). If not specified it will be *"DefaultTime"* minutes (**30** by default).
+The **player** parameter could be Name *(only as single word, without whitespaces)*, UserID (`#127`) or *magic* targets (like `@all` or `@red`). Look at sourcemod [wiki](http://wiki.alliedmods.net/Admin_Commands_(SourceMod)) for more details about targets.<br/>
+The **time** parameter controls how long the player is punished. (`< 0` == Temporary, `0` == Permanent, `#` == Minutes). If not specified it will be *"DefaultTime"* minutes (default value is **30**).
 
 ##Cvars:
 * `sourcecomms_version` - plugin version
