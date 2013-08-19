@@ -28,7 +28,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * Also you could apply punishments to multi-targets (such as `@all`, `@ct`, `@blue`, etc...)^
 	* Multi-target punishments will **not** be saved in db.
     * Removing punishments from multi-targets will removed punishments **temporary** (not from db).
-    * Allowed session (temporary) punishments and extended with length less than 30 minutes **and** less than `DefaultTime` settings.
+    * Allowed session (temporary) punishments and extended with length less than 30 minutes **and** less than `DefaultTime` setting.
     * Permanent multi-target punishments **is not available**.
 * SourceComms has support for protecting current punishments based on immunity levels.
 	* When a punishment is issued, the administrator responsible has their immunity level attached to the punishment. In order to remove that punishment, the second administrator must have **higher** immunity level or special admin flag (<i>ADMFLAG\_CUSTOM2</i> by default. You may change it in sourcecode). Also, punishment can be removed by console or his author.
