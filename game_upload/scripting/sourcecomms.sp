@@ -11,13 +11,13 @@
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 #define DATABASE "sourcecomms"
 
-#define DEBUG
-#define LOG_QUERIES
+// #define DEBUG
+// #define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.232"
+#define PLUGIN_VERSION "0.9.233"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"

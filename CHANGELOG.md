@@ -1,10 +1,12 @@
 #Changelog
-* **0.9.XXX**
+* **0.9.233**
     * Added ability to use @all, @blue, @ct, etc. as punishment target (without saving to DB).
     * Added ability to temporary mass-removing punishements (with @all, @blue, @ct, etc targets) - without removing from DB.
     * Fixed bugs with permissions check on removing punishments.
     * Fixed bug with unsilence on players which has combination of temp and time/perm punishments.
     * Fixed [bug](https://bugs.alliedmods.net/show_bug.cgi?id=5786) with broken mysql connection encoding after reconnect. Supported on SM builds greather than **1.6.0-dev+3947**.
+    * Now plugin uses common sourcemode logs for errors and messages. You can delete sourcecomms.log file from your sourcemod logs folder.
+    * Removed ServerID auto-detection. You must specify it in the sourcebans config.
     * Some bugs fixes.
     * Code improvements.
 * **0.9.9** - Added Polish translation. Thanks to [killerps](https://forums.alliedmods.net/member.php?u=145192).
