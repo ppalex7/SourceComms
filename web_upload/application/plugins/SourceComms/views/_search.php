@@ -24,6 +24,13 @@
   </div>
 
   <div class="control-group">
+    <?php echo $form->label($model,'type',array('class' => 'control-label')); ?>
+    <div class="controls">
+      <?php echo $form->dropDownList($model,'type',Comms::getTypes(),array('empty' => '- ' . Yii::t('sourcebans', 'None') . ' -')); ?>
+    </div>
+  </div>
+
+  <div class="control-group">
     <?php echo $form->label($model,'steam',array('class' => 'control-label')); ?>
     <div class="controls">
       <?php echo $form->textField($model,'steam',array('size'=>32,'maxlength'=>32)); ?>
