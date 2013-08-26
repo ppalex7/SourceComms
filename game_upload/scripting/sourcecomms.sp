@@ -287,15 +287,11 @@ public OnClientPostAdminCheck(client)
         // if plugin was late loaded
         if (BaseComm_IsClientMuted(client))
         {
-            g_MuteType[client]   = bSess;
-            g_iMuteTime[client]  = GetTime();
-            g_sMuteAdmin[client] = "CONSOLE";
+            MarkClientAsMuted(client);
         }
         if (BaseComm_IsClientGagged(client))
         {
-            g_GagType[client]   = bSess;
-            g_iGagTime[client]  = GetTime();
-            g_sGagAdmin[client] = "CONSOLE";
+            MarkClientAsGagged(client);
         }
 
         new String:sClAuthYZEscaped[sizeof(clientAuth) * 2 + 1];
