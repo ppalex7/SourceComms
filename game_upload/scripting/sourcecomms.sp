@@ -123,14 +123,14 @@ new bType:g_MuteType[MAXPLAYERS + 1];
 new g_iMuteTime[MAXPLAYERS + 1];
 new g_iMuteLength[MAXPLAYERS + 1];  // in sec
 new g_iMuteLevel[MAXPLAYERS + 1];   // immunity level of admin
-new String:g_sMuteAdmin[MAXPLAYERS + 1][MAX_NAME_LENGTH];
+new String:g_sMuteAdminName[MAXPLAYERS + 1][MAX_NAME_LENGTH];
 new String:g_sMuteReason[MAXPLAYERS + 1][256];
 
 new bType:g_GagType[MAXPLAYERS + 1];
 new g_iGagTime[MAXPLAYERS + 1];
 new g_iGagLength[MAXPLAYERS + 1]; // in sec
 new g_iGagLevel[MAXPLAYERS + 1]; // immunity level of admin
-new String:g_sGagAdmin[MAXPLAYERS + 1][MAX_NAME_LENGTH];
+new String:g_sGagAdminName[MAXPLAYERS + 1][MAX_NAME_LENGTH];
 new String:g_sGagReason[MAXPLAYERS + 1][256];
 
 new Handle:g_hServersWhiteList = INVALID_HANDLE;
@@ -972,7 +972,7 @@ AdminMenu_ListTarget(client, target, index, viewMute = 0, viewGag = 0)
 
         if (viewMute)
         {
-            Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Admin", client, g_sMuteAdmin[target]);
+            Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Admin", client, g_sMuteAdminName[target]);
             AddMenuItem(hMenu, "", sBuffer, ITEMDRAW_DISABLED);
 
             decl String:sMuteTemp[192], String:_sMuteTime[192];
@@ -1027,7 +1027,7 @@ AdminMenu_ListTarget(client, target, index, viewMute = 0, viewGag = 0)
 
         if (viewGag)
         {
-            Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Admin", client, g_sGagAdmin[target]);
+            Format(sBuffer, sizeof(sBuffer), "%T", "ListMenu_Option_Admin", client, g_sGagAdminName[target]);
             AddMenuItem(hMenu, "", sBuffer, ITEMDRAW_DISABLED);
 
             decl String:sGagTemp[192], String:_sGagTime[192];
@@ -2663,7 +2663,7 @@ stock MarkClientAsUnMuted(target)
     g_iMuteTime[target]      = 0;
     g_iMuteLength[target]    = 0;
     g_iMuteLevel[target]     = -1;
-    g_sMuteAdmin[target][0]  = '\0';
+    g_sMuteAdminName[target][0] = '\0';
     g_sMuteReason[target][0] = '\0';
 }
 
@@ -2673,7 +2673,7 @@ stock MarkClientAsUnGagged(target)
     g_iGagTime[target]      = 0;
     g_iGagLength[target]    = 0;
     g_iGagLevel[target]     = -1;
-    g_sGagAdmin[target][0]  = '\0';
+    g_sGagAdminName[target][0] = '\0';
     g_sGagReason[target][0] = '\0';
 }
 
@@ -2686,7 +2686,7 @@ stock MarkClientAsMuted(target, time = NOW, length = -1, const String:adminName[
 
     g_iMuteLength[target] = length;
     g_iMuteLevel[target]  = adminImmunity;
-    strcopy(g_sMuteAdmin[target],  sizeof(g_sMuteAdmin[]),  adminName);
+    strcopy(g_sMuteAdminName[target], sizeof(g_sMuteAdminName[]), adminName);
     strcopy(g_sMuteReason[target], sizeof(g_sMuteReason[]), reason);
 
     if (length > 0)
@@ -2706,7 +2706,7 @@ stock MarkClientAsGagged(target, time = NOW, length = -1, const String:adminName
 
     g_iGagLength[target] = length;
     g_iGagLevel[target]  = adminImmunity;
-    strcopy(g_sGagAdmin[target],  sizeof(g_sGagAdmin[]),  adminName);
+    strcopy(g_sGagAdminName[target], sizeof(g_sGagAdminName[]), adminName);
     strcopy(g_sGagReason[target], sizeof(g_sGagReason[]), reason);
 
     if (length > 0)
