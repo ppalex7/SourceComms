@@ -1841,6 +1841,10 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
             else if (strcmp("ConsoleImmunity", key, false) == 0)
             {
                 ConsoleImmunity = StringToInt(value);
+                if (ConsoleImmunity < 0 || ConsoleImmunity > 100)
+                {
+                    ConsoleImmunity = 0;
+                }
             }
             else if (strcmp("MaxLength", key, false) == 0)
             {
