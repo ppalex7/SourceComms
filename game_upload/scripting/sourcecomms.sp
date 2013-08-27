@@ -2205,14 +2205,14 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
     decl String:adminAuth[64];
     decl String:targetAuth[64];
 
-    if (!client)
+    if (client && IsClientInGame(client))
     {
-        // setup dummy adminAuth and adminIp for server
-        strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
+        GetClientAuthString(client, adminAuth, sizeof(adminAuth));
     }
     else
     {
-        GetClientAuthString(client, adminAuth, sizeof(adminAuth));
+        // setup dummy adminAuth and adminIp for server
+        strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
     }
 
     if (target_count > 1)
@@ -2790,11 +2790,18 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 
     // target information
     new String:targetAuth[64];
-    GetClientAuthString(target, targetAuth, sizeof(targetAuth));
+    if (IsClientInGame(target))
+    {
+        GetClientAuthString(target, targetAuth, sizeof(targetAuth));
+    }
+    else
+    {
+        return;
+    }
 
     new String:adminIp[24];
     new String:adminAuth[64];
-    if (admin)
+    if (admin && IsClientInGame(admin))
     {
         GetClientIP(admin, adminIp, sizeof(adminIp));
         GetClientAuthString(admin, adminAuth, sizeof(adminAuth));
