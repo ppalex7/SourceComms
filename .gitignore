@@ -4,6 +4,10 @@ upload.*
 # auto-update file
 sc-updatefile.txt
 
+# zip files for alliedmods forum
+sourcecomms-srv.zip
+sourcecomms-web.zip
+
 # sublime project files
 SourceComms.sublime-project
 SourceComms.sublime-workspace
