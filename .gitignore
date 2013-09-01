@@ -1,4 +1,12 @@
-upload.cmd
+# scripts for uploading
+upload.*
+
+# auto-update file
+sc-updatefile.txt
+
+# sublime project files
+SourceComms.sublime-project
+SourceComms.sublime-workspace
 
 ############
 ## Windows
