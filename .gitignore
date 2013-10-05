@@ -12,6 +12,11 @@ sourcecomms-web.zip
 SourceComms.sublime-project
 SourceComms.sublime-workspace
 
+##########
+## MacOS
+##########
+.DS_Store
+
 ############
 ## Windows
 ############
