@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.242"
+#define PLUGIN_VERSION "0.9.248"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2039,6 +2039,10 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
             strcopy(reason, sizeof(reason), sArg[2]);
         }
 
+        // Strip spaces and quotes from reason
+        TrimString(reason);
+        StripQuotes(reason);
+
         if (!IsAllowedBlockLength(client, length, target_count))
         {
             ReplyToCommand(client, "%s%t", PREFIX, "no access");
@@ -2199,6 +2203,10 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
         {
             ExplodeString(sBuffer, " ", sArg, 2, 192, true);
         }
+        strcopy(reason, sizeof(reason), sArg[1]);
+        // Strip spaces and quotes from reason
+        TrimString(reason);
+        StripQuotes(reason);
 
         // Get the target, find target returns a message on failure so we do not
         if ((target_count = ProcessTargetString(

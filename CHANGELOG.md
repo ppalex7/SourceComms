@@ -1,4 +1,7 @@
 #Changelog
+* **0.9.248**
+    * Removing quotes and whitespaces from reason.
+    * Fixed reason loss in ungag/unmute console commands.
 * **0.9.242** - Fixed bug with removing temporary punishments by admins without special flag and greather immunity level. Thanks to [White Wolf](http://hlmod.ru/forum/member.php?u=10428) for reporting and fix testing.
 * **0.9.233**
     * Added ability to use @all, @blue, @ct, etc. as punishment target (without saving to DB).
