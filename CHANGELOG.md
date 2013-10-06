@@ -1,5 +1,5 @@
 #Changelog
-* **0.9.255**
+* **0.9.256**
     * Added Portuguese translation. Thanks to [StayOx](https://forums.alliedmods.net/member.php?u=185412).
     * Removing quotes and whitespaces from reason.
     * Fixed reason loss in ungag/unmute console commands.
