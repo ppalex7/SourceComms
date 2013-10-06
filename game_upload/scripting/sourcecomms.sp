@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.242"
+#define PLUGIN_VERSION "0.9.256"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1260,7 +1260,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
     ResetPack(data);
     new adminUserID  = ReadPackCell(data);
     new targetUserID = ReadPackCell(data);
-    new type          = ReadPackCell(data);    // not in use unless DEBUG
+    new type         = ReadPackCell(data);    // not in use unless DEBUG
     ReadPackString(data, adminAuth,  sizeof(adminAuth));
     ReadPackString(data, targetAuth, sizeof(targetAuth));
     ReadPackString(data, reason,      sizeof(reason));
@@ -1319,6 +1319,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
     }
     else
     {
+        new bool:b_success = false;
         // Get the values from the founded blocks.
         while(SQL_MoreRows(hndl))
         {
@@ -1350,6 +1351,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             if (iAID == cAID || (!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || (DisUBImCheck == 0 && (GetAdmImmunity(admin) > cImmunity)))
             {
                 // Ok! we have rights to unblock
+                b_success = true;
                 // UnMute/UnGag, Show & log activity
                 if (target && IsClientInGame(target))
                 {
@@ -1395,6 +1397,9 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             else
             {
                 // sorry, we don't have permission to unblock!
+                #if defined DEBUG
+                    PrintToServer("No permissions to unblock in Query_UnBlockSelect");
+                #endif
                 switch(cType)
                 {
                     case TYPE_MUTE:
@@ -1420,9 +1425,13 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             }
         }
 
-        if (target && IsClientInGame(target))
+        if (b_success && target && IsClientInGame(target))
         {
+            #if defined DEBUG
+                PrintToServer("Showing activity to server in Query_UnBlockSelect");
+            #endif
             ShowActivityToServer(admin, type, _, _, g_sName[target], _);
+
             if (type == TYPE_UNSILENCE)
             {
                 // check result for possible combination with temp and time punishments (temp was skipped in code above)
@@ -1443,7 +1452,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
         }
     }
     if (data != INVALID_HANDLE)
-        CloneHandle(data);
+        CloseHandle(data);
 }
 
 public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:data)
@@ -2039,6 +2048,10 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
             strcopy(reason, sizeof(reason), sArg[2]);
         }
 
+        // Strip spaces and quotes from reason
+        TrimString(reason);
+        StripQuotes(reason);
+
         if (!IsAllowedBlockLength(client, length, target_count))
         {
             ReplyToCommand(client, "%s%t", PREFIX, "no access");
@@ -2192,13 +2205,17 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
         if (ExplodeString(sBuffer, "\"", sArg, 3, 192, true) == 3 && strlen(sArg[0]) == 0)
         {
             TrimString(sArg[2]);
-            sArg[0] = sArg[1];        // target name
-            sArg[1] = sArg[2];         // reason; sArg[2] - not in use
+            sArg[0] = sArg[1];  // target name
+            sArg[1] = sArg[2];  // reason; sArg[2] - not in use
         }
         else
         {
             ExplodeString(sBuffer, " ", sArg, 2, 192, true);
         }
+        strcopy(reason, sizeof(reason), sArg[1]);
+        // Strip spaces and quotes from reason
+        TrimString(reason);
+        StripQuotes(reason);
 
         // Get the target, find target returns a message on failure so we do not
         if ((target_count = ProcessTargetString(
@@ -2231,6 +2248,10 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
 
     if (target_count > 1)
     {
+        #if defined DEBUG
+            PrintToServer("ProcessUnBlock - targets_count > 1");
+        #endif
+
         for (new i = 0; i < target_count; i++)
         {
             new target = target_list[i];
@@ -2250,6 +2271,10 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
 
             TempUnBlock(dataPack);
         }
+
+        #if defined DEBUG
+            PrintToServer("Showing activity to server in ProcessUnBlock for targets_count > 1");
+        #endif
         ShowActivityToServer(client, type + TYPE_TEMP_SHIFT, _, _, target_name, tn_is_ml);
     }
     else
@@ -2544,7 +2569,7 @@ stock ReadConfig()
     }
     else
     {
-        SetFailState("FATAL *** ERROR *** can't find %s", PREFIX, ConfigFile1);
+        SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile1);
     }
     if (FileExists(ConfigFile2))
     {
@@ -2568,7 +2593,7 @@ stock ReadConfig()
     }
     else
     {
-        SetFailState("FATAL *** ERROR *** can't find %s", PREFIX, ConfigFile2);
+        SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile2);
     }
     #if defined DEBUG
         PrintToServer("Loaded DefaultTime value: %d", DefaultTime);
