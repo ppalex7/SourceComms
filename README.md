@@ -192,4 +192,4 @@ This means, that you need to open file `<sourcebans_web_folder>\includes\page-bu
 
 ## Special thanks to
 * [Twisted|Panda](https://forums.alliedmods.net/member.php?u=41467) for his [ExtendedComm](https://forums.alliedmods.net/showthread.php?p=1383953) plugin, which inspired me and was the basis for my plugin.
-* [SourceBans Development Team](http://sourcebans.net/team) for their [SourceBans](http://sourcebans.net) plugin.
+* [SourceBans Development Team](http://sourcebans.net/team) for their [SourceBans](https://github.com/GameConnect/SourceBans) plugin.
