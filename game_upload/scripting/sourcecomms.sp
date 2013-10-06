@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.249"
+#define PLUGIN_VERSION "0.9.250"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1260,7 +1260,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
     ResetPack(data);
     new adminUserID  = ReadPackCell(data);
     new targetUserID = ReadPackCell(data);
-    new type          = ReadPackCell(data);    // not in use unless DEBUG
+    new type         = ReadPackCell(data);    // not in use unless DEBUG
     ReadPackString(data, adminAuth,  sizeof(adminAuth));
     ReadPackString(data, targetAuth, sizeof(targetAuth));
     ReadPackString(data, reason,      sizeof(reason));
@@ -2196,8 +2196,8 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
         if (ExplodeString(sBuffer, "\"", sArg, 3, 192, true) == 3 && strlen(sArg[0]) == 0)
         {
             TrimString(sArg[2]);
-            sArg[0] = sArg[1];        // target name
-            sArg[1] = sArg[2];         // reason; sArg[2] - not in use
+            sArg[0] = sArg[1];  // target name
+            sArg[1] = sArg[2];  // reason; sArg[2] - not in use
         }
         else
         {
