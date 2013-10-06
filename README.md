@@ -8,7 +8,8 @@ Also includes files and instructions to integration to existing sourcebans web-p
 
 ## Requirements
 * Working sourcebans system *(yes, you need MySQL server and web server with PHP)*. Currently supported versions **1.4.*** (and 1.5.0 for sourcebans plugin). Integration into sourcebans 2.0 currently in development.
-* SourceMod **1.5.0-hg3761** or **newer** is required.
+* SourceMod **1.5.0-hg3761** or **newer** is required to use plugin on server.
+* SourceMod **1.6** is required to **compile** the plugin. *(Compiled plugin also works on SourceMod 1.5)*
 
 ##Compatibility:
 * In theory - all games on the Source 2009 engine.
@@ -52,7 +53,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 **Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)
 
 ##Commands:
-* `sm_comms` - Shows to player their communications status. *(Also may used in chat)*
+* `sm_comms` - Shows to player their communications status. *(Also may be used in chat as `/comms`)*
 * `sm_mute <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice.
 * `sm_gag <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game chat.
 * `sm_silence <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice and chat.
