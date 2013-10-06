@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.248"
+#define PLUGIN_VERSION "0.9.249"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2552,7 +2552,7 @@ stock ReadConfig()
     }
     else
     {
-        SetFailState("FATAL *** ERROR *** can't find %s", PREFIX, ConfigFile1);
+        SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile1);
     }
     if (FileExists(ConfigFile2))
     {
@@ -2576,7 +2576,7 @@ stock ReadConfig()
     }
     else
     {
-        SetFailState("FATAL *** ERROR *** can't find %s", PREFIX, ConfigFile2);
+        SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile2);
     }
     #if defined DEBUG
         PrintToServer("Loaded DefaultTime value: %d", DefaultTime);
