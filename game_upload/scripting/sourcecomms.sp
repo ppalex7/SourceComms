@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.250"
+#define PLUGIN_VERSION "0.9.251"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1443,7 +1443,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
         }
     }
     if (data != INVALID_HANDLE)
-        CloneHandle(data);
+        CloseHandle(data);
 }
 
 public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:data)
