@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.251"
+#define PLUGIN_VERSION "0.9.255"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1319,6 +1319,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
     }
     else
     {
+        new bool:b_success = false;
         // Get the values from the founded blocks.
         while(SQL_MoreRows(hndl))
         {
@@ -1350,6 +1351,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             if (iAID == cAID || (!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || (DisUBImCheck == 0 && (GetAdmImmunity(admin) > cImmunity)))
             {
                 // Ok! we have rights to unblock
+                b_success = true;
                 // UnMute/UnGag, Show & log activity
                 if (target && IsClientInGame(target))
                 {
@@ -1395,6 +1397,9 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             else
             {
                 // sorry, we don't have permission to unblock!
+                #if defined DEBUG
+                    PrintToServer("No permissions to unblock in Query_UnBlockSelect");
+                #endif
                 switch(cType)
                 {
                     case TYPE_MUTE:
@@ -1420,9 +1425,13 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             }
         }
 
-        if (target && IsClientInGame(target))
+        if (b_success && target && IsClientInGame(target))
         {
+            #if defined DEBUG
+                PrintToServer("Showing activity to server in Query_UnBlockSelect");
+            #endif
             ShowActivityToServer(admin, type, _, _, g_sName[target], _);
+
             if (type == TYPE_UNSILENCE)
             {
                 // check result for possible combination with temp and time punishments (temp was skipped in code above)
@@ -2239,6 +2248,10 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
 
     if (target_count > 1)
     {
+        #if defined DEBUG
+            PrintToServer("ProcessUnBlock - targets_count > 1");
+        #endif
+
         for (new i = 0; i < target_count; i++)
         {
             new target = target_list[i];
@@ -2258,6 +2271,10 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
 
             TempUnBlock(dataPack);
         }
+
+        #if defined DEBUG
+            PrintToServer("Showing activity to server in ProcessUnBlock for targets_count > 1");
+        #endif
         ShowActivityToServer(client, type + TYPE_TEMP_SHIFT, _, _, target_name, tn_is_ml);
     }
     else
