@@ -60,7 +60,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * `sm_ungag <player> <optional:reason>` - Restores a player's ability to use in-game chat.
 * `sm_unsilence <player> <optional:reason>` - Restores a player's ability to use in-game voice and chat.
 
-The **player** parameter could be Name *(only as single word, without whitespaces)*, UserID (`#127`) or *magic* targets (like `@all` or `@red`). Look at sourcemod [wiki](http://wiki.alliedmods.net/Admin_Commands_(SourceMod)) for more details about targets.<br/>
+The **player** parameter could be Name *(only as single word, without whitespaces)*, UserID (`#127`) or *magic* targets (like `@all` or `@red`). Look at sourcemod [wiki](http://wiki.alliedmods.net/Admin_Commands_(SourceMod) for more details about targets.<br/>
 The **time** parameter controls how long the player is punished. (`< 0` == Temporary, `0` == Permanent, `#` == Minutes). If not specified it will be *"DefaultTime"* minutes (default value is **30**).
 
 ##Cvars:
