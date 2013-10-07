@@ -8,7 +8,8 @@ Also includes files and instructions to integration to existing sourcebans web-p
 
 ## Requirements
 * Working sourcebans system *(yes, you need MySQL server and web server with PHP)*. Currently supported versions **1.4.*** (and 1.5.0 for sourcebans plugin). Integration into sourcebans 2.0 currently in development.
-* SourceMod **1.5.0-hg3761** or **newer** is required.
+* SourceMod **1.5.0-hg3761** or **newer** is required to use plugin on server.
+* SourceMod **1.6** is required to **compile** the plugin. *(Compiled plugin also works on SourceMod 1.5)*
 
 ##Compatibility:
 * In theory - all games on the Source 2009 engine.
@@ -52,7 +53,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 **Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)
 
 ##Commands:
-* `sm_comms` - Shows to player their communications status. *(Also may used in chat)*
+* `sm_comms` - Shows to player their communications status. *(Also may be used in chat as `/comms`)*
 * `sm_mute <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice.
 * `sm_gag <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game chat.
 * `sm_silence <player> <optional:time> <optional:reason>` - Removes a player's ability to use in-game voice and chat.
@@ -60,7 +61,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * `sm_ungag <player> <optional:reason>` - Restores a player's ability to use in-game chat.
 * `sm_unsilence <player> <optional:reason>` - Restores a player's ability to use in-game voice and chat.
 
-The **player** parameter could be Name *(only as single word, without whitespaces)*, UserID (`#127`) or *magic* targets (like `@all` or `@red`). Look at sourcemod [wiki](http://wiki.alliedmods.net/Admin_Commands_(SourceMod)) for more details about targets.<br/>
+The **player** parameter could be Name *(only as single word, without whitespaces)*, UserID (`#127`) or *magic* targets (like `@all` or `@red`). Look at sourcemod [wiki](http://wiki.alliedmods.net/Admin_Commands_(SourceMod) for more details about targets.<br/>
 The **time** parameter controls how long the player is punished. (`< 0` == Temporary, `0` == Permanent, `#` == Minutes). If not specified it will be *"DefaultTime"* minutes (default value is **30**).
 
 ##Cvars:
@@ -191,4 +192,4 @@ This means, that you need to open file `<sourcebans_web_folder>\includes\page-bu
 
 ## Special thanks to
 * [Twisted|Panda](https://forums.alliedmods.net/member.php?u=41467) for his [ExtendedComm](https://forums.alliedmods.net/showthread.php?p=1383953) plugin, which inspired me and was the basis for my plugin.
-* [SourceBans Development Team](http://sourcebans.net/team) for their [SourceBans](http://sourcebans.net) plugin.
+* [SourceBans Development Team](http://sourcebans.net/team) for their [SourceBans](https://github.com/GameConnect/SourceBans) plugin.
