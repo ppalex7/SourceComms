@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.19"
+#define PLUGIN_VERSION "1.0.22"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -192,7 +192,8 @@ public OnPluginStart()
         SetFailState("Database failure: could not find database conf  %s", DATABASE);
         return;
     }
-    DB_Connect();
+    DB_Connect();   // TODO - delete
+    SB_Connect();
     InitializeBackupDB();
 
     // for late loading
@@ -264,12 +265,12 @@ public OnClientConnected(client)
 
 public OnClientPostAdminCheck(client)
 {
-    decl String:clientAuth[64];
-    GetClientAuthString(client, clientAuth, sizeof(clientAuth));
+    decl String:sClientAuth[64];
+    GetClientAuthString(client, sClientAuth, sizeof(sClientAuth));
     GetClientName(client, g_sName[client], sizeof(g_sName[]));
 
     /* Do not check bots or check player with lan steamid. */
-    if (clientAuth[0] == 'B' || clientAuth[9] == 'L' || !DB_Connect())
+    if (!SB_Connect() || StrContains("BOT STEAM_ID_LAN", sClientAuth) != -1)
     {
         g_bPlayerStatus[client] = true;
         return;
@@ -287,8 +288,8 @@ public OnClientPostAdminCheck(client)
             MarkClientAsGagged(client);
         }
 
-        new String:sClAuthYZEscaped[sizeof(clientAuth) * 2 + 1];
-        SQL_EscapeString(g_hDatabase, clientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
+        new String:sClAuthYZEscaped[sizeof(sClientAuth) * 2 + 1];
+        SQL_EscapeString(g_hDatabase, sClientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
 
         decl String:Query[4096];
         FormatEx(Query, sizeof(Query),
@@ -1557,7 +1558,7 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
         SQL_FetchString(hndl, 7, adminIp, sizeof(adminIp));
         new type =      SQL_FetchInt(hndl, 8);
 
-        if (DB_Connect()) {
+        if (SB_Connect()) {
             SQL_EscapeString(g_hDatabase, auth,         sAuthEscaped,      sizeof(sAuthEscaped));
             SQL_EscapeString(g_hDatabase, name,         banName,           sizeof(banName));
             SQL_EscapeString(g_hDatabase, reason,       banReason,         sizeof(banReason));
@@ -1741,6 +1742,7 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
         BaseComm_SetClientGag(client, false);
 }
 
+// TODO - delete
 public Action:Timer_StopWait(Handle:timer, any:data)
 {
     g_DatabaseState = DatabaseState_None;
@@ -2352,7 +2354,7 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
         WritePackString(dataPack, reason);
 
         // Check current player status. If player has temporary punishment - don't get info from DB
-        if (!dontCheckDB && DB_Connect())
+        if (!dontCheckDB && SB_Connect())
         {
             new String:sAdminAuthEscaped[sizeof(adminAuth) * 2 + 1];
             new String:sAdminAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
@@ -2860,7 +2862,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
     new String:sName[MAX_NAME_LENGTH];
     strcopy(sName, sizeof(sName), g_sName[target]);
 
-    if (DB_Connect())
+    if (SB_Connect())
     {
         // Accepts length in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
         new String:banName[MAX_NAME_LENGTH * 2 + 1];
@@ -2919,7 +2921,9 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
         SQL_TQuery(g_hDatabase, Query_AddBlockInsert, sQuery, dataPack, DBPrio_High);
     }
     else
+    {
         InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, sAdminIP);
+    }
 }
 
 stock ShowActivityToServer(admin, type, length = 0, String:reason[] = "", String:targetName[], bool:ml = false)
