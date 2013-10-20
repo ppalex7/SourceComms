@@ -2,6 +2,7 @@
 
 #include <sourcemod>
 #include <basecomm>
+#include <sourcebans>
 #include "include/sourcecomms.inc"
 
 #undef REQUIRE_PLUGIN
@@ -17,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.257"
+#define PLUGIN_VERSION "1.0.12"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -72,13 +73,6 @@ new State:ConfigState;
 new Handle:ConfigParser;
 
 new Handle:hTopMenu = INVALID_HANDLE;
-
-/* Cvar handle*/
-new Handle:CvarHostIp;
-new Handle:CvarPort;
-
-new String:ServerIp[24];
-new String:ServerPort[7];
 
 /* Database handle */
 new Handle:g_hDatabase;
@@ -166,8 +160,6 @@ public OnPluginStart()
     if (LibraryExists("adminmenu") && ((hTemp = GetAdminTopMenu()) != INVALID_HANDLE))
         OnAdminMenuReady(hTemp);
 
-    CvarHostIp = FindConVar("hostip");
-    CvarPort = FindConVar("hostport");
     g_hServersWhiteList = CreateArray();
 
     CreateConVar("sourcecomms_version", PLUGIN_VERSION, _, FCVAR_PLUGIN|FCVAR_SPONLY|FCVAR_REPLICATED|FCVAR_NOTIFY);
@@ -201,12 +193,9 @@ public OnPluginStart()
     DB_Connect();
     InitializeBackupDB();
 
-    ServerInfo();
-
+    // for late loading
     if (LibraryExists("updater"))
-    {
         Updater_AddPlugin(UPDATE_URL);
-    }
 }
 
 public OnLibraryAdded(const String:name[])
@@ -2537,18 +2526,6 @@ stock InsertTempBlock(length, type, const String:name[], const String:auth[], co
     SQL_TQuery(SQLiteDB, Query_ErrorCheck, sQuery);
 }
 
-stock ServerInfo()
-{
-    decl pieces[4];
-    new longip = GetConVarInt(CvarHostIp);
-    pieces[0] = (longip >> 24) & 0x000000FF;
-    pieces[1] = (longip >> 16) & 0x000000FF;
-    pieces[2] = (longip >> 8) & 0x000000FF;
-    pieces[3] = longip & 0x000000FF;
-    FormatEx(ServerIp, sizeof(ServerIp), "%d.%d.%d.%d", pieces[0], pieces[1], pieces[2], pieces[3]);
-    GetConVarString(CvarPort, ServerPort, sizeof(ServerPort));
-}
-
 stock ReadConfig()
 {
     InitializeConfigParser();
@@ -2873,7 +2850,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
     {
         // setup dummy adminAuth and adminIp for server
         strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
-        strcopy(adminIp, sizeof(adminIp), ServerIp);
+        SB_GetConfigString("ServerIP", adminIp, sizeof(adminIp));
     }
 
     new String:sName[MAX_NAME_LENGTH];
