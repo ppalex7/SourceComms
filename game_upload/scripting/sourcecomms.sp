@@ -10,7 +10,6 @@
 #include <updater>
 
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
-#define DATABASE "sourcecomms"
 
 // #define DEBUG
 // #define LOG_QUERIES
@@ -18,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.25"
+#define PLUGIN_VERSION "1.0.27"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -57,17 +56,6 @@ enum State /* ConfigState */
     ConfigStateTimes,
     ConfigStateServers,
 }
-enum DatabaseState /* Database connection state */
-{
-    DatabaseState_None = 0,
-    DatabaseState_Wait,
-    DatabaseState_Connecting,
-    DatabaseState_Connected,
-}
-
-new DatabaseState:g_DatabaseState;
-new g_iConnectLock = 0;
-new g_iSequence    = 0;
 
 new State:ConfigState;
 new Handle:ConfigParser;
@@ -75,7 +63,6 @@ new Handle:ConfigParser;
 new Handle:hTopMenu = INVALID_HANDLE;
 
 /* Database handle */
-new Handle:g_hDatabase;
 new Handle:SQLiteDB;
 
 new String:DatabasePrefix[10] = "sb";
@@ -186,13 +173,6 @@ public OnPluginStart()
         PrintToServer("Sourcecomms plugin loading. Version %s", PLUGIN_VERSION);
     #endif
 
-    // Catch config error
-    if (!SQL_CheckConfig(DATABASE))
-    {
-        SetFailState("Database failure: could not find database conf  %s", DATABASE);
-        return;
-    }
-    DB_Connect();   // TODO - delete
     SB_Connect();
     InitializeBackupDB();
 
@@ -225,16 +205,6 @@ public OnLibraryRemoved(const String:name[])
 public OnMapStart()
 {
     ReadConfig();
-}
-
-public OnMapEnd()
-{
-    // Clean up on map end just so we can start a fresh connection when we need it later.
-    // Also it is necessary for using SQL_SetCharset
-    if(g_hDatabase)
-        CloseHandle(g_hDatabase);
-
-    g_hDatabase = INVALID_HANDLE;
 }
 
 
@@ -1198,49 +1168,8 @@ public SB_OnReload()
     SB_GetConfigString("ServerIP", g_sServerIP, sizeof(g_sServerIP));
 }
 
+
 // SQL CALLBACKS //
-
-public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
-{
-    #if defined DEBUG
-        PrintToServer("GotDatabase(data: %d, lock: %d, g_h: %d, hndl: %d)", data, g_iConnectLock, g_hDatabase, hndl);
-    #endif
-
-    // If this happens to be an old connection request, ignore it.
-    if(data != g_iConnectLock || g_hDatabase)
-    {
-        if(hndl)
-            CloseHandle(hndl);
-        return;
-    }
-
-    g_iConnectLock   = 0;
-    g_DatabaseState  = DatabaseState_Connected;
-    g_hDatabase      = hndl;
-
-    // See if the connection is valid.  If not, don't un-mark the caches
-    // as needing rebuilding, in case the next connection request works.
-    if(!g_hDatabase)
-    {
-        LogError("Connecting to database failed: %s", error);
-        return;
-    }
-
-    // Set character set to UTF-8 in the database
-    if (GetFeatureStatus(FeatureType_Native, "SQL_SetCharset") == FeatureStatus_Available)
-    {
-        SQL_SetCharset(g_hDatabase, "utf8");
-    }
-    else
-    {
-        decl String:query[128];
-        FormatEx(query, sizeof(query), "SET NAMES 'UTF8'");
-        #if defined LOG_QUERIES
-            LogToFile(logQuery, "Set encoding. QUERY: %s", query);
-        #endif
-        SQL_TQuery(g_hDatabase, Query_ErrorCheck, query);
-    }
-}
 
 public Query_AddBlockInsert(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
@@ -1742,12 +1671,6 @@ public Action:Timer_GagExpire(Handle:timer, any:userid)
         BaseComm_SetClientGag(client, false);
 }
 
-// TODO - delete
-public Action:Timer_StopWait(Handle:timer, any:data)
-{
-    g_DatabaseState = DatabaseState_None;
-    DB_Connect();
-}
 
 // PARSER //
 
@@ -1918,47 +1841,13 @@ public SMCResult:ReadConfig_EndSection(Handle:smc)
 
 // STOCK FUNCTIONS //
 
-stock bool:DB_Connect()
-{
-    #if defined DEBUG
-        PrintToServer("DB_Connect(handle %d, state %d, lock %d)", g_hDatabase, g_DatabaseState, g_iConnectLock);
-    #endif
-
-    if (g_hDatabase)
-    {
-        return true;
-    }
-
-    if (g_DatabaseState == DatabaseState_Wait) // 100500 connections in a minute is bad idea..
-    {
-        return false;
-    }
-
-    if(g_DatabaseState != DatabaseState_Connecting)
-    {
-        g_DatabaseState = DatabaseState_Connecting;
-        g_iConnectLock  = ++g_iSequence;
-        // Connect using the "sourcebans" section, or the "default" section if "sourcebans" does not exist
-        SQL_TConnect(GotDatabase, DATABASE, g_iConnectLock);
-    }
-
-    return false;
-}
-
 stock bool:DB_Conn_Lost(Handle:hndl)
 {
     if (hndl == INVALID_HANDLE)
     {
-        if (g_hDatabase != INVALID_HANDLE)
+        if (!SB_Connect())
         {
             LogError("Lost connection to DB. Reconnect after delay.");
-            CloseHandle(g_hDatabase);
-            g_hDatabase = INVALID_HANDLE;
-        }
-        if (g_DatabaseState != DatabaseState_Wait)
-        {
-            g_DatabaseState = DatabaseState_Wait;
-            CreateTimer(RetryTime, Timer_StopWait, _, TIMER_FLAG_NO_MAPCHANGE);
         }
         return true;
     }
