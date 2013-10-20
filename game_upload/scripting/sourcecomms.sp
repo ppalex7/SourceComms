@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.12"
+#define PLUGIN_VERSION "1.0.14"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -97,7 +97,7 @@ new DisUBImCheck        = 0;
 new ConsoleImmunity     = 0;
 new ConfigMaxLength     = 0;
 new ConfigWhiteListOnly = 0;
-new serverID = 0;
+new g_iServerID         = 0;
 
 /* List menu */
 enum PeskyPanels
@@ -1169,6 +1169,19 @@ public PanelHandler_ListTargetReason(Handle:menu, MenuAction:action, param1, par
 }
 
 
+// Sourcebans callbacks //
+
+public SB_OnConnect(Handle:database)
+{
+    g_iServerID = SB_GetConfigValue("ServerID");
+    if (g_iServerID == 0 && ConfigWhiteListOnly)
+    {
+        LogError("Unknown ServerID! ServersWhiteList feature disabled!");
+        ConfigWhiteListOnly = 0;
+    }
+}
+
+
 // SQL CALLBACKS //
 
 public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
@@ -1553,7 +1566,7 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
                 VALUES         ('%s', '%s', %d, %d, %d, '%s', \
                                 IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), \
                                 '%s', %d, %d)",
-                DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, serverID, type);
+                DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, g_iServerID, type);
         #if defined LOG_QUERIES
             LogToFile(logQuery, "Query_ProcessQueue. QUERY: %s", query);
         #endif
@@ -1810,13 +1823,6 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
                 else if (RetryTime > 60.0)
                 {
                     RetryTime = 60.0;
-                }
-            }
-            else if (strcmp("ServerID", key, false) == 0)
-            {
-                if (!StringToIntEx(value, serverID) || serverID < 1)
-                {
-                    serverID = 0;
                 }
             }
             else if (strcmp("DefaultTime", key, false) == 0)
@@ -2558,15 +2564,6 @@ stock ReadConfig()
             iNumReasons--;
         if (iNumTimes)
             iNumTimes--;
-        if (serverID == 0)
-        {
-            LogError("You must set valid `ServerID` value in sourcebans.cfg!");
-            if (ConfigWhiteListOnly)
-            {
-                LogError("ServersWhiteList feature disabled!");
-                ConfigWhiteListOnly = 0;
-            }
-        }
     }
     else
     {
@@ -2882,7 +2879,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
         // authid name, created, ends, length, reason, aid, adminIp, sid
         FormatEx(sQueryVal, sizeof(sQueryVal),
             "'%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', %s, '%s', %d",
-            sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, adminIp, serverID);
+            sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, adminIp, g_iServerID);
 
         if (type == TYPE_MUTE || type == TYPE_SILENCE)
         {
