@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.22"
+#define PLUGIN_VERSION "1.0.24"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -307,7 +307,7 @@ public OnClientPostAdminCheck(client)
         #if defined LOG_QUERIES
             LogToFile(logQuery, "OnClientPostAdminCheck for: %s. QUERY: %s", clientAuth, Query);
         #endif
-        SQL_TQuery(g_hDatabase, Query_VerifyBlock, Query, GetClientUserId(client), DBPrio_High);
+        SB_Query(Query_VerifyBlock, Query, GetClientUserId(client), DBPrio_High);
     }
 }
 
@@ -1402,7 +1402,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
                 #if defined LOG_QUERIES
                     LogToFile(logQuery, "Query_UnBlockSelect. QUERY: %s", query);
                 #endif
-                SQL_TQuery(g_hDatabase, Query_UnBlockUpdate, query, dataPack);
+                SB_Query(Query_UnBlockUpdate, query, dataPack);
             }
             else
             {
@@ -1578,7 +1578,7 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
         #if defined LOG_QUERIES
             LogToFile(logQuery, "Query_ProcessQueue. QUERY: %s", query);
         #endif
-        SQL_TQuery(g_hDatabase, Query_AddBlockFromQueue, query, id);
+        SB_Query(Query_AddBlockFromQueue, query, id);
     }
 }
 
@@ -2386,7 +2386,7 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
                 LogToFile(logQuery, "ProcessUnBlock. QUERY: %s", query);
             #endif
 
-            SQL_TQuery(g_hDatabase, Query_UnBlockSelect, query, dataPack);
+            SB_Query(Query_UnBlockSelect, query, dataPack);
         }
         else
         {
@@ -2918,7 +2918,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
         WritePackString(dataPack, adminAuth);
         WritePackString(dataPack, sAdminIP);
 
-        SQL_TQuery(g_hDatabase, Query_AddBlockInsert, sQuery, dataPack, DBPrio_High);
+        SB_Query(Query_AddBlockInsert, sQuery, dataPack, DBPrio_High);
     }
     else
     {
