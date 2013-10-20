@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.256"
+#define PLUGIN_VERSION "0.9.257"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -427,7 +427,7 @@ public Action:FWBlock(args)
                 {
                     PerformGag(i, _, length / 60, _, _, _, _);
                     PrintToChat(i, "%s%t", PREFIX, "Gagged on connect");
-                    LogToFile("%s is gagged from web", clientAuth);
+                    LogMessage("%s is gagged from web", clientAuth);
                 }
                 break;
             }
