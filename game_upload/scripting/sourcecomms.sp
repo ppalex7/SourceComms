@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.15"
+#define PLUGIN_VERSION "1.0.17"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2843,18 +2843,18 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
         return;
     }
 
-    new String:adminIp[24];
+    new String:sAdminIP[24];
     new String:adminAuth[64];
     if (admin && IsClientInGame(admin))
     {
-        GetClientIP(admin, adminIp, sizeof(adminIp));
+        GetClientIP(admin, sAdminIP, sizeof(sAdminIP));
         GetClientAuthString(admin, adminAuth, sizeof(adminAuth));
     }
     else
     {
         // setup dummy adminAuth and adminIp for server
         strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
-        strcopy(adminIp, sizeof(adminIp), g_sServerIP);
+        strcopy(sAdminIP,  sizeof(sAdminIP),  g_sServerIP);
     }
 
     new String:sName[MAX_NAME_LENGTH];
@@ -2886,7 +2886,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
         // authid name, created, ends, length, reason, aid, adminIp, sid
         FormatEx(sQueryVal, sizeof(sQueryVal),
             "'%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', %s, '%s', %d",
-            sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, adminIp, g_iServerID);
+            sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, sAdminIP, g_iServerID);
 
         if (type == TYPE_MUTE || type == TYPE_SILENCE)
         {
@@ -2914,12 +2914,12 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
         WritePackString(dataPack, targetAuth);
         WritePackString(dataPack, reason);
         WritePackString(dataPack, adminAuth);
-        WritePackString(dataPack, adminIp);
+        WritePackString(dataPack, sAdminIP);
 
         SQL_TQuery(g_hDatabase, Query_AddBlockInsert, sQuery, dataPack, DBPrio_High);
     }
     else
-        InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, adminIp);
+        InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, sAdminIP);
 }
 
 stock ShowActivityToServer(admin, type, length = 0, String:reason[] = "", String:targetName[], bool:ml = false)
