@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.24"
+#define PLUGIN_VERSION "1.0.25"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -289,7 +289,7 @@ public OnClientPostAdminCheck(client)
         }
 
         new String:sClAuthYZEscaped[sizeof(sClientAuth) * 2 + 1];
-        SQL_EscapeString(g_hDatabase, sClientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
+        SB_Escape(sClientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
 
         decl String:Query[4096];
         FormatEx(Query, sizeof(Query),
@@ -1388,7 +1388,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
                 WritePackString(dataPack, targetAuth);
 
                 new String:unbanReason[sizeof(reason) * 2 + 1];
-                SQL_EscapeString(g_hDatabase, reason, unbanReason, sizeof(unbanReason));
+                SB_Escape(reason, unbanReason, sizeof(unbanReason));
 
                 decl String:query[2048];
                 Format(query, sizeof(query),
@@ -1559,11 +1559,11 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
         new type =      SQL_FetchInt(hndl, 8);
 
         if (SB_Connect()) {
-            SQL_EscapeString(g_hDatabase, auth,         sAuthEscaped,      sizeof(sAuthEscaped));
-            SQL_EscapeString(g_hDatabase, name,         banName,           sizeof(banName));
-            SQL_EscapeString(g_hDatabase, reason,       banReason,         sizeof(banReason));
-            SQL_EscapeString(g_hDatabase, adminAuth,    sAdmAuthEscaped,   sizeof(sAdmAuthEscaped));
-            SQL_EscapeString(g_hDatabase, adminAuth[8], sAdmAuthYZEscaped, sizeof(sAdmAuthYZEscaped));
+            SB_Escape(auth,         sAuthEscaped,      sizeof(sAuthEscaped));
+            SB_Escape(name,         banName,           sizeof(banName));
+            SB_Escape(reason,       banReason,         sizeof(banReason));
+            SB_Escape(adminAuth,    sAdmAuthEscaped,   sizeof(sAdmAuthEscaped));
+            SB_Escape(adminAuth[8], sAdmAuthYZEscaped, sizeof(sAdmAuthYZEscaped));
         }
         else
             continue;
@@ -2361,10 +2361,10 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
             new String:sTargetAuthEscaped[sizeof(targetAuth) * 2 + 1];
             new String:sTargetAuthYZEscaped[sizeof(targetAuth) * 2 + 1];
 
-            SQL_EscapeString(g_hDatabase, adminAuth,     sAdminAuthEscaped,    sizeof(sAdminAuthEscaped));
-            SQL_EscapeString(g_hDatabase, adminAuth[8],  sAdminAuthYZEscaped,  sizeof(sAdminAuthYZEscaped));
-            SQL_EscapeString(g_hDatabase, targetAuth,    sTargetAuthEscaped,   sizeof(sTargetAuthEscaped));
-            SQL_EscapeString(g_hDatabase, targetAuth[8], sTargetAuthYZEscaped, sizeof(sTargetAuthYZEscaped));
+            SB_Escape(adminAuth,     sAdminAuthEscaped,    sizeof(sAdminAuthEscaped));
+            SB_Escape(adminAuth[8],  sAdminAuthYZEscaped,  sizeof(sAdminAuthYZEscaped));
+            SB_Escape(targetAuth,    sTargetAuthEscaped,   sizeof(sTargetAuthEscaped));
+            SB_Escape(targetAuth[8], sTargetAuthYZEscaped, sizeof(sTargetAuthYZEscaped));
 
             decl String:query[4096];
             Format(query, sizeof(query),
@@ -2874,11 +2874,11 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
         new String:sQueryMute[1024], String:sQueryGag[1024];
 
         // escaping everything
-        SQL_EscapeString(g_hDatabase, sName,        banName,               sizeof(banName));
-        SQL_EscapeString(g_hDatabase, reason,       banReason,             sizeof(banReason));
-        SQL_EscapeString(g_hDatabase, targetAuth,   sAuthidEscaped,        sizeof(sAuthidEscaped));
-        SQL_EscapeString(g_hDatabase, adminAuth,    sAdminAuthIdEscaped,   sizeof(sAdminAuthIdEscaped));
-        SQL_EscapeString(g_hDatabase, adminAuth[8], sAdminAuthIdYZEscaped, sizeof(sAdminAuthIdYZEscaped));
+        SB_Escape(sName,        banName,               sizeof(banName));
+        SB_Escape(reason,       banReason,             sizeof(banReason));
+        SB_Escape(targetAuth,   sAuthidEscaped,        sizeof(sAuthidEscaped));
+        SB_Escape(adminAuth,    sAdminAuthIdEscaped,   sizeof(sAdminAuthIdEscaped));
+        SB_Escape(adminAuth[8], sAdminAuthIdYZEscaped, sizeof(sAdminAuthIdYZEscaped));
 
         // bid    authid    name    created ends lenght reason aid adminip    sid    removedBy removedType removedon type ureason
         FormatEx(sQueryAdm, sizeof(sQueryAdm),
