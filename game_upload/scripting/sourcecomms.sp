@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.17"
+#define PLUGIN_VERSION "1.0.18"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1181,6 +1181,14 @@ public SB_OnConnect(Handle:database)
         LogError("Unknown ServerID! ServersWhiteList feature disabled!");
         ConfigWhiteListOnly = 0;
     }
+
+    // Process queue
+    SQL_TQuery(SQLiteDB, Query_ProcessQueue,
+       "SELECT  id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type \
+        FROM    queue2");
+
+    // Force recheck players
+    ForcePlayersRecheck();
 }
 
 public SB_OnReload()
@@ -1231,14 +1239,6 @@ public GotDatabase(Handle:owner, Handle:hndl, const String:error[], any:data)
         #endif
         SQL_TQuery(g_hDatabase, Query_ErrorCheck, query);
     }
-
-    // Process queue
-    SQL_TQuery(SQLiteDB, Query_ProcessQueue,
-       "SELECT  id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type \
-        FROM    queue2");
-
-    // Force recheck players
-    ForcePlayersRecheck();
 }
 
 public Query_AddBlockInsert(Handle:owner, Handle:hndl, const String:error[], any:data)
