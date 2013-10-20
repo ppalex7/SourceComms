@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
 	public function getVersion()
 	{
-		return '1.0.3';
+		return '1.0.4';
 	}
 
 	public function getUrl()
@@ -35,7 +35,7 @@ class CommsPlugin extends SBPlugin
 			Yii::app()->db->createCommand()->createTable('{{comms}}', array(
 				'id' => 'mediumint(8) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY',
 				'type' => 'tinyint(1) unsigned NOT NULL DEFAULT 0',
-				'steam' => 'varchar(32) DEFAULT NULL',
+				'steam_account_id' => 'int(10) unsigned NOT NULL',
 				'name' => 'varchar(64) DEFAULT NULL',
 				'reason' => 'varchar(255) NOT NULL',
 				'length' => 'mediumint(8) unsigned NOT NULL',
@@ -46,7 +46,7 @@ class CommsPlugin extends SBPlugin
 				'unban_reason' => 'varchar(255) DEFAULT NULL',
 				'unban_time' => 'int(10) unsigned DEFAULT NULL',
 				'create_time' => 'int(10) unsigned NOT NULL',
-				'KEY steam_unbanned (steam,unban_admin_id)',
+				'KEY steam_unbanned (steam_account_id,unban_admin_id)',
                 'KEY server_id (server_id)',
                 'KEY admin_id (admin_id)',
 			), 'ENGINE=InnoDB DEFAULT CHARSET=utf8');

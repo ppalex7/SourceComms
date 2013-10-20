@@ -3,6 +3,7 @@
 #include <sourcemod>
 #include <basecomm>
 #include <sourcebans>
+#include <sb_admins>
 #include "include/sourcecomms.inc"
 
 #undef REQUIRE_PLUGIN
@@ -17,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.27"
+#define PLUGIN_VERSION "1.0.46"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -106,17 +107,17 @@ new bType:g_MuteType[MAXPLAYERS + 1];
 new g_iMuteTime[MAXPLAYERS + 1];
 new g_iMuteLength[MAXPLAYERS + 1];  // in sec
 new g_iMuteLevel[MAXPLAYERS + 1];   // immunity level of admin
+new g_iMuteAdminID[MAXPLAYERS + 1]; // id from sourcebans
 new String:g_sMuteAdminName[MAXPLAYERS + 1][MAX_NAME_LENGTH];
 new String:g_sMuteReason[MAXPLAYERS + 1][256];
-new String:g_sMuteAdminAuth[MAXPLAYERS + 1][64];
 
 new bType:g_GagType[MAXPLAYERS + 1];
 new g_iGagTime[MAXPLAYERS + 1];
-new g_iGagLength[MAXPLAYERS + 1]; // in sec
-new g_iGagLevel[MAXPLAYERS + 1]; // immunity level of admin
+new g_iGagLength[MAXPLAYERS + 1];  // in sec
+new g_iGagLevel[MAXPLAYERS + 1];   // immunity level of admin
+new g_iGagAdminID[MAXPLAYERS + 1]; // id from sourcebans
 new String:g_sGagAdminName[MAXPLAYERS + 1][MAX_NAME_LENGTH];
 new String:g_sGagReason[MAXPLAYERS + 1][256];
-new String:g_sGagAdminAuth[MAXPLAYERS + 1][64];
 
 new Handle:g_hServersWhiteList = INVALID_HANDLE;
 
@@ -258,26 +259,35 @@ public OnClientPostAdminCheck(client)
             MarkClientAsGagged(client);
         }
 
-        new String:sClAuthYZEscaped[sizeof(sClientAuth) * 2 + 1];
-        SB_Escape(sClientAuth[8], sClAuthYZEscaped, sizeof(sClAuthYZEscaped));
-
-        decl String:Query[4096];
-        FormatEx(Query, sizeof(Query),
-           "SELECT      (c.ends - UNIX_TIMESTAMP()) AS remaining, \
-                        c.length, c.type, c.created, c.reason, a.user, \
-                        IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) AS immunity, \
-                        c.aid, c.sid, a.authid \
-            FROM        %s_comms     AS c \
-            LEFT JOIN   %s_admins    AS a  ON a.aid = c.aid \
-            LEFT JOIN   %s_srvgroups AS g  ON g.name = a.srv_group \
-            WHERE       RemoveType IS NULL \
-                          AND c.authid REGEXP '^STEAM_[0-9]:%s$' \
-                          AND (length = '0' OR ends > UNIX_TIMESTAMP())",
-            DatabasePrefix, DatabasePrefix, DatabasePrefix, sClAuthYZEscaped);
-        #if defined LOG_QUERIES
-            LogToFile(logQuery, "OnClientPostAdminCheck for: %s. QUERY: %s", clientAuth, Query);
-        #endif
-        SB_Query(Query_VerifyBlock, Query, GetClientUserId(client), DBPrio_High);
+        new iClientAccountID = GetSteamAccountID(client);
+        if (iClientAccountID)
+        {
+            decl String:sQuery[4096];
+            FormatEx(sQuery, sizeof(sQuery),
+               "SELECT IF(c.length, c.create_time + c.length * 60 - UNIX_TIMESTAMP(), 0) as remaining \
+                     , c.length, c.create_time, c.type, c.reason, c.server_id \
+                     , IFNULL(a.id, 0), IFNULL(a.name, 'CONSOLE'), MAX(IFNULL(IF(c.server_id, sgs.immunity, sgw.immunity),0)) AS immunity \
+                  FROM {{comms}} AS c \
+                       LEFT JOIN {{admins}} AS a ON a.id = c.admin_id \
+                       LEFT JOIN {{admins_server_groups}} AS asg ON asg.admin_id = c.admin_id \
+                       LEFT JOIN {{server_groups}} AS sgw ON sgw.id = asg.group_id \
+                       LEFT JOIN {{servers_server_groups}} AS ssg ON ssg.server_id = c.server_id \
+                       LEFT JOIN {{server_groups}} AS sgs ON sgs.id = asg.group_id AND sgs.id = ssg.group_id \
+                 WHERE c.steam_account_id = %d \
+                       AND unban_admin_id IS NULL \
+                       AND (c.length = '0' OR c.create_time + c.length * 60 > UNIX_TIMESTAMP()) \
+              GROUP BY c.id",
+                iClientAccountID);
+            #if defined LOG_QUERIES
+                LogToFile(logQuery, "OnClientPostAdminCheck for: %s. QUERY: %s", sClientAuth, sQuery);
+            #endif
+            SB_Query(Query_VerifyBlock, sQuery, GetClientUserId(client), DBPrio_High);
+        }
+        else
+        {
+            LogError("Can't determine Steam Account ID for player %s. Skip checking", sClientAuth);
+            return;
+        }
     }
 }
 
@@ -1561,39 +1571,47 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
     //IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid
     //FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
     //WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
+
+    // remaining, length, create_time, type, reason, server_id, admin_id, admin_name, admin_immunity
     if (SQL_GetRowCount(hndl) > 0)
     {
         while(SQL_FetchRow(hndl))
         {
-            if (NotApplyToThisServer(SQL_FetchInt(hndl, 8)))
-                continue;
-
-            new String:sReason[256], String:sAdmName[MAX_NAME_LENGTH], String:sAdmAuth[64];
-            new remaining_time = SQL_FetchInt(hndl, 0);
-            new length =         SQL_FetchInt(hndl, 1);
-            new type =           SQL_FetchInt(hndl, 2);
-            new time =           SQL_FetchInt(hndl, 3);
+            new String:sReason[256], String:sAdmName[MAX_NAME_LENGTH];
+            new iRemainingTime = SQL_FetchInt(hndl, 0);
+            new iLength        = SQL_FetchInt(hndl, 1);
+            new iCreateTime    = SQL_FetchInt(hndl, 2);
+            new iType          = SQL_FetchInt(hndl, 3);
             SQL_FetchString(hndl, 4, sReason, sizeof(sReason));
-            SQL_FetchString(hndl, 5, sAdmName, sizeof(sAdmName));
-            new immunity =       SQL_FetchInt(hndl, 6);
-            new aid =            SQL_FetchInt(hndl, 7);
-            SQL_FetchString(hndl, 8, sAdmAuth, sizeof(sAdmAuth));
+            new iServerID      = SQL_FetchInt(hndl, 5);
+            new iAdmID         = SQL_FetchInt(hndl, 6);
+            SQL_FetchString(hndl, 7, sAdmName, sizeof(sAdmName));
+            new iAdmImmunity   = SQL_FetchInt(hndl, 8);
 
-            // Block from CONSOLE (aid=0) and we have `console immunity` value in config
-            if (!aid && ConsoleImmunity > immunity)
-                immunity = ConsoleImmunity;
+            // Block from CONSOLE (admin_id=0) and we have `console immunity` value in config
+            if (!iAdmID && ConsoleImmunity > iAdmImmunity)
+                iAdmImmunity = ConsoleImmunity;
 
             #if defined DEBUG
-                PrintToServer("Fetched from DB: remaining %d, length %d, type %d", remaining_time, length, type);
+                PrintToServer("Fetched from DB: remaining %d, length %d, type %d", iRemainingTime, iLength, iType);
             #endif
 
-            switch(type)
+            // check for server_id
+            if (NotApplyToThisServer(iServerID))
+            {
+                #if defined DEBUG
+                    PrintToServer("Skip this punishment due it comes from server's not from white list");
+                #endif
+                continue;
+            }
+
+            switch(iType)
             {
                 case TYPE_MUTE:
                 {
                     if (g_MuteType[client] < bTime)
                     {
-                        PerformMute(client, time, length / 60, sAdmName, sAdmAuth, immunity, sReason, remaining_time);
+                        PerformMute(client, iCreateTime, iLength, sAdmName, iAdmID, iAdmImmunity, sReason, iRemainingTime);
                         PrintToChat(client, "%s%t", PREFIX, "Muted on connect");
                     }
                 }
@@ -1601,7 +1619,7 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
                 {
                     if (g_GagType[client] < bTime)
                     {
-                        PerformGag(client, time, length / 60, sAdmName, sAdmAuth, immunity, sReason, remaining_time);
+                        PerformGag(client, iCreateTime, iLength, sAdmName, iAdmID, iAdmImmunity, sReason, iRemainingTime);
                         PrintToChat(client, "%s%t", PREFIX, "Gagged on connect");
                     }
                 }
@@ -1956,17 +1974,16 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
         return;
     }
 
-    new admImmunity = GetAdmImmunity(client);
-    decl String:adminAuth[64];
+    new iAdmImmunity = GetAdmImmunity(client);
+    decl iAdmID;
 
     if (client && IsClientInGame(client))
     {
-        GetClientAuthString(client, adminAuth, sizeof(adminAuth));
+        iAdmID = SB_GetAdminId(client);
     }
     else
     {
-        // setup dummy adminAuth and adminIp for server
-        strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
+        iAdmID = 0;
     }
 
     for (new i = 0; i < target_count; i++)
@@ -1997,7 +2014,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
                         PrintToServer("%s not muted. Mute him, creating unmute timer and add record to DB", auth);
                     #endif
 
-                    PerformMute(target, _, length, g_sName[client], adminAuth, admImmunity, reason);
+                    PerformMute(target, _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
 
                     LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
                 }
@@ -2022,7 +2039,7 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
                         PrintToServer("%s not gagged. Gag him, creating ungag timer and add record to DB", auth);
                     #endif
 
-                    PerformGag(target, _, length, g_sName[client], adminAuth, admImmunity, reason);
+                    PerformGag(target, _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
 
                     LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
                 }
@@ -2047,8 +2064,8 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
                         PrintToServer("%s not silenced. Silence him, creating ungag & unmute timers and add records to DB", auth);
                     #endif
 
-                    PerformMute(target, _, length, g_sName[client], adminAuth, admImmunity, reason);
-                    PerformGag(target,  _, length, g_sName[client], adminAuth, admImmunity, reason);
+                    PerformMute(target, _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
+                    PerformGag(target,  _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
 
                     LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
                 }
@@ -2329,21 +2346,35 @@ stock bool:TempUnBlock(Handle:data)
 
     // Check access for unblock without db changes (temporary unblock)
     new bool:bHasPermission = (!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || AdmImCheck;
-    // can, if we are console or have special flag. else - deep checking by issuer authid
+    decl iAdmID;
+    if (admin)
+    {
+        iAdmID = SB_GetAdminId(admin);
+    }
+    else if (StrEqual(adminAuth, "STEAM_ID_SERVER"))
+    {
+        iAdmID = 0;
+    }
+    else
+    {
+        // something strange case.... TODO - FIX ME
+        iAdmID = -1;
+    }
+    // can, if we are console or have special flag. else - deep checking by issuer 'sourcebans admin id'
     if (!bHasPermission) {
         switch(type)
         {
             case TYPE_UNMUTE:
             {
-                bHasPermission = StrEqual(adminAuth, g_sMuteAdminAuth[target]);
+                bHasPermission = iAdmID == g_iMuteAdminID[target];
             }
             case TYPE_UNGAG:
             {
-                bHasPermission = StrEqual(adminAuth, g_sGagAdminAuth[target]);
+                bHasPermission = iAdmID == g_iGagAdminID[target];
             }
             case TYPE_UNSILENCE:
             {
-                bHasPermission = StrEqual(adminAuth, g_sMuteAdminAuth[target]) && StrEqual(adminAuth, g_sGagAdminAuth[target]);
+                bHasPermission = iAdmID == g_iMuteAdminID[target] && iAdmID == g_iGagAdminID[target];
             }
         }
     }
@@ -2598,9 +2629,9 @@ stock MarkClientAsUnMuted(target)
     g_iMuteTime[target]         = 0;
     g_iMuteLength[target]       = 0;
     g_iMuteLevel[target]        = -1;
+    g_iMuteAdminID[target]      = -1;
     g_sMuteAdminName[target][0] = '\0';
     g_sMuteReason[target][0]    = '\0';
-    g_sMuteAdminAuth[target][0] = '\0';
 }
 
 stock MarkClientAsUnGagged(target)
@@ -2609,48 +2640,48 @@ stock MarkClientAsUnGagged(target)
     g_iGagTime[target]         = 0;
     g_iGagLength[target]       = 0;
     g_iGagLevel[target]        = -1;
+    g_iGagAdminID[target]      = -1;
     g_sGagAdminName[target][0] = '\0';
     g_sGagReason[target][0]    = '\0';
-    g_sGagAdminAuth[target][0] = '\0';
 }
 
-stock MarkClientAsMuted(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", const String:adminAuth[] = "STEAM_ID_SERVER", adminImmunity = 0, const String:reason[] = "")
+stock MarkClientAsMuted(target, const iCreateTime = NOW, const iLength = -1, const String:sAdmName[] = "CONSOLE", const _:iAdmID = 0, const iAdmImmunity = 0, const String:sReason[] = "")
 {
-    if (time)
-        g_iMuteTime[target] = time;
+    if (iCreateTime)
+        g_iMuteTime[target] = iCreateTime;
     else
         g_iMuteTime[target] = GetTime();
 
-    g_iMuteLength[target] = length;
-    g_iMuteLevel[target]  = adminImmunity ? adminImmunity : ConsoleImmunity;
-    strcopy(g_sMuteAdminName[target], sizeof(g_sMuteAdminName[]), adminName);
-    strcopy(g_sMuteReason[target],    sizeof(g_sMuteReason[]),    reason);
-    strcopy(g_sMuteAdminAuth[target], sizeof(g_sMuteAdminAuth[]), adminAuth);
+    g_iMuteLength[target]  = iLength;
+    g_iMuteLevel[target]   = iAdmID ? iAdmImmunity : ConsoleImmunity;
+    g_iMuteAdminID[target] = iAdmID;
+    strcopy(g_sMuteAdminName[target], sizeof(g_sMuteAdminName[]), sAdmName);
+    strcopy(g_sMuteReason[target],    sizeof(g_sMuteReason[]),    sReason);
 
-    if (length > 0)
+    if (iLength > 0)
         g_MuteType[target] = bTime;
-    else if (length == 0)
+    else if (iLength == 0)
         g_MuteType[target] = bPerm;
     else
         g_MuteType[target] = bSess;
 }
 
-stock MarkClientAsGagged(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", const String:adminAuth[] = "STEAM_ID_SERVER", adminImmunity = 0, const String:reason[] = "")
+stock MarkClientAsGagged(target, const iCreateTime = NOW, const iLength = -1, const String:sAdmName[] = "CONSOLE", const _:iAdmID = 0, const iAdmImmunity = 0, const String:sReason[] = "")
 {
-    if (time)
-        g_iGagTime[target] = time;
+    if (iCreateTime)
+        g_iGagTime[target] = iCreateTime;
     else
         g_iGagTime[target] = GetTime();
 
-    g_iGagLength[target] = length;
-    g_iGagLevel[target]  = adminImmunity ? adminImmunity : ConsoleImmunity;
-    strcopy(g_sGagAdminName[target], sizeof(g_sGagAdminName[]), adminName);
-    strcopy(g_sGagReason[target],    sizeof(g_sGagReason[]),    reason);
-    strcopy(g_sGagAdminAuth[target], sizeof(g_sGagAdminAuth[]), adminAuth);
+    g_iGagLength[target]  = iLength;
+    g_iGagLevel[target]   = iAdmID ? iAdmImmunity : ConsoleImmunity;
+    g_iGagAdminID[target] = iAdmID;
+    strcopy(g_sGagAdminName[target], sizeof(g_sGagAdminName[]), sAdmName);
+    strcopy(g_sGagReason[target],    sizeof(g_sGagReason[]),    sReason);
 
-    if (length > 0)
+    if (iLength > 0)
         g_GagType[target] = bTime;
-    else if (length == 0)
+    else if (iLength == 0)
         g_GagType[target] = bPerm;
     else
         g_GagType[target] = bSess;
@@ -2704,18 +2735,18 @@ stock PerformUnGag(target)
     CloseGagExpireTimer(target);
 }
 
-stock PerformMute(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", const String:adminAuth[] = "STEAM_ID_SERVER", adminImmunity = 0, const String:reason[] = "", remaining_time = 0)
+stock PerformMute(target, const iCreateTime = NOW, const iLength = -1, const String:sAdmName[] = "CONSOLE", const _:iAdmID = 0, const iAdmImmunity = 0, const String:sReason[] = "", iRemainingTime = 0)
 {
-    MarkClientAsMuted(target, time, length, adminName, adminAuth, adminImmunity, reason);
+    MarkClientAsMuted(target, iCreateTime, iLength, sAdmName, iAdmID, iAdmImmunity, sReason);
     BaseComm_SetClientMute(target, true);
-    CreateMuteExpireTimer(target, remaining_time);
+    CreateMuteExpireTimer(target, iRemainingTime);
 }
 
-stock PerformGag(target, time = NOW, length = -1, const String:adminName[] = "CONSOLE", const String:adminAuth[] = "STEAM_ID_SERVER", adminImmunity = 0, const String:reason[] = "", remaining_time = 0)
+stock PerformGag(target, const iCreateTime = NOW, const iLength = -1, const String:sAdmName[] = "CONSOLE", const _:iAdmID = 0, const iAdmImmunity = 0, const String:sReason[] = "", iRemainingTime = 0)
 {
-    MarkClientAsGagged(target, time, length, adminName, adminAuth, adminImmunity, reason);
+    MarkClientAsGagged(target, iCreateTime, iLength, sAdmName, iAdmID, iAdmImmunity, sReason);
     BaseComm_SetClientGag(target, true);
-    CreateGagExpireTimer(target, remaining_time);
+    CreateGagExpireTimer(target, iRemainingTime);
 }
 
 stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[] = "")
