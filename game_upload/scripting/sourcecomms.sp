@@ -11,8 +11,8 @@
 
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 
-// #define DEBUG
-// #define LOG_QUERIES
+#define DEBUG
+#define LOG_QUERIES
 
 // Do not edit below this line //
 //-----------------------------//
