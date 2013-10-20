@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.14"
+#define PLUGIN_VERSION "1.0.15"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -97,7 +97,9 @@ new DisUBImCheck        = 0;
 new ConsoleImmunity     = 0;
 new ConfigMaxLength     = 0;
 new ConfigWhiteListOnly = 0;
-new g_iServerID         = 0;
+
+new g_iServerID;
+new String:g_sServerIP[16];
 
 /* List menu */
 enum PeskyPanels
@@ -1181,6 +1183,11 @@ public SB_OnConnect(Handle:database)
     }
 }
 
+public SB_OnReload()
+{
+    // Get values from SourceBans config and store them locally
+    SB_GetConfigString("ServerIP", g_sServerIP, sizeof(g_sServerIP));
+}
 
 // SQL CALLBACKS //
 
@@ -2847,7 +2854,7 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
     {
         // setup dummy adminAuth and adminIp for server
         strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
-        SB_GetConfigString("ServerIP", adminIp, sizeof(adminIp));
+        strcopy(adminIp, sizeof(adminIp), g_sServerIP);
     }
 
     new String:sName[MAX_NAME_LENGTH];
