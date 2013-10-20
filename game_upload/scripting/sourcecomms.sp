@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.18"
+#define PLUGIN_VERSION "1.0.19"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1176,7 +1176,7 @@ public PanelHandler_ListTargetReason(Handle:menu, MenuAction:action, param1, par
 public SB_OnConnect(Handle:database)
 {
     g_iServerID = SB_GetConfigValue("ServerID");
-    if (g_iServerID == 0 && ConfigWhiteListOnly)
+    if (!g_iServerID && ConfigWhiteListOnly)
     {
         LogError("Unknown ServerID! ServersWhiteList feature disabled!");
         ConfigWhiteListOnly = 0;
