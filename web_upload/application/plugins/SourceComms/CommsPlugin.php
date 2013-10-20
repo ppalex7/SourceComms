@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
 	public function getVersion()
 	{
-		return '1.0.2';
+		return '1.0.3';
 	}
 
 	public function getUrl()
@@ -46,9 +46,9 @@ class CommsPlugin extends SBPlugin
 				'unban_reason' => 'varchar(255) DEFAULT NULL',
 				'unban_time' => 'int(10) unsigned DEFAULT NULL',
 				'create_time' => 'int(10) unsigned NOT NULL',
-				'KEY server_id (server_id)',
-				'KEY admin_id (admin_id)',
-				'KEY unban_admin_id (unban_admin_id)',
+				'KEY steam_unbanned (steam,unban_admin_id)',
+                'KEY server_id (server_id)',
+                'KEY admin_id (admin_id)',
 			), 'ENGINE=InnoDB DEFAULT CHARSET=utf8');
 			$transaction->commit();
 			return true;
