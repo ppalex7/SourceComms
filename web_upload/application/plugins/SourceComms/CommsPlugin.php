@@ -18,12 +18,12 @@ class CommsPlugin extends SBPlugin
 
 	public function getVersion()
 	{
-		return '1.0.1';
+		return '1.0.2';
 	}
 
 	public function getUrl()
 	{
-		return 'http://www.tf2news.ru';
+		return 'https://github.com/d-ai/SourceComms';
 	}
 
 
