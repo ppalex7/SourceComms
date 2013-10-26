@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.29';
+        return '1.0.36';
     }
 
     public function getUrl()
@@ -30,6 +30,7 @@ class CommsPlugin extends SBPlugin
     public function init()
     {
         SourceBans::app()->on('app.beginRequest', array($this, 'onBeginRequest'));
+        SourceBans::app()->on('app.beforeAction', array($this, 'onBeforeAction'));
     }
 
     public function runInstall()
@@ -50,7 +51,7 @@ class CommsPlugin extends SBPlugin
                 'unban_admin_id' => 'smallint(5) unsigned DEFAULT NULL',
                 'unban_reason' => 'varchar(255) DEFAULT NULL',
                 'unban_time' => 'int(10) unsigned DEFAULT NULL',
-                'create_time' => 'int(10) unsigned NOT NULL DEFUALT CURRENT_TIMESTAMP',
+                'create_time' => 'int(10) unsigned NOT NULL',
                 'KEY steam_unbanned (steam_account_id,unban_admin_id)',
                 'KEY server_id (server_id)',
                 'KEY admin_id (admin_id)',
@@ -61,6 +62,7 @@ class CommsPlugin extends SBPlugin
 
         catch(Exception $e)
         {
+            Yii::log($e);
             $transaction->rollback();
             return false;
         }
