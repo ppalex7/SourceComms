@@ -1,5 +1,5 @@
 # scripts for uploading
-upload.*
+upload*
 
 # auto-update file
 sc-updatefile.txt
