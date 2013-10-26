@@ -29,247 +29,247 @@
  */
 class Comms extends CActiveRecord
 {
-	const GAG_TYPE  = 2;
-	const MUTE_TYPE = 1;
-	
-	/**
-	 * Returns the static model of the specified AR class.
-	 * @param string $className active record class name.
-	 * @return Comms the static model class
-	 */
-	public static function model($className=__CLASS__)
-	{
-		return parent::model($className);
-	}
+    const GAG_TYPE  = 2;
+    const MUTE_TYPE = 1;
 
-	/**
-	 * @return string the associated database table name
-	 */
-	public function tableName()
-	{
-		return '{{comms}}';
-	}
+    /**
+     * Returns the static model of the specified AR class.
+     * @param string $className active record class name.
+     * @return Comms the static model class
+     */
+    public static function model($className=__CLASS__)
+    {
+        return parent::model($className);
+    }
 
-	/**
-	 * @return array validation rules for model attributes.
-	 */
-	public function rules()
-	{
-		// NOTE: you should only define rules for those attributes that
-		// will receive user inputs.
-		return array(
-			array('type, reason, length', 'required'),
-			array('type, length', 'numerical', 'integerOnly'=>true),
-			array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
-			array('name', 'length', 'max'=>64),
-			array('reason, unban_reason', 'length', 'max'=>255),
-			// The following rule is used by search().
-			// Please remove those attributes that should not be searched.
-			array('id, type, steam, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on'=>'search'),
-		);
-	}
+    /**
+     * @return string the associated database table name
+     */
+    public function tableName()
+    {
+        return '{{comms}}';
+    }
 
-	/**
-	 * @return array relational rules.
-	 */
-	public function relations()
-	{
-		// NOTE: you may need to adjust the relation name and the related
-		// class name for the relations automatically generated below.
-		return array(
-			'admin' => array(self::BELONGS_TO, 'SBAdmin', 'admin_id'),
-			'server' => array(self::BELONGS_TO, 'SBServer', 'server_id'),
-			'unban_admin' => array(self::BELONGS_TO, 'SBAdmin', 'unban_admin_id'),
-		);
-	}
+    /**
+     * @return array validation rules for model attributes.
+     */
+    public function rules()
+    {
+        // NOTE: you should only define rules for those attributes that
+        // will receive user inputs.
+        return array(
+            array('type, reason, length', 'required'),
+            array('type, length', 'numerical', 'integerOnly'=>true),
+            array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
+            array('name', 'length', 'max'=>64),
+            array('reason, unban_reason', 'length', 'max'=>255),
+            // The following rule is used by search().
+            // Please remove those attributes that should not be searched.
+            array('id, type, steam, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on'=>'search'),
+        );
+    }
 
-	/**
-	 * @return array customized attribute labels (name=>label)
-	 */
-	public function attributeLabels()
-	{
-		return array(
-			'id' => 'ID',
-			'type' => Yii::t('sourcebans', 'Type'),
-			'steam' => Yii::t('sourcebans', 'Steam ID'),
-			'name' => Yii::t('sourcebans', 'Name'),
-			'reason' => Yii::t('sourcebans', 'Reason'),
-			'length' => Yii::t('sourcebans', 'Length'),
-			'server_id' => Yii::t('sourcebans', 'Server'),
-			'admin_id' => Yii::t('sourcebans', 'Admin'),
-			'admin_ip' => 'Admin IP address',
-			'unban_admin_id' => 'Unbanned by',
-			'unban_reason' => Yii::t('sourcebans', 'Unban reason'),
-			'unban_time' => 'Unbanned on',
-			'create_time' => Yii::t('sourcebans', 'Date') . '/' . Yii::t('sourcebans', 'Time'),
-		);
-	}
+    /**
+     * @return array relational rules.
+     */
+    public function relations()
+    {
+        // NOTE: you may need to adjust the relation name and the related
+        // class name for the relations automatically generated below.
+        return array(
+            'admin' => array(self::BELONGS_TO, 'SBAdmin', 'admin_id'),
+            'server' => array(self::BELONGS_TO, 'SBServer', 'server_id'),
+            'unban_admin' => array(self::BELONGS_TO, 'SBAdmin', 'unban_admin_id'),
+        );
+    }
 
-	/**
-	 * Retrieves a list of models based on the current search/filter conditions.
-	 * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
-	 */
-	public function search()
-	{
-		// Warning: Please modify the following code to remove attributes that
-		// should not be searched.
+    /**
+     * @return array customized attribute labels (name=>label)
+     */
+    public function attributeLabels()
+    {
+        return array(
+            'id' => 'ID',
+            'type' => Yii::t('sourcebans', 'Type'),
+            'steam' => Yii::t('sourcebans', 'Steam ID'),
+            'name' => Yii::t('sourcebans', 'Name'),
+            'reason' => Yii::t('sourcebans', 'Reason'),
+            'length' => Yii::t('sourcebans', 'Length'),
+            'server_id' => Yii::t('sourcebans', 'Server'),
+            'admin_id' => Yii::t('sourcebans', 'Admin'),
+            'admin_ip' => 'Admin IP address',
+            'unban_admin_id' => 'Unbanned by',
+            'unban_reason' => Yii::t('sourcebans', 'Unban reason'),
+            'unban_time' => 'Unbanned on',
+            'create_time' => Yii::t('sourcebans', 'Date') . '/' . Yii::t('sourcebans', 'Time'),
+        );
+    }
 
-		$criteria=new CDbCriteria;
-		$criteria->with=array('admin','server','server.game','unban_admin');
+    /**
+     * Retrieves a list of models based on the current search/filter conditions.
+     * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
+     */
+    public function search()
+    {
+        // Warning: Please modify the following code to remove attributes that
+        // should not be searched.
 
-		$criteria->compare('id',$this->id);
-		$criteria->compare('type',$this->type);
-		$criteria->compare('steam',$this->steam,true);
-		$criteria->compare('name',$this->name,true);
-		$criteria->compare('reason',$this->reason,true);
-		$criteria->compare('length',$this->length);
-		$criteria->compare('server_id',$this->server_id);
-		$criteria->compare('admin_id',$this->admin_id);
-		$criteria->compare('admin_ip',$this->admin_ip,true);
-		$criteria->compare('unban_admin_id',$this->unban_admin_id);
-		$criteria->compare('unban_reason',$this->unban_reason,true);
-		$criteria->compare('unban_time',$this->unban_time);
-		$criteria->compare('create_time',$this->create_time);
+        $criteria=new CDbCriteria;
+        $criteria->with=array('admin','server','server.game','unban_admin');
 
-		return new CActiveDataProvider($this, array(
-			'criteria'=>$criteria,
-			'pagination'=>array(
-				'pageSize'=>SourceBans::app()->settings->items_per_page,
-			),
-			'sort'=>array(
-				'attributes'=>array(
-					'admin.name'=>array(
-						'asc'=>'admin.name',
-						'desc'=>'admin.name DESC',
-					),
-					'*',
-				),
-				'defaultOrder'=>array(
-					'create_time'=>CSort::SORT_DESC,
-				),
-			),
-		));
-	}
+        $criteria->compare('id',$this->id);
+        $criteria->compare('type',$this->type);
+        $criteria->compare('steam',$this->steam,true);
+        $criteria->compare('name',$this->name,true);
+        $criteria->compare('reason',$this->reason,true);
+        $criteria->compare('length',$this->length);
+        $criteria->compare('server_id',$this->server_id);
+        $criteria->compare('admin_id',$this->admin_id);
+        $criteria->compare('admin_ip',$this->admin_ip,true);
+        $criteria->compare('unban_admin_id',$this->unban_admin_id);
+        $criteria->compare('unban_reason',$this->unban_reason,true);
+        $criteria->compare('unban_time',$this->unban_time);
+        $criteria->compare('create_time',$this->create_time);
 
-	public function scopes()
-	{
-		$t = $this->tableAlias;
-		
-		return array(
-			'active'=>array(
-				'condition'=>$t.'.unban_time IS NULL AND ('.$t.'.length = 0 OR '.$t.'.create_time + '.$t.'.length * 60 > UNIX_TIMESTAMP())',
-			),
-			'expired'=>array(
-				'condition'=>$t.'.length > 0 AND '.$t.'.create_time + '.$t.'.length * 60 < UNIX_TIMESTAMP()',
-			),
-			'inactive'=>array(
-				'condition'=>$t.'.unban_time IS NOT NULL OR ('.$t.'.length > 0 AND '.$t.'.create_time + '.$t.'.length * 60 < UNIX_TIMESTAMP())',
-			),
-			'permanent'=>array(
-				'condition'=>$t.'.length = 0',
-			),
-			'unbanned'=>array(
-				'condition'=>$t.'.unban_time IS NOT NULL',
-			),
-		);
-	}
+        return new CActiveDataProvider($this, array(
+            'criteria'=>$criteria,
+            'pagination'=>array(
+                'pageSize'=>SourceBans::app()->settings->items_per_page,
+            ),
+            'sort'=>array(
+                'attributes'=>array(
+                    'admin.name'=>array(
+                        'asc'=>'admin.name',
+                        'desc'=>'admin.name DESC',
+                    ),
+                    '*',
+                ),
+                'defaultOrder'=>array(
+                    'create_time'=>CSort::SORT_DESC,
+                ),
+            ),
+        ));
+    }
 
-	public function behaviors()
-	{
-		return array(
-			'CTimestampBehavior' => array(
-				'class' => 'zii.behaviors.CTimestampBehavior',
-				'updateAttribute' => null,
-			),
-		);
-	}
-	
-	/**
-	 * Returns whether the ban is active
-	 * 
-	 * @return boolean whether the ban is active
-	 */
-	public function getIsActive()
-	{
-		return !$this->unban_time && (!$this->length || $this->create_time + $this->length * 60 > time());
-	}
-	
-	/**
-	 * Returns whether the ban is expired
-	 * 
-	 * @return boolean whether the ban is expired
-	 */
-	public function getIsExpired()
-	{
-		return $this->length && $this->create_time + $this->length * 60 < time();
-	}
-	
-	/**
-	 * Returns whether the ban is permanent
-	 * 
-	 * @return boolean whether the ban is permanent
-	 */
-	public function getIsPermanent()
-	{
-		return !$this->length;
-	}
-	
-	/**
-	 * Returns whether the ban is unbanned
-	 * 
-	 * @return boolean whether the ban is unbanned
-	 */
-	public function getIsUnbanned()
-	{
-		return !!$this->unban_time;
-	}
-	
-	/**
-	 * Unbans the ban
-	 * 
-	 * @param string $reason optional unban reason
-	 * @return boolean whether the unbanning is successful
-	 */
-	public function unban($reason = null)
-	{
-		$this->unban_admin_id = Yii::app()->user->id;
-		$this->unban_reason   = $reason;
-		$this->unban_time     = time();
-		
-		return $this->save(false);
-	}
-	
-	
-	/**
-	 * Returns the supported ban types
-	 * 
-	 * @return array the supported ban types
-	 */
-	public static function getTypes()
-	{
-		return array(
-			self::GAG_TYPE  => Yii::t('CommsPlugin.main', 'Gag'),
-			self::MUTE_TYPE => Yii::t('CommsPlugin.main', 'Mute'),
-		);
-	}
+    public function scopes()
+    {
+        $t = $this->tableAlias;
+
+        return array(
+            'active'=>array(
+                'condition'=>$t.'.unban_time IS NULL AND ('.$t.'.length = 0 OR '.$t.'.create_time + '.$t.'.length * 60 > UNIX_TIMESTAMP())',
+            ),
+            'expired'=>array(
+                'condition'=>$t.'.length > 0 AND '.$t.'.create_time + '.$t.'.length * 60 < UNIX_TIMESTAMP()',
+            ),
+            'inactive'=>array(
+                'condition'=>$t.'.unban_time IS NOT NULL OR ('.$t.'.length > 0 AND '.$t.'.create_time + '.$t.'.length * 60 < UNIX_TIMESTAMP())',
+            ),
+            'permanent'=>array(
+                'condition'=>$t.'.length = 0',
+            ),
+            'unbanned'=>array(
+                'condition'=>$t.'.unban_time IS NOT NULL',
+            ),
+        );
+    }
+
+    public function behaviors()
+    {
+        return array(
+            'CTimestampBehavior' => array(
+                'class' => 'zii.behaviors.CTimestampBehavior',
+                'updateAttribute' => null,
+            ),
+        );
+    }
+
+    /**
+     * Returns whether the ban is active
+     *
+     * @return boolean whether the ban is active
+     */
+    public function getIsActive()
+    {
+        return !$this->unban_time && (!$this->length || $this->create_time + $this->length * 60 > time());
+    }
+
+    /**
+     * Returns whether the ban is expired
+     *
+     * @return boolean whether the ban is expired
+     */
+    public function getIsExpired()
+    {
+        return $this->length && $this->create_time + $this->length * 60 < time();
+    }
+
+    /**
+     * Returns whether the ban is permanent
+     *
+     * @return boolean whether the ban is permanent
+     */
+    public function getIsPermanent()
+    {
+        return !$this->length;
+    }
+
+    /**
+     * Returns whether the ban is unbanned
+     *
+     * @return boolean whether the ban is unbanned
+     */
+    public function getIsUnbanned()
+    {
+        return !!$this->unban_time;
+    }
+
+    /**
+     * Unbans the ban
+     *
+     * @param string $reason optional unban reason
+     * @return boolean whether the unbanning is successful
+     */
+    public function unban($reason = null)
+    {
+        $this->unban_admin_id = Yii::app()->user->id;
+        $this->unban_reason   = $reason;
+        $this->unban_time     = time();
+
+        return $this->save(false);
+    }
 
 
-	protected function beforeSave()
-	{
-		if($this->isNewRecord)
-		{
-			if(!Yii::app()->user->isGuest)
-			{
-				$this->admin_id = Yii::app()->user->id;
-			}
-			
-			$this->admin_ip = $_SERVER['SERVER_ADDR'];
-		}
-		if(!empty($this->steam))
-		{
-			$this->steam = strtoupper($this->steam);
-		}
-		
-		return parent::beforeSave();
-	}
+    /**
+     * Returns the supported ban types
+     *
+     * @return array the supported ban types
+     */
+    public static function getTypes()
+    {
+        return array(
+            self::GAG_TYPE  => Yii::t('CommsPlugin.main', 'Gag'),
+            self::MUTE_TYPE => Yii::t('CommsPlugin.main', 'Mute'),
+        );
+    }
+
+
+    protected function beforeSave()
+    {
+        if($this->isNewRecord)
+        {
+            if(!Yii::app()->user->isGuest)
+            {
+                $this->admin_id = Yii::app()->user->id;
+            }
+
+            $this->admin_ip = $_SERVER['SERVER_ADDR'];
+        }
+        if(!empty($this->steam))
+        {
+            $this->steam = strtoupper($this->steam);
+        }
+
+        return parent::beforeSave();
+    }
 }
