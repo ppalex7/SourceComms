@@ -5,15 +5,15 @@
 ?>
 
 <?php $form=$this->beginWidget('CActiveForm', array(
-	'action'=>Yii::app()->createUrl($this->route),
-	'method'=>'get',
-	'clientOptions'=>array(
-		'inputContainer'=>'.control-group',
-	),
-	'errorMessageCssClass'=>'help-inline',
-	'htmlOptions'=>array(
-		'class'=>'form-horizontal',
-	),
+    'action'=>Yii::app()->createUrl($this->route),
+    'method'=>'get',
+    'clientOptions'=>array(
+        'inputContainer'=>'.control-group',
+    ),
+    'errorMessageCssClass'=>'help-inline',
+    'htmlOptions'=>array(
+        'class'=>'form-horizontal',
+    ),
 )) ?>
 
   <div class="control-group">
