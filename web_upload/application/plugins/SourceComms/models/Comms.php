@@ -32,6 +32,25 @@ class Comms extends CActiveRecord
     const GAG_TYPE  = 2;
     const MUTE_TYPE = 1;
 
+
+    // Custom setter to converting SteamID to Steam Account ID
+    public function __set($name, $value) {
+        if ($name === 'steam') {
+            $this->steam_account_id = $value;
+        } else {
+            parent::__set($name, $value);
+        }
+    }
+
+    // Custom getter to converting Steam Account ID to SteamID
+    public function __get($name) {
+        if ($name === 'steam') {
+            return $this->steam_account_id;
+        } else {
+            return parent::__get($name);
+        }
+    }
+
     /**
      * Returns the static model of the specified AR class.
      * @param string $className active record class name.
@@ -60,12 +79,12 @@ class Comms extends CActiveRecord
         return array(
             array('type, reason, length', 'required'),
             array('type, length', 'numerical', 'integerOnly'=>true),
-            // array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
+            array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
             array('name', 'length', 'max'=>64),
             array('reason, unban_reason', 'length', 'max'=>255),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, type, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on'=>'search'),
+            array('id, type, steam_account_id, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on'=>'search'),
         );
     }
 
@@ -116,11 +135,10 @@ class Comms extends CActiveRecord
 
         $criteria=new CDbCriteria;
         $criteria->with=array('admin','server','server.game','unban_admin');
-
         $criteria->compare('id',$this->id);
         $criteria->compare('type',$this->type);
-        // $criteria->compare('steam',$this->steam,true);
-        $criteria->compare('name',$this->name,true);
+        $criteria->compare('steam_account_id',$this->steam,true);
+        $criteria->compare('t.name',$this->name,true);
         $criteria->compare('reason',$this->reason,true);
         $criteria->compare('length',$this->length);
         $criteria->compare('server_id',$this->server_id);

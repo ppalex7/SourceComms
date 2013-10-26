@@ -33,9 +33,7 @@
   <div class="control-group">
     <?php echo $form->label($model,'steam',array('class' => 'control-label')); ?>
     <div class="controls">
-      <?php
-        // echo $form->textField($model,'steam',array('size'=>32,'maxlength'=>32));
-      ?>
+      <?php echo $form->textField($model,'steam',array('size'=>32,'maxlength'=>32)); ?>
     </div>
   </div>
 
