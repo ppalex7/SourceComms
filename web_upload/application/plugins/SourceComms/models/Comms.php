@@ -6,7 +6,7 @@
  * The followings are the available columns in table '{{comms}}':
  * @property integer $id ID
  * @property integer $type Type
- * @property string $steam Steam ID
+ * @property string $steam_account_id Steam Account ID
  * @property string $name Name
  * @property string $reason Reason
  * @property integer $length Length
@@ -60,12 +60,12 @@ class Comms extends CActiveRecord
         return array(
             array('type, reason, length', 'required'),
             array('type, length', 'numerical', 'integerOnly'=>true),
-            array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
+            // array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
             array('name', 'length', 'max'=>64),
             array('reason, unban_reason', 'length', 'max'=>255),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, type, steam, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on'=>'search'),
+            array('id, type, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on'=>'search'),
         );
     }
 
@@ -119,7 +119,7 @@ class Comms extends CActiveRecord
 
         $criteria->compare('id',$this->id);
         $criteria->compare('type',$this->type);
-        $criteria->compare('steam',$this->steam,true);
+        // $criteria->compare('steam',$this->steam,true);
         $criteria->compare('name',$this->name,true);
         $criteria->compare('reason',$this->reason,true);
         $criteria->compare('length',$this->length);
