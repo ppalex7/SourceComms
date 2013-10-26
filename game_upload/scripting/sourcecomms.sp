@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.257"
+#define PLUGIN_VERSION "0.9.259"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1619,7 +1619,7 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
     GetClientAuthString(client, clientAuth, sizeof(clientAuth));
 
     //SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user,
-    //IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid
+    //IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid, c.authid
     //FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
     //WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
     if (SQL_GetRowCount(hndl) > 0)
@@ -1638,7 +1638,7 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
             SQL_FetchString(hndl, 5, sAdmName, sizeof(sAdmName));
             new immunity =       SQL_FetchInt(hndl, 6);
             new aid =            SQL_FetchInt(hndl, 7);
-            SQL_FetchString(hndl, 8, sAdmAuth, sizeof(sAdmAuth));
+            SQL_FetchString(hndl, 9, sAdmAuth, sizeof(sAdmAuth));
 
             // Block from CONSOLE (aid=0) and we have `console immunity` value in config
             if (!aid && ConsoleImmunity > immunity)
