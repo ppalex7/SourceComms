@@ -33,24 +33,6 @@ class Comms extends CActiveRecord
     const MUTE_TYPE = 1;
 
 
-    // Custom setter to converting SteamID to Steam Account ID
-    public function __set($name, $value) {
-        if ($name === 'steam') {
-            $this->steam_account_id = $value;
-        } else {
-            parent::__set($name, $value);
-        }
-    }
-
-    // Custom getter to converting Steam Account ID to SteamID
-    public function __get($name) {
-        if ($name === 'steam') {
-            return $this->steam_account_id;
-        } else {
-            return parent::__get($name);
-        }
-    }
-
     /**
      * Returns the static model of the specified AR class.
      * @param string $className active record class name.
@@ -135,19 +117,19 @@ class Comms extends CActiveRecord
 
         $criteria=new CDbCriteria;
         $criteria->with=array('admin','server','server.game','unban_admin');
-        $criteria->compare('id',$this->id);
-        $criteria->compare('type',$this->type);
-        $criteria->compare('steam_account_id',$this->steam,true);
+        $criteria->compare('t.id',$this->id);
+        $criteria->compare('t.type',$this->type);
+        $criteria->compare('t.steam_account_id',$this->steam_account_id);
         $criteria->compare('t.name',$this->name,true);
-        $criteria->compare('reason',$this->reason,true);
-        $criteria->compare('length',$this->length);
-        $criteria->compare('server_id',$this->server_id);
-        $criteria->compare('admin_id',$this->admin_id);
-        $criteria->compare('admin_ip',$this->admin_ip,true);
-        $criteria->compare('unban_admin_id',$this->unban_admin_id);
-        $criteria->compare('unban_reason',$this->unban_reason,true);
-        $criteria->compare('unban_time',$this->unban_time);
-        $criteria->compare('create_time',$this->create_time);
+        $criteria->compare('t.reason',$this->reason,true);
+        $criteria->compare('t.length',$this->length);
+        $criteria->compare('t.server_id',$this->server_id);
+        $criteria->compare('t.admin_id',$this->admin_id);
+        $criteria->compare('t.admin_ip',$this->admin_ip,true);
+        $criteria->compare('t.unban_admin_id',$this->unban_admin_id);
+        $criteria->compare('t.unban_reason',$this->unban_reason,true);
+        $criteria->compare('t.unban_time',$this->unban_time);
+        $criteria->compare('t.create_time',$this->create_time);
 
         return new CActiveDataProvider($this, array(
             'criteria'=>$criteria,
@@ -269,6 +251,39 @@ class Comms extends CActiveRecord
             self::GAG_TYPE  => Yii::t('CommsPlugin.main', 'Gag'),
             self::MUTE_TYPE => Yii::t('CommsPlugin.main', 'Mute'),
         );
+    }
+
+    /**
+     * Custom setter - converts SteamID to Steam Account ID and saves it in model.
+     * @param string $steam - SteamID.
+     *
+     */
+    public function setSteam($steam)
+    {
+        if ($steam)
+            $this->steam_account_id = substr($steam, 8, 1) + 2 * substr($steam, 10, 10);
+        else
+            $this->steam_account_id = null;
+    }
+
+    /**
+     * Custom getter for SteamID (converts it from Steam Account ID)
+     *
+     * @return string Steam ID
+     */
+    public function getSteam()
+    {
+        if (empty($this->steam_account_id))
+        {
+            return null;
+        }
+        else
+        {
+            $y = $this->steam_account_id % 2;
+            $z = ($this->steam_account_id - $y) / 2;
+
+            return 'STEAM_0:' . $y . ':' . $z;
+        }
     }
 
 
