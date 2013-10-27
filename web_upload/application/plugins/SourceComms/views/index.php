@@ -15,7 +15,7 @@
   </div>
 
 <?php $grid=$this->widget('zii.widgets.grid.CGridView', array(
-    'id'=>'comms-grid',
+    'id'=>'bans-grid',
     'dataProvider'=>$comms->search(),
     'columns'=>array(
         array(
@@ -75,6 +75,9 @@
     'pager'=>array(
         'class'=>'bootstrap.widgets.TbPager',
     ),
+    'rowHtmlOptionsExpression'=>'array(
+        "class"=>"header" . ($data->isExpired ? " expired" : ($data->isUnbanned ? " unbanned" : "")),
+    )',
     'pagerCssClass'=>'pagination pagination-right',
     'selectableRows'=>0,
 )) ?><!-- comms grid -->
