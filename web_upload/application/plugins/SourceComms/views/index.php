@@ -15,7 +15,7 @@
   </div>
 
 <?php $grid=$this->widget('zii.widgets.grid.CGridView', array(
-    'id'=>'bans-grid',
+    'id'=>'comms-grid',
     'dataProvider'=>$comms->search(),
     'columns'=>array(
         array(

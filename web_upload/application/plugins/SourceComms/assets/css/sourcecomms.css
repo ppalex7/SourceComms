@@ -1,0 +1,4 @@
+#comms-grid tr.expired td.length,
+#comms-grid tr.unbanned td.length {
+  background-color: #dbf4d7;
+}
