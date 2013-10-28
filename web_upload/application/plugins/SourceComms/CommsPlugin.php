@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.167';
+        return '1.0.169';
     }
 
     public function getUrl()
@@ -104,6 +104,9 @@ class CommsPlugin extends SBPlugin
         Yii::app()->controller->tabs[] = array(
             'label' => Yii::t('CommsPlugin.main', 'Comms'),
             'url' => array('comms/index'),
+            'linkOptions' => array(
+                'title' => Yii::t('CommsPlugin.main', 'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.')
+            ),
         );
     }
 }
