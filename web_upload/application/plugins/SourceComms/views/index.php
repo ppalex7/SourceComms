@@ -69,6 +69,7 @@
             'value'=>'$data->isPermanent ? Yii::t("sourcebans", "Permanent") : Yii::app()->format->formatLength($data->length*60)',
         ),
     ),
+    'afterAjaxUpdate'=>'js:createSections',
     'cssFile'=>false,
     'itemsCssClass'=>'items table table-accordion table-condensed table-hover',
     'nullDisplay'=>CHtml::tag('span', array('class'=>'null'), Yii::t('zii', 'Not set')),
@@ -77,12 +78,104 @@
     ),
     'rowHtmlOptionsExpression'=>'array(
         "class"=>"header" . ($data->isExpired ? " expired" : ($data->isUnbanned ? " unbanned" : "")),
+        "data-key"=>$data->primaryKey,
+        "data-name"=>$data->name,
+        "data-steam"=>$data->steam,
+        "data-datetime"=>Yii::app()->format->formatDatetime($data->create_time),
+        "data-datetime-expired"=>$data->isPermanent ? null : Yii::app()->format->formatDatetime($data->create_time+$data->length*60),
+        "data-length"=>$data->isPermanent ? Yii::t("sourcebans", "Permanent") : Yii::app()->format->formatLength($data->length*60),
+        "data-reason"=>$data->reason,
+        "data-admin-name"=>isset($data->admin) ? $data->admin->name : Yii::app()->params["consoleName"],
+        "data-server-id"=>$data->server_id,
+        "data-community-id"=>$data->communityId,
     )',
     'pagerCssClass'=>'pagination pagination-right',
     'selectableRows'=>0,
 )) ?><!-- comms grid -->
 
 </section>
+
+<script id="comms-section" type="text/x-template">
+  <table class="table table-condensed pull-left">
+    <tbody>
+      <tr>
+        <th><?php echo $comms->getAttributeLabel('name') ?></th>
+        <td><%=header.data("name") || nullDisplay %></td>
+      </tr>
+      <tr>
+        <th><?php echo $comms->getAttributeLabel('steam') ?></th>
+        <td>
+          <%=header.data("steam") || nullDisplay %>
+<% if(header.data("communityId")) { %>
+          (<a href="http://steamcommunity.com/profiles/<%=header.data("communityId") %>" target="_blank"><?php echo Yii::t('sourcebans', 'View Steam Profile') ?></a>)
+<% } %>
+        </td>
+      </tr>
+      <tr>
+        <th><?php echo Yii::t('sourcebans', 'Invoked on') ?></th>
+        <td><%=header.data("datetime") %></td>
+      </tr>
+<% if(header.data("datetimeExpired")) { %>
+      <tr>
+        <th><?php echo Yii::t('sourcebans', 'Expires on') ?></th>
+        <td><%=header.data("datetimeExpired") %></td>
+      </tr>
+<% } %>
+      <tr>
+        <th><?php echo $comms->getAttributeLabel('length') ?></th>
+        <td><%=header.data("length") %></td>
+      </tr>
+      <tr>
+        <th><?php echo $comms->getAttributeLabel('reason') ?></th>
+        <td><%=header.data("reason") || nullDisplay %></td>
+      </tr>
+<?php if(!(Yii::app()->user->isGuest && SourceBans::app()->settings->bans_hide_admin)): ?>
+      <tr>
+        <th><?php echo $comms->getAttributeLabel('admin.name') ?></th>
+        <td><%=header.data("adminName") %></td>
+      </tr>
+<?php endif ?>
+<% if(header.data("serverId")) { %>
+      <tr>
+        <th><?php echo $comms->getAttributeLabel('server_id') ?></th>
+        <td class="ServerQuery_hostname"><?php echo Yii::t('sourcebans', 'components.ServerQuery.loading') ?></td>
+      </tr>
+<% } %>
+    </tbody>
+  </table>
+  <div class="ban-menu pull-right">
+<?php $this->widget('zii.widgets.CMenu', array(
+    'items' => array_merge(array(
+        // array(
+        //     'label' => Yii::t('sourcebans', 'Edit'),
+        //     'url' => array('bans/edit', 'id'=>'__ID__'),
+        //     'visible' => !Yii::app()->user->isGuest,
+        // ),
+        // array(
+        //     'label' => Yii::t('sourcebans', 'Unban'),
+        //     'url' => '#',
+        //     'itemOptions' => array('class' => 'ban-menu-unban'),
+        //     'visible' => !Yii::app()->user->isGuest,
+        // ),
+        // array(
+        //     'label' => Yii::t('sourcebans', 'Delete'),
+        //     'url' => array('bans/delete', 'id'=>'__ID__'),
+        //     'itemOptions' => array('class' => 'ban-menu-delete'),
+        //     'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('DELETE_BANS'),
+        // ),
+        // array(
+        //     'label' => Yii::t('sourcebans', 'Comments'),
+        //     'url' => array('comments/index', 'object_type'=>SBComment::BAN_TYPE, 'object_id'=>'__ID__'),
+        //     'itemOptions' => array('class' => 'ban-menu-comments'),
+        //     'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_BANS'),
+        // ),
+    ), $this->menu),
+    'htmlOptions' => array(
+        'class' => 'nav nav-stacked nav-pills',
+    ),
+)) ?>
+  </div>
+</script>
 
 <?php Yii::app()->clientScript->registerScript('search', "
   $('.search-button').click(function(){
@@ -97,10 +190,99 @@
   });
 "); ?>
 
-<?php Yii::app()->clientScript->registerScript('site_bans_queryServer', '
-  $.getJSON("' . $this->createUrl('servers/info') . '", function(servers) {
-    $.each(servers, function(i, server) {
-      $("#Comms_server_id option[value=\"" + server.id + "\"]").html(server.error ? server.error.message : server.hostname);
-    });
+<?php Yii::app()->clientScript->registerScript('site_comms_hashchange', '
+  $(window).bind("hashchange", function(e) {
+    var id       = $.param.fragment();
+    var $header  = $("#comms-grid tr[data-key=\"" + id + "\"]");
+    var $section = $header.next("tr.section").find("div:first-child");
+
+    $("#comms-grid > table.table-accordion > tbody > tr.selected").removeClass("selected");
+    $("#comms-grid tr.section div:first-child").not($section).slideUp(200, "linear");
+    if(!$header.length)
+      return;
+
+    $header.addClass("selected");
+    $section.slideDown(200, "linear");
+    $("#SBComment_object_id").val(id);
+  });
+
+  $(document).on("click.yiiGridView", "#comms-grid tr.header", function(e) {
+    var $this     = $(this);
+    location.hash = $this.hasClass("selected") ? 0 : $this.data("key");
+  });
+  $(document).on("click.yiiGridView", "#comms-grid tr.header :checkbox", function(e) {
+    e.stopImmediatePropagation();
   });
 ') ?>
+
+<?php Yii::app()->clientScript->registerScript('site_comms_createSections', '
+  function createSections() {
+    var nullDisplay = "' . addslashes($grid->nullDisplay) . '";
+
+    $("#comms-grid tr[data-key]").each(function(i, header) {
+      $section = $("<tr class=\"section\"><td colspan=\"" + header.cells.length + "\"><div></div></td></tr>").insertAfter($(header));
+
+      $section.find("div").html($("#comms-section").template({
+        header: $(header),
+        nullDisplay: nullDisplay
+      }));
+      $section.find("a").each(function() {
+        this.href = this.href.replace("__ID__", $(header).data("key"));
+      });
+      if($(header).hasClass("expired") || $(header).hasClass("unbanned")) {
+        $section.find(".ban-menu-unban").addClass("disabled");
+      }
+      else {
+        $section.find(".ban-menu-unban a").prop("rel", $(header).data("key"));
+      }
+      $section.find(".ban-menu-comments a").append(" (" + $(header).data("commentsCount") + ")");
+    });
+
+    updateSections();
+    $(window).trigger("hashchange");
+  }
+  function updateSections() {
+    if(typeof(window.serverInfo) == "undefined")
+      return;
+
+    $.each(window.serverInfo, function(i, server) {
+      var $section = $("#comms-grid tr[data-server-id=\"" + server.id + "\"]").next("tr.section");
+      $section.find(".ServerQuery_hostname").html(server.error ? server.error.message : server.hostname);
+      $("#SBBan_server_id option[value=\"" + server.id + "\"]").html(server.error ? server.error.message : server.hostname);
+    });
+  }
+
+  $(document).on("click", ".ban-menu-unban a", function(e) {
+    if($(this).parents("li").hasClass("disabled"))
+      return;
+
+    $.post("' . $this->createUrl('comms/unban', array("id" => "__ID__")) . '".replace("__ID__", $(this).prop("rel")), {
+      reason: ""
+    }, function() {
+      $("#' . $grid->id . '").yiiGridView("update");
+    });
+  });
+  $(document).on("click", ".ban-menu-delete a", function(e) {
+    if(!confirm("' . Yii::t('zii', 'Are you sure you want to delete this item?') . '")) return false;
+    $("#' . $grid->id . '").yiiGridView("update", {
+      type: "POST",
+      url: $(this).attr("href"),
+      success: function(data) {
+        $("#' . $grid->id . '").yiiGridView("update");
+      }
+    });
+    return false;
+  });
+
+  createSections();
+') ?>
+
+
+<?php Yii::app()->clientScript->registerScript('site_comms_queryServer', '
+  $.getJSON("' . $this->createUrl('servers/info') . '", function(servers) {
+    window.serverInfo = servers;
+
+    updateSections();
+  });
+') ?>
+
