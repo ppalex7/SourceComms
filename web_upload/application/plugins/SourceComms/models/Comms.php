@@ -93,7 +93,6 @@ class Comms extends CActiveRecord
             'id' => 'ID',
             'type' => Yii::t('sourcebans', 'Type'),
             'steam' => Yii::t('sourcebans', 'Steam ID'),
-            'communityId' => Yii::t('sourcebans', 'Steam Community ID'),
             'name' => Yii::t('sourcebans', 'Name'),
             'reason' => Yii::t('sourcebans', 'Reason'),
             'length' => Yii::t('sourcebans', 'Length'),
