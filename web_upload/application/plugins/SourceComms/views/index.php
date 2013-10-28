@@ -55,7 +55,7 @@
                 'class'=>'SBAdmin_name span3',
             ),
             'name'=>'admin.name',
-            'value'=>'isset($data->admin) ? $data->admin->name : "CONSOLE"',
+            'value'=>'isset($data->admin) ? $data->admin->name :  Yii::app()->params["consoleName"]',
             'visible'=>!(Yii::app()->user->isGuest && SourceBans::app()->settings->bans_hide_admin),
         ),
         array(
