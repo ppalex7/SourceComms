@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.46"
+#define PLUGIN_VERSION "1.0.49"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -274,7 +274,7 @@ public OnClientPostAdminCheck(client)
                        LEFT JOIN {{servers_server_groups}} AS ssg ON ssg.server_id = c.server_id \
                        LEFT JOIN {{server_groups}} AS sgs ON sgs.id = asg.group_id AND sgs.id = ssg.group_id \
                  WHERE c.steam_account_id = %d \
-                       AND unban_admin_id IS NULL \
+                       AND c.unban_time IS NULL \
                        AND (c.length = '0' OR c.create_time + c.length * 60 > UNIX_TIMESTAMP()) \
               GROUP BY c.id",
                 iClientAccountID);
@@ -1566,11 +1566,6 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
     }
 
     GetClientAuthString(client, clientAuth, sizeof(clientAuth));
-
-    //SELECT (c.ends - UNIX_TIMESTAMP()) as remaining, c.length, c.type, c.created, c.reason, a.user,
-    //IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, c.aid, c.sid
-    //FROM %s_comms c LEFT JOIN %s_admins a ON a.aid=c.aid LEFT JOIN %s_srvgroups g ON g.name = a.srv_group
-    //WHERE c.authid REGEXP '^STEAM_[0-9]:%s$' AND (length = '0' OR ends > UNIX_TIMESTAMP()) AND RemoveType IS NULL",
 
     // remaining, length, create_time, type, reason, server_id, admin_id, admin_name, admin_immunity
     if (SQL_GetRowCount(hndl) > 0)
