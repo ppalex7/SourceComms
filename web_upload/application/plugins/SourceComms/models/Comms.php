@@ -93,16 +93,18 @@ class Comms extends CActiveRecord
             'id' => 'ID',
             'type' => Yii::t('sourcebans', 'Type'),
             'steam' => Yii::t('sourcebans', 'Steam ID'),
+            'communityId' => Yii::t('sourcebans', 'Steam Community ID'),
             'name' => Yii::t('sourcebans', 'Name'),
             'reason' => Yii::t('sourcebans', 'Reason'),
             'length' => Yii::t('sourcebans', 'Length'),
             'server_id' => Yii::t('sourcebans', 'Server'),
             'admin_id' => Yii::t('sourcebans', 'Admin'),
-            'admin_ip' => 'Admin IP address',
-            'unban_admin_id' => 'Unbanned by',
+            'admin_ip' => Yii::t('sourcebans', 'Admin IP address'),
+            'unban_admin_id' => Yii::t('sourcebans', 'Unbanned by'),
             'unban_reason' => Yii::t('sourcebans', 'Unban reason'),
-            'unban_time' => 'Unbanned on',
+            'unban_time' => Yii::t('sourcebans', 'Unbanned on'),
             'create_time' => Yii::t('sourcebans', 'Date') . '/' . Yii::t('sourcebans', 'Time'),
+            'admin.name' => Yii::t('sourcebans', 'Admin'),
         );
     }
 
@@ -267,7 +269,7 @@ class Comms extends CActiveRecord
     }
 
     /**
-     * Custom getter for SteamID (converts it from Steam Account ID)
+     * Rerurns the Steam ID (converts it from Steam Account ID)
      *
      * @return string Steam ID
      */
@@ -284,6 +286,19 @@ class Comms extends CActiveRecord
 
             return 'STEAM_0:' . $y . ':' . $z;
         }
+    }
+
+    /**
+     * Returns the Steam Community ID
+     *
+     * @return integer the Steam Community ID
+     */
+    public function getCommunityId()
+    {
+        if (empty($this->steam_account_id))
+            return null;
+        else
+            return 0x0110000100000000 + $this->steam_account_id;
     }
 
 
