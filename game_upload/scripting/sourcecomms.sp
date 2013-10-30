@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.49"
+#define PLUGIN_VERSION "1.0.50"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -265,8 +265,8 @@ public OnClientPostAdminCheck(client)
             decl String:sQuery[4096];
             FormatEx(sQuery, sizeof(sQuery),
                "SELECT IF(c.length, c.create_time + c.length * 60 - UNIX_TIMESTAMP(), 0) as remaining \
-                     , c.length, c.create_time, c.type, c.reason, c.server_id \
-                     , IFNULL(a.id, 0), IFNULL(a.name, 'CONSOLE'), MAX(IFNULL(IF(c.server_id, sgs.immunity, sgw.immunity),0)) AS immunity \
+                     , c.length, c.create_time, c.type, c.reason, IFNULL(c.server_id,0) \
+                     , IFNULL(a.id, 0), IFNULL(a.name, 'CONSOLE'), MAX(IFNULL(IF(c.server_id, sgs.immunity, sgw.immunity), 0)) AS immunity \
                   FROM {{comms}} AS c \
                        LEFT JOIN {{admins}} AS a ON a.id = c.admin_id \
                        LEFT JOIN {{admins_server_groups}} AS asg ON asg.admin_id = c.admin_id \
