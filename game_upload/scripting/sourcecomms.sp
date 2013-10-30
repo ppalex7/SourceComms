@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.50"
+#define PLUGIN_VERSION "1.0.65"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1892,23 +1892,27 @@ stock InitializeBackupDB()
             type INTEGER)");
 }
 
-stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[] = "", const String:sArgs[] = "")
+stock CreateBlock(client, const targetId = 0, _:iLength = -1, const _:iType, const String:sReasonArg[] = "", const String:sArgs[] = "")
 {
     #if defined DEBUG
-        PrintToServer("CreateBlock(admin: %d, target: %d, length: %d, type: %d, reason: %s, args: %s)", client, targetId, length, type, sReason, sArgs);
+        PrintToServer("CreateBlock(admin: %d, target: %d, length: %d, type: %d, reason: %s, args: %s)", client, targetId, iLength, iType, sReasonArg, sArgs);
     #endif
 
-    decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml, String:target_name[MAX_NAME_LENGTH], String:reason[256];
-    new bool:skipped = false;
+    decl iTargetList[MAXPLAYERS];
+    decl iTargetCount;
+    decl bool:bTnIsMl;
+    decl String:sTargetName[MAX_NAME_LENGTH];
+    decl String:sReason[256];
+    new bool:bSkipped = false;
 
     // checking args
     if (targetId)
     {
-        target_list[0] = targetId;
-        target_count = 1;
-        tn_is_ml = false;
-        strcopy(target_name, sizeof(target_name), g_sName[targetId]);
-        strcopy(reason,      sizeof(reason),      sReason);
+        iTargetList[0] = targetId;
+        iTargetCount= 1;
+        bTnIsMl = false;
+        strcopy(sTargetName, sizeof(sTargetName), g_sName[targetId]);
+        strcopy(sReason,      sizeof(sReason),      sReasonArg);
     }
     else if (strlen(sArgs))
     {
@@ -1925,40 +1929,40 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
         }
         else
         {
-            ExplodeString(sArgs, " ", sArg, 3, 192, true);    // exploding by spaces
+            ExplodeString(sArgs, " ", sArg, 3, 192, true);  // exploding by spaces
         }
 
         // Get the target, find target returns a message on failure so we do not
-        if ((target_count = ProcessTargetString(
+        if ((iTargetCount = ProcessTargetString(
                 sArg[0],
                 client,
-                target_list,
+                iTargetList,
                 MAXPLAYERS,
                 COMMAND_FILTER_NO_BOTS,
-                target_name,
-                sizeof(target_name),
-                tn_is_ml)) <= 0)
+                sTargetName,
+                sizeof(sTargetName),
+                bTnIsMl)) <= 0)
         {
-            ReplyToTargetError(client, target_count);
+            ReplyToTargetError(client, iTargetCount);
             return;
         }
 
         // Get the block length
-        if (!StringToIntEx(sArg[1], length))    // not valid number in second argument
+        if (!StringToIntEx(sArg[1], iLength))   // not valid number in second argument
         {
-            length = DefaultTime;
-            Format(reason, sizeof(reason), "%s %s", sArg[1], sArg[2]);
+            iLength = DefaultTime;
+            Format(sReason, sizeof(sReason), "%s %s", sArg[1], sArg[2]);
         }
         else
         {
-            strcopy(reason, sizeof(reason), sArg[2]);
+            strcopy(sReason, sizeof(sReason), sArg[2]);
         }
 
         // Strip spaces and quotes from reason
-        TrimString(reason);
-        StripQuotes(reason);
+        TrimString(sReason);
+        StripQuotes(sReason);
 
-        if (!IsAllowedBlockLength(client, length, target_count))
+        if (!IsAllowedBlockLength(client, iLength, iTargetCount))
         {
             ReplyToCommand(client, "%s%t", PREFIX, "no access");
             return;
@@ -1981,47 +1985,47 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
         iAdmID = 0;
     }
 
-    for (new i = 0; i < target_count; i++)
+    for (new i = 0; i < iTargetCount; i++)
     {
-        new target = target_list[i];
+        new target = iTargetList[i];
 
         #if defined DEBUG
-            decl String:auth[64];
-            GetClientAuthString(target, auth, sizeof(auth));
-            PrintToServer("Processing block for %s", auth);
+            decl String:sAuth[64];
+            GetClientAuthString(target, sAuth, sizeof(sAuth));
+            PrintToServer("Processing block for %s", sAuth);
         #endif
 
         if (!g_bPlayerStatus[target])
         {
             // The target has not been blocks verify. It must be completed before you can block anyone.
             ReplyToCommand(client, "%s%t", PREFIX, "Player Comms Not Verified");
-            skipped = true;
+            bSkipped = true;
             continue; // skip
         }
 
-        switch(type)
+        switch(iType)
         {
             case TYPE_MUTE:
             {
                 if (!BaseComm_IsClientMuted(target))
                 {
                     #if defined DEBUG
-                        PrintToServer("%s not muted. Mute him, creating unmute timer and add record to DB", auth);
+                        PrintToServer("%s not muted. Mute him, creating unmute timer and add record to DB", sAuth);
                     #endif
 
-                    PerformMute(target, _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
+                    PerformMute(target, _, iLength, g_sName[client], iAdmID, iAdmImmunity, sReason);
 
-                    LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+                    LogAction(client, target, "\"%L\" muted \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, iLength, sReason);
                 }
                 else
                 {
                     #if defined DEBUG
-                        PrintToServer("%s already muted", auth);
+                        PrintToServer("%s already muted", sAuth);
                     #endif
 
                     ReplyToCommand(client, "%s%t", PREFIX, "Player already muted", g_sName[target]);
 
-                    skipped = true;
+                    bSkipped = true;
                     continue;
                 }
             }
@@ -2031,22 +2035,22 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
                 if (!BaseComm_IsClientGagged(target))
                 {
                     #if defined DEBUG
-                        PrintToServer("%s not gagged. Gag him, creating ungag timer and add record to DB", auth);
+                        PrintToServer("%s not gagged. Gag him, creating ungag timer and add record to DB", sAuth);
                     #endif
 
-                    PerformGag(target, _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
+                    PerformGag(target, _, iLength, g_sName[client], iAdmID, iAdmImmunity, sReason);
 
-                    LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+                    LogAction(client, target, "\"%L\" gagged \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, iLength, sReason);
                 }
                 else
                 {
                     #if defined DEBUG
-                        PrintToServer("%s already gagged", auth);
+                        PrintToServer("%s already gagged", sAuth);
                     #endif
 
                     ReplyToCommand(client, "%s%t", PREFIX, "Player already gagged", g_sName[target]);
 
-                    skipped = true;
+                    bSkipped = true;
                     continue;
                 }
             }
@@ -2056,32 +2060,32 @@ stock CreateBlock(client, targetId = 0, length = -1, type, const String:sReason[
                 if (!BaseComm_IsClientGagged(target) && !BaseComm_IsClientMuted(target))
                 {
                     #if defined DEBUG
-                        PrintToServer("%s not silenced. Silence him, creating ungag & unmute timers and add records to DB", auth);
+                        PrintToServer("%s not silenced. Silence him, creating ungag & unmute timers and add records to DB", sAuth);
                     #endif
 
-                    PerformMute(target, _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
-                    PerformGag(target,  _, length, g_sName[client], iAdmID, iAdmImmunity, reason);
+                    PerformMute(target, _, iLength, g_sName[client], iAdmID, iAdmImmunity, sReason);
+                    PerformGag(target,  _, iLength, g_sName[client], iAdmID, iAdmImmunity, sReason);
 
-                    LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, length, reason);
+                    LogAction(client, target, "\"%L\" silenced \"%L\" (minutes \"%d\") (reason \"%s\")", client, target, iLength, sReason);
                 }
                 else
                 {
                     #if defined DEBUG
-                        PrintToServer("%s already gagged or/and muted", auth);
+                        PrintToServer("%s already gagged or/and muted", sAuth);
                     #endif
 
                     ReplyToCommand(client, "%s%t", PREFIX, "Player already silenced", g_sName[target]);
 
-                    skipped = true;
+                    bSkipped = true;
                     continue;
                 }
             }
         }
     }
-    if (target_count == 1 && !skipped)
-        SavePunishment(client, target_list[0], type, length, reason);
-    if (target_count > 1 || !skipped)
-        ShowActivityToServer(client, type, length, reason, target_name, tn_is_ml);
+    if (iTargetCount == 1 && !bSkipped)
+        SavePunishment(client, iTargetList[0], iType, iLength, sReason);
+    if (iTargetCount > 1 || !bSkipped)
+        ShowActivityToServer(client, iType, iLength, sReason, sTargetName, bTnIsMl);
 
     return;
 }
