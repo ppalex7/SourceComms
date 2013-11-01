@@ -19,14 +19,14 @@
 	"Mute expired"
 	{
 		"en"			"Your mute expired."
-		"ru"			"Вам был включен микрофон (истек срок блокировки)"
+		"ru"			"Вам был включен микрофон (истек срок блокировки)."
 		"pl"			"Twoje wyciszenie wygasło."
 		"pt"			"Seu emudecimento expirou."
 	}
 	"Gag expired"
 	{
-		"en"			"Your gag expired"
-		"ru"			"Вам был включен чат (истек срок блокировки)"
+		"en"			"Your gag expired."
+		"ru"			"Вам был включен чат (истек срок блокировки)."
 		"pl"			"Twój knebel wygasł."
 		"pt"			"Seu amordaçamento expirou."
 	}
@@ -34,14 +34,14 @@
 	"FWUnmute"
 	{
 		"en"			"Your mute removed."
-		"ru"			"Вам был включен микрофон"
+		"ru"			"Вам был включен микрофон."
 		"pl"			"Twoje wyciszenie zostało usunięte."
 		"pt"			"Seu emudecimento foi removido."
 	}
 	"FWUngag"
 	{
-		"en"			"Your gag removed"
-		"ru"			"Вам был включен чат"
+		"en"			"Your gag removed."
+		"ru"			"Вам был включен чат."
 		"pl"			"Twój knebel został usunięty."
 		"pt"			"Seu amordaçamento foi removido."
 	}
@@ -58,7 +58,7 @@
 	{
 		"en"			"This player has not been verified. Please wait thirty seconds before retrying."
 		"ru"			"Игрок еще не идентифицирован. Подождите 30 секунд перед следующей попыткой."
-		"pl"			"Gracz niezweryfikowany. Proszę poczekać 30 sekund przed ponowną probą"
+		"pl"			"Gracz niezweryfikowany. Proszę poczekać 30 sekund przed ponowną probą."
 		"pt"			"Este jogador não foi verificado. Por favor, aguarde trinta segundos antes de tentar novamente."
 	}
 	//--------------------------------------------------------------------------------
@@ -172,7 +172,7 @@
 		"en"			"Issued an extended mute on {1} for {2} minutes (reason: {3})."
 		"ru"			"Игроку {1} отключен микрофон на {2} минут (причина: {3})."
 		"pl"			"Wyciszono {1} na {2} minut (powód: {3})."
-		"pt"			"Emudecimento de {1} foi estendido por {2} minutos, (motivo: {3})"
+		"pt"			"Emudecimento de {1} foi estendido por {2} minutos, (motivo: {3})."
 	}
 	//--------------------------------------------------------------------------------
 	"Permasilenced player"
@@ -205,7 +205,7 @@
 		"en"			"Issued an extended silence on {1} for {2} minutes (reason: {3})."
 		"ru"			"Игроку {1} отключен чат и микрофон на {2} минут (причина: {3})."
 		"pl"			"Całkowicie wyciszono {1} na {2} minut (powód: {3})."
-		"pt"			"Silenciamento de {1} foi estendido por {2} minutos, (motivo: {3})"
+		"pt"			"Silenciamento de {1} foi estendido por {2} minutos, (motivo: {3})."
 	}
 	//--------------------------------------------------------------------------------
 	"Temp unmuted player"
@@ -259,7 +259,7 @@
 	{
 		"#format"		"{1:s}"
 		"en"			"The mute on {1} was unable to be removed due to being muted by a higher administrator!"
-		"ru"			"Невозможно включить микрофон {1}, т.к. он был отключен более высоким администратором."
+		"ru"			"Невозможно включить микрофон {1}, т.к. он был отключен более высоким администратором!"
 		"pl"			"Wyciszenie {1} nie może zostać usunięte, ponieważ zostało nadane przez admina z wyższymi uprawnieniami!"
 		"pt"			"O emudecimento de {1} não pôde ser removido porque foi efetuado por um administrador de nível mais alto!"
 	}
@@ -267,7 +267,7 @@
 	{
 		"#format"		"{1:s}"
 		"en"			"The gag on {1} was unable to be removed due to being muted by a higher administrator!"
-		"ru"			"Невозможно включить чат {1}, т.к. он был отключен более высоким администратором."
+		"ru"			"Невозможно включить чат {1}, т.к. он был отключен более высоким администратором!"
 		"pl"			"Knebel {1} nie może zostać usunięty, ponieważ został nadany przez admina z wyższymi uprawnieniami!"
 		"pt"			"O amordaçamento de {1} não pôde ser removido porque foi efetuado por um administrador de nível mais alto!"
 	}
@@ -354,7 +354,7 @@
 	{
 		"en"		"Comm Commands:"
 		"ru"		"Чат и микрофон:"
-		"pl"		"Komunikacja"
+		"pl"		"Komunikacja:"
 		"pt"		"Comandos de Comunicação:"
 	}
 	"AdminMenu_List"
