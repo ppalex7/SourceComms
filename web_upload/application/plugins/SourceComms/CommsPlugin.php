@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.169';
+        return '1.0.170';
     }
 
     public function getUrl()
@@ -44,7 +44,7 @@ class CommsPlugin extends SBPlugin
                 'steam_account_id' => 'int(10) unsigned NOT NULL',
                 'name' => 'varchar(64) DEFAULT NULL',
                 'reason' => 'varchar(255) NOT NULL',
-                'length' => 'mediumint(8) unsigned NOT NULL DEFAULT 0',
+                'length' => 'mediumint(8) NOT NULL DEFAULT -1',
                 'server_id' => 'smallint(5) unsigned DEFAULT NULL',
                 'admin_id' => 'smallint(5) unsigned DEFAULT NULL',
                 'admin_ip' => 'varchar(15) NOT NULL',
