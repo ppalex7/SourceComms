@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.91"
+#define PLUGIN_VERSION "1.0.92"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2491,25 +2491,15 @@ stock ReadConfig()
         return;
     }
 
-    decl String:ConfigFile1[PLATFORM_MAX_PATH], String:ConfigFile2[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, ConfigFile1, sizeof(ConfigFile1), "configs/sourcebans/sourcebans.cfg");
-    BuildPath(Path_SM, ConfigFile2, sizeof(ConfigFile2), "configs/sourcebans/sourcecomms.cfg");
+    decl String:ConfigFile[PLATFORM_MAX_PATH];
+    BuildPath(Path_SM, ConfigFile, sizeof(ConfigFile), "configs/sourcebans/sourcecomms.cfg");
 
-    if (FileExists(ConfigFile1))
-    {
-        PrintToServer("%sLoading configs/sourcebans/sourcebans.cfg config file", PREFIX);
-        InternalReadConfig(ConfigFile1);
-    }
-    else
-    {
-        SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile1);
-    }
-    if (FileExists(ConfigFile2))
+    if (FileExists(ConfigFile))
     {
         PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", PREFIX);
         iNumReasons = 0;
         iNumTimes = 0;
-        InternalReadConfig(ConfigFile2);
+        InternalReadConfig(ConfigFile);
         if (iNumReasons)
             iNumReasons--;
         if (iNumTimes)
@@ -2517,7 +2507,7 @@ stock ReadConfig()
     }
     else
     {
-        SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile2);
+        SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile);
     }
     #if defined DEBUG
         PrintToServer("Loaded DefaultTime value: %d", DefaultTime);
