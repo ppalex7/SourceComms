@@ -193,3 +193,6 @@ This means, that you need to open file `<sourcebans_web_folder>\includes\page-bu
 ## Special thanks to
 * [Twisted|Panda](https://forums.alliedmods.net/member.php?u=41467) for his [ExtendedComm](https://forums.alliedmods.net/showthread.php?p=1383953) plugin, which inspired me and was the basis for my plugin.
 * [SourceBans Development Team](http://sourcebans.net/team) for their [SourceBans](https://github.com/GameConnect/SourceBans) plugin.
+* [killerps](https://forums.alliedmods.net/member.php?u=145192) for Polish translation.
+* [StayOx](https://forums.alliedmods.net/member.php?u=185412) for Portuguese translation.
+* [winter](http://steamcommunity.com/profiles/76561198012507628) for Deutsch translation.
