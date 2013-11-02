@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.65"
+#define PLUGIN_VERSION "1.0.91"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -88,6 +88,8 @@ new ConfigWhiteListOnly = 0;
 
 new g_iServerID;
 new String:g_sServerIP[16];
+new String:g_sServerID[5];
+
 
 /* List menu */
 enum PeskyPanels
@@ -180,6 +182,10 @@ public OnPluginStart()
     // for late loading
     if (LibraryExists("updater"))
         Updater_AddPlugin(UPDATE_URL);
+
+    // Account for late loading
+    if(LibraryExists("sourcebans"))
+        SB_Init();
 }
 
 public OnLibraryAdded(const String:name[])
@@ -1157,6 +1163,12 @@ public PanelHandler_ListTargetReason(Handle:menu, MenuAction:action, param1, par
 public SB_OnConnect(Handle:database)
 {
     g_iServerID = SB_GetConfigValue("ServerID");
+
+    if (g_iServerID)
+        IntToString(g_iServerID, g_sServerID, sizeof(g_sServerID));
+    else
+        strcopy(g_sServerID, sizeof(g_sServerID), "NULL");
+
     if (!g_iServerID && ConfigWhiteListOnly)
     {
         LogError("Unknown ServerID! ServersWhiteList feature disabled!");
@@ -1165,8 +1177,8 @@ public SB_OnConnect(Handle:database)
 
     // Process queue
     SQL_TQuery(SQLiteDB, Query_ProcessQueue,
-       "SELECT  id, steam_id, time, start_time, reason, name, admin_id, admin_ip, type \
-        FROM    queue2");
+       "SELECT id, steam_account_id, name, start_time, length, reason, admin_id, admin_ip, type FROM queue3"
+    );
 
     // Force recheck players
     ForcePlayersRecheck();
@@ -1187,17 +1199,20 @@ public Query_AddBlockInsert(Handle:owner, Handle:hndl, const String:error[], any
     {
         LogError("Query_AddBlockInsert failed: %s", error);
 
-        ResetPack(data);
-        new length = ReadPackCell(data);
-        new type = ReadPackCell(data);
-        new String:reason[256], String:name[MAX_NAME_LENGTH], String:auth[64], String:adminAuth[32], String:adminIp[20];
-        ReadPackString(data, name, sizeof(name));
-        ReadPackString(data, auth, sizeof(auth));
-        ReadPackString(data, reason, sizeof(reason));
-        ReadPackString(data, adminAuth, sizeof(adminAuth));
-        ReadPackString(data, adminIp, sizeof(adminIp));
+        new String:sReason[256];
+        new String:sName[MAX_NAME_LENGTH];
+        new String:sAdminIP[20];
 
-        InsertTempBlock(length, type, name, auth, reason, adminAuth, adminIp);
+        ResetPack(data);
+        new iTargetAccountID = ReadPackCell(data);
+        new iAdminID         = ReadPackCell(data);
+        new iLength          = ReadPackCell(data);
+        new iType            = ReadPackCell(data);
+        ReadPackString(data, sName,    sizeof(sName));
+        ReadPackString(data, sReason,  sizeof(sReason));
+        ReadPackString(data, sAdminIP, sizeof(sAdminIP));
+
+        InsertTempBlock(iTargetAccountID, sName, iLength, sReason, iAdminID, sAdminIP, iType);
     }
     CloseHandle(data);
 }
@@ -1467,74 +1482,82 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
         return;
     }
 
-    decl String:auth[64];
-    new String:name[MAX_NAME_LENGTH];
-    decl String:reason[256];
-    decl String:adminAuth[64], String:adminIp[20];
-    decl String:query[4096];
-
     while(SQL_MoreRows(hndl))
     {
         // Oh noes! What happened?!
         if (!SQL_FetchRow(hndl))
             continue;
 
-        new String:sAuthEscaped[sizeof(auth) * 2 + 1];
-        new String:banName[MAX_NAME_LENGTH * 2  + 1];
-        new String:banReason[sizeof(reason) * 2 + 1];
-        new String:sAdmAuthEscaped[sizeof(adminAuth) * 2 + 1];
-        new String:sAdmAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
-
         // if we get to here then there are rows in the queue pending processing
-        //steam_id TEXT, time INTEGER, start_time INTEGER, reason TEXT, name TEXT, admin_id TEXT, admin_ip TEXT, type INTEGER
-        new id =        SQL_FetchInt(hndl, 0);
-        SQL_FetchString(hndl, 1, auth, sizeof(auth));
-        new time =      SQL_FetchInt(hndl, 2);
-        new startTime = SQL_FetchInt(hndl, 3);
-        SQL_FetchString(hndl, 4, reason, sizeof(reason));
-        SQL_FetchString(hndl, 5, name, sizeof(name));
-        SQL_FetchString(hndl, 6, adminAuth, sizeof(adminAuth));
-        SQL_FetchString(hndl, 7, adminIp, sizeof(adminIp));
-        new type =      SQL_FetchInt(hndl, 8);
+        new String:sName[MAX_NAME_LENGTH];
+        new String:sReason[256];
+        new String:sAdminIP[20];
 
-        if (SB_Connect()) {
-            SB_Escape(auth,         sAuthEscaped,      sizeof(sAuthEscaped));
-            SB_Escape(name,         banName,           sizeof(banName));
-            SB_Escape(reason,       banReason,         sizeof(banReason));
-            SB_Escape(adminAuth,    sAdmAuthEscaped,   sizeof(sAdmAuthEscaped));
-            SB_Escape(adminAuth[8], sAdmAuthYZEscaped, sizeof(sAdmAuthYZEscaped));
+        // id   steam_account_id    name    start_time  length  reason  admin_id    admin_ip    type
+        new iId              = SQL_FetchInt(hndl, 0);
+        new iTargetAccountID = SQL_FetchInt(hndl, 1);
+        SQL_FetchString(hndl, 2, sName, sizeof(sName));
+        new iStartTime       = SQL_FetchInt(hndl, 3);
+        new iLength          = SQL_FetchInt(hndl, 4);
+        SQL_FetchString(hndl, 5, sReason, sizeof(sReason));
+        new iAdminID         = SQL_FetchInt(hndl, 6);
+        SQL_FetchString(hndl, 7, sAdminIP, sizeof(sAdminIP));
+        new iType            = SQL_FetchInt(hndl, 8);
+
+        #if defined DEBUG
+            PrintToServer(
+                "Fetched from queue: AccountID %d, name %d, created %d, length %d, reason: %s, AdminID %d, AdminIP %s, type %d",
+                iTargetAccountID, sName, iStartTime, iLength, sReason, iAdminID, sAdminIP, iType
+            );
+        #endif
+
+        new String:sAdminID[5];
+        if (iAdminID)
+            IntToString(iAdminID, sAdminID, sizeof(sAdminID));
+        else
+            strcopy(sAdminID, sizeof(sAdminID), "NULL");
+
+        new String:sNameEscaped[MAX_NAME_LENGTH * 2  + 1];
+        new String:sReasonEscaped[sizeof(sReason) * 2 + 1];
+        if (SB_Connect())
+        {
+            SB_Escape(sName,   sNameEscaped,   sizeof(sNameEscaped));
+            SB_Escape(sReason, sReasonEscaped, sizeof(sReasonEscaped));
         }
         else
+        {
+            // all blocks should be entered into db!
             continue;
-        // all blocks should be entered into db!
+        }
 
-        FormatEx(query, sizeof(query),
-               "INSERT INTO     %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) \
-                VALUES         ('%s', '%s', %d, %d, %d, '%s', \
-                                IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0'), \
-                                '%s', %d, %d)",
-                DatabasePrefix, sAuthEscaped, banName, startTime, (startTime + (time*60)), (time*60), banReason, DatabasePrefix, sAdmAuthEscaped, sAdmAuthYZEscaped, adminIp, g_iServerID, type);
+        decl String:sQuery[4096];
+        FormatEx(sQuery, sizeof(sQuery),
+           "INSERT INTO {{comms}} (create_time, steam_account_id, name, reason, length, server_id, admin_id, admin_ip, type) \
+                 VALUES (%d, %d, '%s', '%s', %d, %s, %s, '%s', %d)",
+            iStartTime, iTargetAccountID, sNameEscaped, sReasonEscaped, iLength, g_sServerID, sAdminID, sAdminIP, iType
+        );
         #if defined LOG_QUERIES
-            LogToFile(logQuery, "Query_ProcessQueue. QUERY: %s", query);
+            LogToFile(logQuery, "Query_ProcessQueue. QUERY: %s", sQuery);
         #endif
-        SB_Query(Query_AddBlockFromQueue, query, id);
+        SB_Query(Query_AddBlockFromQueue, sQuery, iId);
     }
 }
 
 public Query_AddBlockFromQueue(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-    decl String:query[512];
-    if (error[0] == '\0')
+    decl String:sQuery[512];
+    if (!DB_Conn_Lost(hndl) && error[0] == '\0')
     {
         // The insert was successful so delete the record from the queue
-        FormatEx(query, sizeof(query),
-           "DELETE FROM queue2 \
-            WHERE       id = %d",
-            data);
+        FormatEx(sQuery, sizeof(sQuery), "DELETE FROM queue3 WHERE id = %d", data);
         #if defined LOG_QUERIES
-            LogToFile(logQuery, "Query_AddBlockFromQueue. QUERY: %s", query);
+            LogToFile(logQuery, "Query_AddBlockFromQueue. QUERY: %s", sQuery);
         #endif
-        SQL_TQuery(SQLiteDB, Query_ErrorCheck, query);
+        SQL_TQuery(SQLiteDB, Query_ErrorCheck, sQuery);
+    }
+    else
+    {
+        LogError("Query_AddBlockFromQueue failed: %s", error);
     }
 }
 
@@ -1879,17 +1902,17 @@ stock InitializeBackupDB()
         SetFailState(error);
     }
 
+    // Prune old tables
+    SQL_TQuery(SQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue");
+    SQL_TQuery(SQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue2");
+
     SQL_TQuery(SQLiteDB, Query_ErrorCheck,
-       "CREATE TABLE IF NOT EXISTS queue2 ( \
+       "CREATE TABLE IF NOT EXISTS queue3 ( \
             id INTEGER PRIMARY KEY, \
-            steam_id TEXT, \
-            time INTEGER, \
-            start_time INTEGER, \
-            reason TEXT, \
-            name TEXT, \
-            admin_id TEXT, \
-            admin_ip TEXT, \
-            type INTEGER)");
+            steam_account_id INTEGER, name TEXT, \
+            start_time INTEGER, length INTEGER, reason TEXT, \
+            admin_id INTEGER, admin_ip TEXT, type INTEGER )"
+    );
 }
 
 stock CreateBlock(client, const targetId = 0, _:iLength = -1, const _:iType, const String:sReasonArg[] = "", const String:sArgs[] = "")
@@ -2418,40 +2441,39 @@ stock bool:TempUnBlock(Handle:data)
     }
 }
 
-stock InsertTempBlock(length, type, const String:name[], const String:auth[], const String:reason[], const String:adminAuth[], const String:adminIp[])
+stock InsertTempBlock(const _:iTargetAccountID, const String:sName[], const _:iLength, const String:sReason[], const _:iAdminID, const String:sAdminIP[], const _:iType)
 {
-    LogMessage("Saving punishment for %s into queue", auth);
+    LogMessage("Saving punishment for Steam AccountID %d into queue", iTargetAccountID);
 
-    new String:banName[MAX_NAME_LENGTH * 2 + 1];
-    new String:banReason[256 * 2 + 1];
-    new String:sAuthEscaped[64 * 2 + 1];
-    new String:sAdminAuthEscaped[64 * 2 + 1];
+    new String:sNameEscaped[MAX_NAME_LENGTH * 2 + 1];
+    new String:sReasonEscaped[256 * 2 + 1];
+
     decl String:sQuery[4096], String:sQueryVal[2048];
     new String:sQueryMute[2048], String:sQueryGag[2048];
 
     // escaping everything
-    SQL_EscapeString(SQLiteDB, name,      banName,           sizeof(banName));
-    SQL_EscapeString(SQLiteDB, reason,    banReason,         sizeof(banReason));
-    SQL_EscapeString(SQLiteDB, auth,      sAuthEscaped,      sizeof(sAuthEscaped));
-    SQL_EscapeString(SQLiteDB, adminAuth, sAdminAuthEscaped, sizeof(sAdminAuthEscaped));
+    SQL_EscapeString(SQLiteDB, sName,   sNameEscaped,   sizeof(sNameEscaped));
+    SQL_EscapeString(SQLiteDB, sReason, sReasonEscaped, sizeof(sReasonEscaped));
 
-    // steam_id time start_time reason name admin_id admin_ip
+    // table schema:
+    // id   steam_account_id    name    start_time  length  reason  admin_id    admin_ip    type
     FormatEx(sQueryVal, sizeof(sQueryVal),
-        "'%s', %d, %d, '%s', '%s', '%s', '%s'",
-        sAuthEscaped, length, GetTime(), banReason, banName, sAdminAuthEscaped, adminIp);
+        "%d, '%s', %d, %d, '%s', %d, '%s'",
+        iTargetAccountID, sNameEscaped, GetTime(), iLength, sReasonEscaped, iAdminID, sAdminIP
+    );
 
-    if (type == TYPE_MUTE || type == TYPE_SILENCE)
+    if (iType == TYPE_MUTE || iType == TYPE_SILENCE)
     {
         FormatEx(sQueryMute, sizeof(sQueryMute), "(%s, %d)", sQueryVal, TYPE_MUTE);
     }
-    if (type == TYPE_GAG || type == TYPE_SILENCE)
+    if (iType == TYPE_GAG || iType == TYPE_SILENCE)
     {
         FormatEx(sQueryGag, sizeof(sQueryGag), "(%s, %d)", sQueryVal, TYPE_GAG);
     }
 
     FormatEx(sQuery, sizeof(sQuery),
-        "INSERT INTO queue2 (steam_id, time, start_time, reason, name, admin_id, admin_ip, type) VALUES %s%s%s",
-        sQueryMute, type == TYPE_SILENCE ? ", " : "", sQueryGag);
+        "INSERT INTO queue3 (steam_account_id, name, start_time, length, reason, admin_id, admin_ip, type) VALUES %s%s%s",
+        sQueryMute, iType == TYPE_SILENCE ? ", " : "", sQueryGag);
 
     #if defined LOG_QUERIES
         LogToFile(logQuery, "InsertTempBlock. QUERY: %s", sQuery);
@@ -2748,80 +2770,78 @@ stock PerformGag(target, const iCreateTime = NOW, const iLength = -1, const Stri
     CreateGagExpireTimer(target, iRemainingTime);
 }
 
-stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[] = "")
+stock SavePunishment(admin = 0, const target, const _:iType, const iLength = -1 , const String:sReason[] = "")
 {
-    if (type < TYPE_MUTE || type > TYPE_SILENCE)
+    if (iType < TYPE_MUTE || iType > TYPE_SILENCE)
         return;
 
     // target information
-    new String:targetAuth[64];
+    new iTargetAccountID = 0;
     if (IsClientInGame(target))
-    {
-        GetClientAuthString(target, targetAuth, sizeof(targetAuth));
-    }
-    else
-    {
-        return;
-    }
+        iTargetAccountID = GetSteamAccountID(target);
 
+    // if target left the game or Account ID is not available
+    if (!iTargetAccountID)
+        return;
+
+    // Admin information
+    new iAdminID;
     new String:sAdminIP[24];
-    new String:adminAuth[64];
     if (admin && IsClientInGame(admin))
     {
+        iAdminID = SB_GetAdminId(admin);
         GetClientIP(admin, sAdminIP, sizeof(sAdminIP));
-        GetClientAuthString(admin, adminAuth, sizeof(adminAuth));
     }
     else
     {
-        // setup dummy adminAuth and adminIp for server
-        strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
         strcopy(sAdminIP,  sizeof(sAdminIP),  g_sServerIP);
     }
+
+    new String:sAdminID[5];
+    if (iAdminID)
+        IntToString(iAdminID, sAdminID, sizeof(sAdminID));
+    else
+        strcopy(sAdminID, sizeof(sAdminID), "NULL");
+
 
     new String:sName[MAX_NAME_LENGTH];
     strcopy(sName, sizeof(sName), g_sName[target]);
 
     if (SB_Connect())
     {
-        // Accepts length in minutes, writes to db in seconds! In all over places in plugin - length is in minutes.
-        new String:banName[MAX_NAME_LENGTH * 2 + 1];
-        new String:banReason[256 * 2 + 1];
-        new String:sAuthidEscaped[64 * 2 + 1];
-        new String:sAdminAuthIdEscaped[64 * 2 + 1];
-        new String:sAdminAuthIdYZEscaped[64 * 2 + 1];
-        decl String:sQuery[4096], String:sQueryAdm[512], String:sQueryVal[1024];
-        new String:sQueryMute[1024], String:sQueryGag[1024];
+        // Accepts length in minutes, writes to db in minutes! In all over places in plugin - length is in minutes (except timers).
+        new String:sQuotedName[MAX_NAME_LENGTH * 2 + 1];
+        new String:sQuotedReason[256 * 2 + 1];
 
         // escaping everything
-        SB_Escape(sName,        banName,               sizeof(banName));
-        SB_Escape(reason,       banReason,             sizeof(banReason));
-        SB_Escape(targetAuth,   sAuthidEscaped,        sizeof(sAuthidEscaped));
-        SB_Escape(adminAuth,    sAdminAuthIdEscaped,   sizeof(sAdminAuthIdEscaped));
-        SB_Escape(adminAuth[8], sAdminAuthIdYZEscaped, sizeof(sAdminAuthIdYZEscaped));
+        SB_Escape(sName,   sQuotedName,   sizeof(sQuotedName));
+        SB_Escape(sReason, sQuotedReason, sizeof(sQuotedReason));
 
-        // bid    authid    name    created ends lenght reason aid adminip    sid    removedBy removedType removedon type ureason
-        FormatEx(sQueryAdm, sizeof(sQueryAdm),
-            "IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), 0)",
-            DatabasePrefix, sAdminAuthIdEscaped, sAdminAuthIdYZEscaped);
+        // table schema:
+        // id   type    steam_account_id    name    reason  length  server_id   admin_id    admin_ip    unban_admin_id  unban_reason    unban_time  create_time
+        decl String:sQuery[4096], String:sQueryVal[1024];
+        new String:sQueryMute[1024], String:sQueryGag[1024];
 
-        // authid name, created, ends, length, reason, aid, adminIp, sid
+        // create_time, steam_account_id, name, reason, length, server_id, admin_id, admin_ip
         FormatEx(sQueryVal, sizeof(sQueryVal),
-            "'%s', '%s', UNIX_TIMESTAMP(), UNIX_TIMESTAMP() + %d, %d, '%s', %s, '%s', %d",
-            sAuthidEscaped, banName, length*60, length*60, banReason, sQueryAdm, sAdminIP, g_iServerID);
+            "UNIX_TIMESTAMP(), %d, '%s', '%s', %d, %s, %s, '%s'",
+            iTargetAccountID, sQuotedName, sQuotedReason, iLength, g_sServerID, sAdminID, sAdminIP
+        );
 
-        if (type == TYPE_MUTE || type == TYPE_SILENCE)
+        if (iType == TYPE_MUTE || iType == TYPE_SILENCE)
         {
             FormatEx(sQueryMute, sizeof(sQueryMute), "(%s, %d)", sQueryVal, TYPE_MUTE);
         }
-        if (type == TYPE_GAG || type == TYPE_SILENCE)
+        if (iType == TYPE_GAG || iType == TYPE_SILENCE)
         {
             FormatEx(sQueryGag, sizeof(sQueryGag), "(%s, %d)", sQueryVal, TYPE_GAG);
         }
 
         // litle magic - one query for all actions (mute, gag or silence)
         FormatEx(sQuery, sizeof(sQuery),
-            "INSERT INTO %s_comms (authid, name, created, ends, length, reason, aid, adminIp, sid, type) VALUES %s%s%s",
-            DatabasePrefix, sQueryMute, type == TYPE_SILENCE ? ", " : "", sQueryGag);
+            "INSERT INTO {{comms}} (create_time, steam_account_id, name, reason, length, server_id, admin_id, admin_ip, type) VALUES %s%s%s",
+            sQueryMute, iType == TYPE_SILENCE ? ", " : "", sQueryGag
+        );
 
         #if defined LOG_QUERIES
             LogToFile(logQuery, "SavePunishment. QUERY: %s", sQuery);
@@ -2829,19 +2849,19 @@ stock SavePunishment(admin = 0, target, type, length = -1 , const String:reason[
 
         // all data cached before calling asynchronous functions
         new Handle:dataPack = CreateDataPack();
-        WritePackCell(dataPack, length);
-        WritePackCell(dataPack, type);
+        WritePackCell(dataPack, iTargetAccountID);
+        WritePackCell(dataPack, iAdminID);
+        WritePackCell(dataPack, iLength);
+        WritePackCell(dataPack, iType);
         WritePackString(dataPack, sName);
-        WritePackString(dataPack, targetAuth);
-        WritePackString(dataPack, reason);
-        WritePackString(dataPack, adminAuth);
+        WritePackString(dataPack, sReason);
         WritePackString(dataPack, sAdminIP);
 
         SB_Query(Query_AddBlockInsert, sQuery, dataPack, DBPrio_High);
     }
     else
     {
-        InsertTempBlock(length, type, sName, targetAuth, reason, adminAuth, sAdminIP);
+        InsertTempBlock(iTargetAccountID, sName, iLength, sReason, iAdminID, sAdminIP, iType);
     }
 }
 
