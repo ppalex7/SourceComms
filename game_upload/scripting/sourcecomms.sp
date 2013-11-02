@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.92"
+#define PLUGIN_VERSION "1.0.93"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2492,11 +2492,11 @@ stock ReadConfig()
     }
 
     decl String:ConfigFile[PLATFORM_MAX_PATH];
-    BuildPath(Path_SM, ConfigFile, sizeof(ConfigFile), "configs/sourcebans/sourcecomms.cfg");
+    BuildPath(Path_SM, ConfigFile, sizeof(ConfigFile), "configs/sourcecomms.cfg");
 
     if (FileExists(ConfigFile))
     {
-        PrintToServer("%sLoading configs/sourcebans/sourcecomms.cfg config file", PREFIX);
+        PrintToServer("%sLoading configs/sourcecomms.cfg config file", PREFIX);
         iNumReasons = 0;
         iNumTimes = 0;
         InternalReadConfig(ConfigFile);
