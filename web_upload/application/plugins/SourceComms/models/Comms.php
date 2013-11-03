@@ -33,11 +33,13 @@
  * @property SBAdmin $admin Admin
  * @property SBServer $server Server
  * @property SBAdmin $unban_admin Unban admin
+ * @property SBComment[] $comments Comments
  */
 class Comms extends CActiveRecord
 {
     const GAG_TYPE  = 2;
     const MUTE_TYPE = 1;
+    const COMMENTS_TYPE = 'C';
 
 
     /**
@@ -88,6 +90,8 @@ class Comms extends CActiveRecord
             'admin' => array(self::BELONGS_TO, 'SBAdmin', 'admin_id'),
             'server' => array(self::BELONGS_TO, 'SBServer', 'server_id'),
             'unban_admin' => array(self::BELONGS_TO, 'SBAdmin', 'unban_admin_id'),
+            'comments' => array(self::HAS_MANY, 'SBComment', 'object_id', 'condition' => 'object_type = :object_type', 'params' => array(':object_type' => self::COMMENTS_TYPE)),
+            'commentsCount' => array(self::STAT, 'SBComment', 'object_id', 'condition' => 'object_type = :object_type', 'params' => array(':object_type' => self::COMMENTS_TYPE)),
         );
     }
 

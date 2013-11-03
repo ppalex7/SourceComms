@@ -88,6 +88,7 @@
         "data-admin-name"=>$data->adminName,
         "data-server-id"=>$data->server_id,
         "data-community-id"=>$data->communityId,
+        "data-comments-count"=>$data->commentsCount,
     )',
     'pagerCssClass'=>'pagination pagination-right',
     'selectableRows'=>0,
@@ -163,12 +164,12 @@
         //     'itemOptions' => array('class' => 'ban-menu-delete'),
         //     'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('DELETE_BANS'),
         // ),
-        // array(
-        //     'label' => Yii::t('sourcebans', 'Comments'),
-        //     'url' => array('comments/index', 'object_type'=>SBComment::BAN_TYPE, 'object_id'=>'__ID__'),
-        //     'itemOptions' => array('class' => 'ban-menu-comments'),
-        //     'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_BANS'),
-        // ),
+        array(
+            'label' => Yii::t('sourcebans', 'Comments'),
+            'url' => array('comments/index', 'object_type'=>Comms::COMMENTS_TYPE, 'object_id'=>'__ID__'),
+            'itemOptions' => array('class' => 'ban-menu-comments'),
+            'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_BANS'),
+        ),
     ), $this->menu),
     'htmlOptions' => array(
         'class' => 'nav nav-stacked nav-pills',
@@ -285,4 +286,48 @@
     updateSections();
   });
 ') ?>
+
+<?php if(!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_BANS')): ?>
+<div aria-hidden="true" class="modal fade hide" id="comments-dialog" role="dialog">
+  <div class="modal-header">
+    <button aria-hidden="true" class="close" data-dismiss="modal" type="button">&times;</button>
+    <h3><?php echo Yii::t('sourcebans', 'Comments') ?></h3>
+  </div>
+  <div class="modal-body">
+  </div>
+  <div class="modal-footer">
+<?php $this->renderPartial('/comments/_form', array('model' => $comment)) ?>
+
+  </div>
+</div>
+
+<?php Yii::app()->clientScript->registerScript('site_comms_commentsDialog', '
+  $(document).on("click", ".ban-menu-comments a", function(e) {
+    e.preventDefault();
+    $("#comments-dialog .modal-body").load($(this).attr("href"), function(data) {
+      this.scrollTop = this.scrollHeight - $(this).height();
+      tinyMCE.execCommand("mceFocus", false, "SBComment_message");
+
+      $("#comments-dialog").modal({
+        backdrop: "static"
+      });
+    });
+  });
+  $("#comment-form").submit(function(e) {
+    e.preventDefault();
+    var $this = $(this);
+
+    $.post($this.attr("action"), $this.serialize(), function(result) {
+      if(!result)
+        return;
+
+      $this.find(":submit").attr("disabled", true);
+      tinyMCE.activeEditor.setContent("");
+
+      $("#comms-grid tr.selected").next("tr.section").find(".ban-menu-comments a").trigger("click");
+      $("#' . $grid->id . '").yiiGridView("update");
+    }, "json");
+  });
+') ?>
+<?php endif ?>
 

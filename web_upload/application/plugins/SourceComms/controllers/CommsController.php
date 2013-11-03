@@ -21,9 +21,13 @@ class CommsController extends Controller
         $assetsUrl = Yii::app()->assetManager->publish($plugin->getPath('assets'));
         Yii::app()->clientScript->registerCssFile($assetsUrl . '/css/sourcecomms.css');
 
+        $comment = new SBComment;
+        $comment->object_type = Comms::COMMENTS_TYPE;
+
         $this->render($plugin->getViewFile('index'), array(
             'comms' => $comms,
             'plugin' => $plugin,
+            'comment' => $comment,
         ));
     }
 }
