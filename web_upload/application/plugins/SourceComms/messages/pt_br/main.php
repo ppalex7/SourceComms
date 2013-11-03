@@ -22,4 +22,5 @@ return array (
   'Extended, temporary and permanent punishments' => '',
   'Gag' => '',
   'Mute' => '',
+  'Temporary' => '',
 );

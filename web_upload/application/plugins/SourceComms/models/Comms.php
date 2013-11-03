@@ -17,10 +17,14 @@
  * @property string $unban_reason Unban reason
  * @property integer $unban_time Unbanned on
  * @property integer $create_time Date/Time
+ *
  * @property boolean $isActive Whether the ban is active
  * @property boolean $isExpired Whether the ban is expired
  * @property boolean $isPermanent Whether the ban is permanent
+ * @property boolean $isTemporary Whether the ban is temporary
  * @property boolean $isUnbanned Whether the ban is unbanned
+ * @property string $lengthText formatted punishment length
+ * @property string $expireText formatted punishment expire date/time
  *
  * The followings are the available model relations:
  * @property SBAdmin $admin Admin
@@ -169,6 +173,9 @@ class Comms extends CActiveRecord
             'permanent'=>array(
                 'condition'=>$t.'.length = 0',
             ),
+            'temporary'=>array(
+                'condition'=>$t.'.length < 0',
+            ),
             'unbanned'=>array(
                 'condition'=>$t.'.unban_time IS NOT NULL',
             ),
@@ -213,6 +220,16 @@ class Comms extends CActiveRecord
     public function getIsPermanent()
     {
         return !$this->length;
+    }
+
+    /**
+     * Returns whether the ban is temporary
+     *
+     * @return boolean whether the ban is temporary
+     */
+    public function getIsTemporary()
+    {
+        return $this->length < 0;
     }
 
     /**
@@ -300,6 +317,33 @@ class Comms extends CActiveRecord
             return 0x0110000100000000 + $this->steam_account_id;
     }
 
+    /**
+     * Returns formatted punishment length
+     *
+     * @return string length
+     */
+    public function getLengthText()
+    {
+        if ($this->isPermanent)
+            return Yii::t("sourcebans", "Permanent");
+        elseif ($this->isTemporary)
+            return Yii::t('CommsPlugin.main', 'Temporary');
+        else
+            return Yii::app()->format->formatLength($this->length * 60);
+    }
+
+    /**
+     * Returns formatted punishment expired datetime
+     *
+     * @return string datetime or null
+     */
+    public function getExpireText()
+    {
+        if ($this->isPermanent || $this->isTemporary)
+            return null;
+        else
+            return Yii::app()->format->formatDatetime($this->create_time + $this->length * 60);
+    }
 
     protected function beforeSave()
     {

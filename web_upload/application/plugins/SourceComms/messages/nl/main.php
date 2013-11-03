@@ -22,4 +22,5 @@ return array (
   'Extended, temporary and permanent punishments' => 'Uitgebreide, tijdelijke en permanente straffen',
   'Gag' => 'Knevelen',
   'Mute' => 'Dempen',
+  'Temporary' => '',
 );

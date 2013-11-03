@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.171';
+        return '1.0.180';
     }
 
     public function getUrl()
