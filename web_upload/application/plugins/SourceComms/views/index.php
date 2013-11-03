@@ -55,7 +55,7 @@
                 'class'=>'SBAdmin_name span3',
             ),
             'name'=>'admin.name',
-            'value'=>'isset($data->admin) ? $data->admin->name :  Yii::app()->params["consoleName"]',
+            'value'=>'$data->adminName',
             'visible'=>!(Yii::app()->user->isGuest && SourceBans::app()->settings->bans_hide_admin),
         ),
         array(
@@ -85,7 +85,7 @@
         "data-datetime-expired"=>$data->expireText,
         "data-length"=>$data->lengthText,
         "data-reason"=>$data->reason,
-        "data-admin-name"=>isset($data->admin) ? $data->admin->name : Yii::app()->params["consoleName"],
+        "data-admin-name"=>$data->adminName,
         "data-server-id"=>$data->server_id,
         "data-community-id"=>$data->communityId,
     )',

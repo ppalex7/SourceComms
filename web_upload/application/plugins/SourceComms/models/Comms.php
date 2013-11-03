@@ -23,6 +23,9 @@
  * @property boolean $isPermanent Whether the ban is permanent
  * @property boolean $isTemporary Whether the ban is temporary
  * @property boolean $isUnbanned Whether the ban is unbanned
+ * @property string $steam SteamID
+ * @property integer $communityId Steam Community ID
+ * @property string $adminName admin name or CONSOLE
  * @property string $lengthText formatted punishment length
  * @property string $expireText formatted punishment expire date/time
  *
@@ -242,20 +245,6 @@ class Comms extends CActiveRecord
         return !!$this->unban_time;
     }
 
-    /**
-     * Unbans the ban
-     *
-     * @param string $reason optional unban reason
-     * @return boolean whether the unbanning is successful
-     */
-    public function unban($reason = null)
-    {
-        $this->unban_admin_id = Yii::app()->user->id;
-        $this->unban_reason   = $reason;
-        $this->unban_time     = time();
-
-        return $this->save(false);
-    }
 
 
     /**
@@ -318,6 +307,19 @@ class Comms extends CActiveRecord
     }
 
     /**
+     * Returns the admin name or "CONSOLE" if not set
+     *
+     * @return string admin name
+     */
+    public function getAdminName()
+    {
+        if (isset($this->admin))
+            return $this->admin->name;
+        else
+            return Yii::app()->params["consoleName"];
+    }
+
+    /**
      * Returns formatted punishment length
      *
      * @return string length
@@ -344,6 +346,23 @@ class Comms extends CActiveRecord
         else
             return Yii::app()->format->formatDatetime($this->create_time + $this->length * 60);
     }
+
+
+    /**
+     * Unbans the ban
+     *
+     * @param string $reason optional unban reason
+     * @return boolean whether the unbanning is successful
+     */
+    // public function unban($reason = null)
+    // {
+    //     $this->unban_admin_id = Yii::app()->user->id;
+    //     $this->unban_reason   = $reason;
+    //     $this->unban_time     = time();
+
+    //     return $this->save(false);
+    // }
+
 
     protected function beforeSave()
     {
