@@ -2594,10 +2594,10 @@ stock bool:AdmHasFlag(admin)
 
 stock _:GetAdmImmunity(admin)
 {
-    if (admin > 0 && GetUserAdmin(admin) != INVALID_ADMIN_ID)
+    if (admin && GetUserAdmin(admin) != INVALID_ADMIN_ID)
         return GetAdminImmunityLevel(GetUserAdmin(admin));
     else
-        return 0;
+        return ConsoleImmunity;
 }
 
 stock _:GetClientUserId2(client)
