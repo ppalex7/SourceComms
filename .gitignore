@@ -1,5 +1,5 @@
-# scripts for uploading
-upload*
+# development staff and helper scripts
+tools
 
 # auto-update file
 sc-updatefile.txt
