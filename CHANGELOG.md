@@ -3,7 +3,7 @@
 * **0.9.259** - Fixed bug with loading issuer admin's authid.
 * **0.9.257** - Fixed bug (creating unused file `%s is gagged from web` on server) with logging gags from web. Thanks to [reji](https://forums.alliedmods.net/member.php?u=235571).
 * **0.9.256**
-    * Added Portuguese translation. Thanks to [StayOx](https://forums.alliedmods.net/member.php?u=185412).
+    * Added Portuguese (Brazilian) translation. Thanks to [StayOx](https://forums.alliedmods.net/member.php?u=185412).
     * Removing quotes and whitespaces from reason.
     * Fixed reason loss in ungag/unmute console commands.
     * Fixed wrong fail state messages.
