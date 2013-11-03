@@ -18,8 +18,8 @@
  */
 return array (
   'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.' => '',
-  'Comms' => 'Comms',
-  'Extended, temporary and permanent punishments' => 'Uitgebreide, tijdelijke en permanente straffen',
-  'Gag' => 'Knevelen',
-  'Mute' => 'Dempen',
+  'Comms' => '',
+  'Extended, temporary and permanent punishments' => '',
+  'Gag' => '',
+  'Mute' => '',
 );
