@@ -1800,45 +1800,6 @@ stock ReadConfig()
 
 // some more
 
-AdminMenu_GetPunishPhrase(client, target, String:name[], length)
-{
-    decl String:Buffer[192];
-    if (g_MuteType[target] > bNot && g_GagType[target] > bNot)
-        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_Silenced", client, name);
-    else if (g_MuteType[target] > bNot)
-        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_Muted", client, name);
-    else if (g_GagType[target] > bNot)
-        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_Gagged", client, name);
-    else
-        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_None", client, name);
-
-    strcopy(name, length, Buffer);
-}
-
-bool:Bool_ValidMenuTarget(client, target)
-{
-    if (target <= 0)
-    {
-        if (client)
-            PrintToChat(client, "%s%t", PREFIX, "AdminMenu_Not_Available");
-        else
-            ReplyToCommand(client, "%s%t", PREFIX, "AdminMenu_Not_Available");
-
-        return false;
-    }
-    else if (!CanUserTarget(client, target))
-    {
-        if (client)
-            PrintToChat(client, "%s%t", PREFIX, "Command_Target_Not_Targetable");
-        else
-            ReplyToCommand(client, "%s%t", PREFIX, "Command_Target_Not_Targetable");
-
-        return false;
-    }
-
-    return true;
-}
-
 stock bool:IsAllowedBlockLength(admin, length, target_count = 1)
 {
     if (target_count == 1)

@@ -12,6 +12,21 @@ new g_iPeskyPanels[MAXPLAYERS + 1][PeskyPanels];
 
 /* stock functions */
 
+stock AdminMenu_GetPunishPhrase(client, target, String:name[], length)
+{
+    decl String:Buffer[192];
+    if (g_MuteType[target] > bNot && g_GagType[target] > bNot)
+        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_Silenced", client, name);
+    else if (g_MuteType[target] > bNot)
+        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_Muted", client, name);
+    else if (g_GagType[target] > bNot)
+        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_Gagged", client, name);
+    else
+        Format(Buffer, sizeof(Buffer), "%T", "AdminMenu_Display_None", client, name);
+
+    strcopy(name, length, Buffer);
+}
+
 stock AdminMenu_Target(client, type)
 {
     decl String:Title[192], String:Option[32];
@@ -362,6 +377,30 @@ stock AdminMenu_ListTargetReason(client, target, showMute, showGag)
     DrawPanelItem(hPanel, sBuffer);
     SendPanelToClient(hPanel, client, PanelHandler_ListTargetReason, MENU_TIME_FOREVER);
     CloseHandle(hPanel);
+}
+
+stock bool:Bool_ValidMenuTarget(client, target)
+{
+    if (target <= 0)
+    {
+        if (client)
+            PrintToChat(client, "%s%t", PREFIX, "AdminMenu_Not_Available");
+        else
+            ReplyToCommand(client, "%s%t", PREFIX, "AdminMenu_Not_Available");
+
+        return false;
+    }
+    else if (!CanUserTarget(client, target))
+    {
+        if (client)
+            PrintToChat(client, "%s%t", PREFIX, "Command_Target_Not_Targetable");
+        else
+            ReplyToCommand(client, "%s%t", PREFIX, "Command_Target_Not_Targetable");
+
+        return false;
+    }
+
+    return true;
 }
 
 
