@@ -23,16 +23,7 @@
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
-#define MAX_REASONS 32
-#define DISPLAY_SIZE 64
-#define REASON_SIZE 192
 
-new iNumReasons;
-new String:g_sReasonDisplays[MAX_REASONS][DISPLAY_SIZE], String:g_sReasonKey[MAX_REASONS][REASON_SIZE];
-
-#define MAX_TIMES 32
-new iNumTimes, g_iTimeMinutes[MAX_TIMES];
-new String:g_sTimeDisplays[MAX_TIMES][DISPLAY_SIZE];
 
 new Handle:hTopMenu = INVALID_HANDLE;
 
@@ -47,12 +38,8 @@ new Handle:g_hPlayerRecheck[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
     new String:logQuery[256];
 #endif
 
-new Float:RetryTime     = 15.0;
-new DefaultTime         = 30;
-new DisUBImCheck        = 0;
-new ConsoleImmunity     = 0;    //todo - rename to g_iConsoleImmunity
-new ConfigMaxLength     = 0;
-new ConfigWhiteListOnly = 0;
+
+
 
 new g_iServerID;
 new String:g_sServerIP[16];
@@ -61,9 +48,9 @@ new String:g_sServerID[5];
 
 new Handle:g_hServersWhiteList = INVALID_HANDLE;
 
+#include "sourcecomms/config-parser.sp"     // Config parser code
 #include "sourcecomms/core.sp"              // Core plugin code
 #include "sourcecomms/menu.sp"              // Menu code
-#include "sourcecomms/config-parser.sp"     // Config parser code
 #include "sourcecomms/natives.sp"           // plugin natives
 
 public Plugin:myinfo =
@@ -514,10 +501,10 @@ public SB_OnConnect(Handle:database)
     else
         strcopy(g_sServerID, sizeof(g_sServerID), "NULL");
 
-    if (!g_iServerID && ConfigWhiteListOnly)
+    if (!g_iServerID && g_bConfigWhiteListOnly)
     {
         LogError("Unknown ServerID! ServersWhiteList feature disabled!");
-        ConfigWhiteListOnly = 0;
+        g_bConfigWhiteListOnly = 0;
     }
 
     ProcessQueue();

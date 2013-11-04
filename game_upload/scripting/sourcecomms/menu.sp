@@ -568,7 +568,7 @@ public MenuHandler_MenuReason(Handle:menu, MenuAction:action, param1, param2)
                     length = g_iTimeMinutes[lengthIndex];
                 else
                 {
-                    length = DefaultTime;
+                    length = g_iDefaultTime;
                     LogError("Wrong length index in menu - using default time");
                 }
 

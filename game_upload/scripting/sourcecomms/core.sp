@@ -162,7 +162,7 @@ stock MarkClientAsMuted(const _:target, const _:iCreateTime = NOW, const _:iLeng
         g_iMuteTime[target] = GetTime();
 
     g_iMuteLength[target]  = iLength;
-    g_iMuteLevel[target]   = iAdmID ? iAdmImmunity : ConsoleImmunity;
+    g_iMuteLevel[target]   = iAdmID ? iAdmImmunity : g_iConsoleImmunity;
     g_iMuteAdminID[target] = iAdmID;
     strcopy(g_sMuteAdminName[target], sizeof(g_sMuteAdminName[]), sAdmName);
     strcopy(g_sMuteReason[target],    sizeof(g_sMuteReason[]),    sReason);
@@ -183,7 +183,7 @@ stock MarkClientAsGagged(const _:target, const _:iCreateTime = NOW, const _:iLen
         g_iGagTime[target] = GetTime();
 
     g_iGagLength[target]  = iLength;
-    g_iGagLevel[target]   = iAdmID ? iAdmImmunity : ConsoleImmunity;
+    g_iGagLevel[target]   = iAdmID ? iAdmImmunity : g_iConsoleImmunity;
     g_iGagAdminID[target] = iAdmID;
     strcopy(g_sGagAdminName[target], sizeof(g_sGagAdminName[]), sAdmName);
     strcopy(g_sGagReason[target],    sizeof(g_sGagReason[]),    sReason);
@@ -470,7 +470,7 @@ stock CreateBlock(const _:admin, const _:targetId = 0, _:iLength = -1, const _:i
         // Get the punishment length
         if (!StringToIntEx(sArg[1], iLength))   // not valid number in second argument
         {
-            iLength = DefaultTime;
+            iLength = g_iDefaultTime;
             Format(sReason, sizeof(sReason), "%s %s", sArg[1], sArg[2]);
         }
         else
@@ -1268,8 +1268,8 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
             new iAdmImmunity   = SQL_FetchInt(hndl, 8);
 
             // Block from CONSOLE (admin_id=0) and we have `console immunity` value in config
-            if (!iAdmID && ConsoleImmunity > iAdmImmunity)
-                iAdmImmunity = ConsoleImmunity;
+            if (!iAdmID && g_iConsoleImmunity > iAdmImmunity)
+                iAdmImmunity = g_iConsoleImmunity;
 
             #if defined DEBUG
                 PrintToServer("Fetched from DB: remaining %d, length %d, type %d", iRemainingTime, iLength, iType);

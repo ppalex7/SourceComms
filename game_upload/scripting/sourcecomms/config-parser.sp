@@ -1,3 +1,28 @@
+#define MAX_REASONS 32
+#define MAX_TIMES 32
+
+#define DISPLAY_SIZE 64
+#define REASON_SIZE 192
+
+/* Global config variables */
+
+new Float:g_fRetryTime     = 15.0;
+new g_iDefaultTime         = 30;
+new g_bDisUBImCheck        = false;
+new g_iConsoleImmunity     = 0;
+new g_iConfigMaxLength     = 0;
+new g_bConfigWhiteListOnly = false;
+
+/* Reasons for menu */
+new iNumReasons;
+new String:g_sReasonDisplays[MAX_REASONS][DISPLAY_SIZE];
+new String:g_sReasonKey[MAX_REASONS][REASON_SIZE];
+
+/* Punishment lenghts for menu */
+new iNumTimes;
+new g_iTimeMinutes[MAX_TIMES];
+new String:g_sTimeDisplays[MAX_TIMES][DISPLAY_SIZE];
+
 enum State /* ConfigState */
 {
     ConfigStateNone = 0,
@@ -69,8 +94,8 @@ stock ReadConfig()
         SetFailState("FATAL *** ERROR *** can't find %s", ConfigFile);
     }
     #if defined DEBUG
-        PrintToServer("Loaded DefaultTime value: %d", DefaultTime);
-        PrintToServer("Loaded DisableUnblockImmunityCheck value: %d", DisUBImCheck);
+        PrintToServer("Loaded DefaultTime value: %d", g_iDefaultTime);
+        PrintToServer("Loaded DisableUnblockImmunityCheck value: %b", g_bDisUBImCheck);
     #endif
 }
 
@@ -111,55 +136,53 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
         {
             if (strcmp("RetryTime", key, false) == 0)
             {
-                RetryTime = StringToFloat(value);
-                if (RetryTime < 15.0)
+                g_fRetryTime = StringToFloat(value);
+                if (g_fRetryTime < 15.0)
                 {
-                    RetryTime = 15.0;
+                    g_fRetryTime = 15.0;
                 }
-                else if (RetryTime > 60.0)
+                else if (g_fRetryTime > 60.0)
                 {
-                    RetryTime = 60.0;
+                    g_fRetryTime = 60.0;
                 }
             }
             else if (strcmp("DefaultTime", key, false) == 0)
             {
-                DefaultTime = StringToInt(value);
-                if (DefaultTime < 0)
+                g_iDefaultTime = StringToInt(value);
+                if (g_iDefaultTime < 0)
                 {
-                    DefaultTime = -1;
+                    g_iDefaultTime = -1;
                 }
-                if (DefaultTime == 0)
+                if (g_iDefaultTime == 0)
                 {
-                    DefaultTime = 30;
+                    g_iDefaultTime = 30;
                 }
             }
             else if (strcmp("DisableUnblockImmunityCheck", key, false) == 0)
             {
-                DisUBImCheck = StringToInt(value);
-                if (DisUBImCheck != 1)
-                {
-                    DisUBImCheck = 0;
-                }
+                if (StringToInt(value) == 1)
+                    g_bDisUBImCheck = true;
+                else
+                    g_bDisUBImCheck = false;
             }
             else if (strcmp("ConsoleImmunity", key, false) == 0)
             {
-                ConsoleImmunity = StringToInt(value);
-                if (ConsoleImmunity < 0 || ConsoleImmunity > 100)
+                g_iConsoleImmunity = StringToInt(value);
+                if (g_iConsoleImmunity < 0 || g_iConsoleImmunity > 100)
                 {
-                    ConsoleImmunity = 0;
+                    g_iConsoleImmunity = 0;
                 }
             }
             else if (strcmp("MaxLength", key, false) == 0)
             {
-                ConfigMaxLength = StringToInt(value);
+                g_iConfigMaxLength = StringToInt(value);
             }
             else if (strcmp("OnlyWhiteListServers", key, false) == 0)
             {
-                ConfigWhiteListOnly = StringToInt(value);
-                if (ConfigWhiteListOnly != 1)
-                {
-                    ConfigWhiteListOnly = 0;
-                }
+                if (StringToInt(value) == 1)
+                    g_bConfigWhiteListOnly = true;
+                else
+                    g_bConfigWhiteListOnly = false;
             }
         }
         case ConfigStateReasons:
