@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.207"
+#define PLUGIN_VERSION "1.0.210"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -265,41 +265,43 @@ public Action:CommandComms(client, args)
 
 public Action:FWBlock(args)
 {
-    new String:arg_string[256], String:sArg[3][64];
-    GetCmdArgString(arg_string, sizeof(arg_string));
+    new String:sArgs[256];
+    new String:sArg[3][64];
+    GetCmdArgString(sArgs, sizeof(sArgs));
 
-    new type, length;
-    if(ExplodeString(arg_string, " ", sArg, 3, 64) != 3 || !StringToIntEx(sArg[0], type) || type < 1 || type > 3 || !StringToIntEx(sArg[1], length))
+    new iType;
+    new iLength;
+    if(ExplodeString(sArgs, " ", sArg, 3, 64) != 3 || !StringToIntEx(sArg[0], iType) || iType < TYPE_MUTE || iType > TYPE_SILENCE || !StringToIntEx(sArg[1], iLength))
     {
         LogError("Wrong usage of sc_fw_block");
         return Plugin_Stop;
     }
 
-    LogMessage("Received block command from web: steam %s, type %d, length %d", sArg[2], type, length);
+    LogMessage("Received block command from web: steam %s, type %d, length %d", sArg[2], iType, iLength);
 
     for (new i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
         {
-            decl String:clientAuth[64];
-            GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-            if (strcmp(clientAuth, sArg[2], false) == 0)
+            decl String:sClientAuth[64];
+            GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
+            if (strcmp(sClientAuth, sArg[2], false) == 0)
             {
                 #if defined DEBUG
-                    PrintToServer("Catched %s for blocking from web", clientAuth);
+                    PrintToServer("Catched %s for blocking from web", sClientAuth);
                 #endif
 
-                if (g_MuteType[i] == bNot && (type == 1 || type == 3))
+                if (g_MuteType[i] == bNot && (iType == TYPE_MUTE || iType == TYPE_SILENCE))
                 {
-                    PerformMute(i, _, length / 60, _, _, _, _);
+                    PerformMute(i, _, iLength, _, _, _, _);
                     PrintToChat(i, "%s%t", PREFIX, "Muted on connect");
-                    LogMessage("%s is muted from web", clientAuth);
+                    LogMessage("%s is muted from web", sClientAuth);
                 }
-                if (g_GagType[i] == bNot && (type == 2 || type == 3))
+                if (g_GagType[i] == bNot && (iType == TYPE_GAG || iType == TYPE_SILENCE))
                 {
-                    PerformGag(i, _, length / 60, _, _, _, _);
+                    PerformGag(i, _, iLength, _, _, _, _);
                     PrintToChat(i, "%s%t", PREFIX, "Gagged on connect");
-                    LogMessage("%s is gagged from web", clientAuth);
+                    LogMessage("%s is gagged from web", sClientAuth);
                 }
                 break;
             }
@@ -311,9 +313,10 @@ public Action:FWBlock(args)
 
 public Action:FWUngag(args)
 {
-    new String:arg_string[256], String:sArg[1][64];
-    GetCmdArgString(arg_string, sizeof(arg_string));
-    if(!ExplodeString(arg_string, " ", sArg, 1, 64))
+    new String:sArgs[256];
+    new String:sArg[1][64];
+    GetCmdArgString(sArgs, sizeof(sArgs));
+    if(!ExplodeString(sArgs, " ", sArg, 1, 64))
     {
         LogError("Wrong usage of sc_fw_ungag");
         return Plugin_Stop;
@@ -325,22 +328,22 @@ public Action:FWUngag(args)
     {
         if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
         {
-            decl String:clientAuth[64];
-            GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-            if (strcmp(clientAuth, sArg[0], false) == 0)
+            decl String:sClientAuth[64];
+            GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
+            if (strcmp(sClientAuth, sArg[0], false) == 0)
             {
                 #if defined DEBUG
-                    PrintToServer("Catched %s for ungagging from web", clientAuth);
+                    PrintToServer("Catched %s for ungagging from web", sClientAuth);
                 #endif
 
                 if (g_GagType[i] > bNot)
                 {
                     PerformUnGag(i);
                     PrintToChat(i, "%s%t", PREFIX, "FWUngag");
-                    LogMessage("%s is ungagged from web", clientAuth);
+                    LogMessage("%s is ungagged from web", sClientAuth);
                 }
                 else
-                    LogError("Can't ungag %s from web, it isn't gagged", clientAuth);
+                    LogError("Can't ungag %s from web, it isn't gagged", sClientAuth);
                 break;
             }
         }
@@ -350,9 +353,10 @@ public Action:FWUngag(args)
 
 public Action:FWUnmute(args)
 {
-    new String:arg_string[256], String:sArg[1][64];
-    GetCmdArgString(arg_string, sizeof(arg_string));
-    if(!ExplodeString(arg_string, " ", sArg, 1, 64))
+    new String:sArgs[256];
+    new String:sArg[1][64];
+    GetCmdArgString(sArgs, sizeof(sArgs));
+    if(!ExplodeString(sArgs, " ", sArg, 1, 64))
     {
         LogError("Wrong usage of sc_fw_ungag");
         return Plugin_Stop;
@@ -364,22 +368,22 @@ public Action:FWUnmute(args)
     {
         if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
         {
-            decl String:clientAuth[64];
-            GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-            if (strcmp(clientAuth, sArg[0], false) == 0)
+            decl String:sClientAuth[64];
+            GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
+            if (strcmp(sClientAuth, sArg[0], false) == 0)
             {
                 #if defined DEBUG
-                    PrintToServer("Catched %s for unmuting from web", clientAuth);
+                    PrintToServer("Catched %s for unmuting from web", sClientAuth);
                 #endif
 
                 if (g_MuteType[i] > bNot)
                 {
                     PerformUnMute(i);
                     PrintToChat(i, "%s%t", PREFIX, "FWUnmute");
-                    LogMessage("%s is unmuted from web", clientAuth);
+                    LogMessage("%s is unmuted from web", sClientAuth);
                 }
                 else
-                    LogError("Can't unmute %s from web, it isn't muted", clientAuth);
+                    LogError("Can't unmute %s from web, it isn't muted", sClientAuth);
                 break;
             }
         }
@@ -393,26 +397,26 @@ public Action:CommandCallback(client, const String:command[], args)
     if (client && !CheckCommandAccess(client, command, ADMFLAG_CHAT))
         return Plugin_Continue;
 
-    new type;
+    new iType;
     if (StrEqual(command, "sm_gag", false))
-        type = TYPE_GAG;
+        iType = TYPE_GAG;
     else if (StrEqual(command, "sm_mute", false))
-        type = TYPE_MUTE;
+        iType = TYPE_MUTE;
     else if (StrEqual(command, "sm_ungag", false))
-        type = TYPE_UNGAG;
+        iType = TYPE_UNGAG;
     else if (StrEqual(command, "sm_unmute", false))
-        type = TYPE_UNMUTE;
+        iType = TYPE_UNMUTE;
     else if (StrEqual(command, "sm_silence", false))
-        type = TYPE_SILENCE;
+        iType = TYPE_SILENCE;
     else if (StrEqual(command, "sm_unsilence", false))
-        type = TYPE_UNSILENCE;
+        iType = TYPE_UNSILENCE;
     else
         return Plugin_Stop;
 
     if (args < 1)
     {
-        ReplyToCommand(client, "%sUsage: %s <#userid|name> %s", PREFIX, command, type <= TYPE_SILENCE ? "[time|0] [reason]" : "[reason]");
-        if (type <= TYPE_SILENCE)
+        ReplyToCommand(client, "%sUsage: %s <#userid|name> %s", PREFIX, command, iType <= TYPE_SILENCE ? "[time|0] [reason]" : "[reason]");
+        if (iType <= TYPE_SILENCE)
             ReplyToCommand(client, "%sUsage: %s <#userid|name> [reason]", PREFIX, command);
         return Plugin_Stop;
     }
@@ -420,10 +424,10 @@ public Action:CommandCallback(client, const String:command[], args)
     new String:sBuffer[256];
     GetCmdArgString(sBuffer, sizeof(sBuffer));
 
-    if (type <= TYPE_SILENCE)
-        CreateBlock(client, _, _, type, _, sBuffer);
+    if (iType <= TYPE_SILENCE)
+        CreateBlock(client, _, _, iType, _, sBuffer);
     else
-        ProcessUnBlock(client, _, type, _, sBuffer);
+        ProcessUnBlock(client, _, iType, _, sBuffer);
 
     return Plugin_Stop;
 }
