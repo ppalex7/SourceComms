@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.142"
+#define PLUGIN_VERSION "1.0.143"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -2560,11 +2560,11 @@ stock bool:AdminCheck(admin, target, const _:iAdminID, const _:iType)
     decl bool:bIsIssuerAdmin;
     switch(iType)
     {
-        case TYPE_MUTE:
+        case TYPE_UNMUTE:
             bIsIssuerAdmin = iAdminID == g_iMuteAdminID[target];
-        case TYPE_GAG:
+        case TYPE_UNGAG:
             bIsIssuerAdmin = iAdminID == g_iGagAdminID[target];
-        case TYPE_SILENCE:
+        case TYPE_UNSILENCE:
             bIsIssuerAdmin = iAdminID == g_iMuteAdminID[target] && iAdminID == g_iGagAdminID[target];
         default:
             bIsIssuerAdmin = false;
