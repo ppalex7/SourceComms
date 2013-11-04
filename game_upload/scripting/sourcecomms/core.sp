@@ -1246,8 +1246,7 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
     if (hndl == INVALID_HANDLE || error[0])
     {
         LogError("Query_VerifyBlock failed: %s", error);
-        if (g_hPlayerRecheck[target] == INVALID_HANDLE)
-            g_hPlayerRecheck[target] = CreateTimer(RetryTime, ClientRecheck, userid);
+        CreateRecheckTimer(target, g_fRetryTime);
         return;
     }
 

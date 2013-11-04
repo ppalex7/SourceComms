@@ -18,40 +18,40 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.186"
+#define PLUGIN_VERSION "1.0.200"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
 
-
+/* Top Menu handle */
 new Handle:hTopMenu = INVALID_HANDLE;
 
 /* Database handle */
 new Handle:SQLiteDB;
-
-/* Timer handles */
-new Handle:g_hPlayerRecheck[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
 
 /* Log Stuff */
 #if defined LOG_QUERIES
     new String:logQuery[256];
 #endif
 
-
-
+/* Server info */
 
 new g_iServerID;
 new String:g_sServerIP[16];
 new String:g_sServerID[5];
 
+/* Servers white-list array */
 
 new Handle:g_hServersWhiteList = INVALID_HANDLE;
 
+// ---------------------------------------------------------------
 #include "sourcecomms/config-parser.sp"     // Config parser code
 #include "sourcecomms/core.sp"              // Core plugin code
+#include "sourcecomms/common.sp"            // Common code
 #include "sourcecomms/menu.sp"              // Menu code
 #include "sourcecomms/natives.sp"           // plugin natives
+// ---------------------------------------------------------------
 
 public Plugin:myinfo =
 {
@@ -149,9 +149,7 @@ public OnMapStart()
 
 public OnClientDisconnect(client)
 {
-    if (g_hPlayerRecheck[client] != INVALID_HANDLE && CloseHandle(g_hPlayerRecheck[client]))
-        g_hPlayerRecheck[client] = INVALID_HANDLE;
-
+    CloseRecheckTimer(client);
     CloseMuteExpireTimer(client);
     CloseGagExpireTimer(client);
 }
@@ -280,6 +278,7 @@ public BaseComm_OnClientGag(client, bool:gagState)
         }
     }
 }
+
 
 // COMMAND CODE //
 
@@ -515,310 +514,6 @@ public SB_OnReload()
 {
     // Get values from SourceBans config and store them locally
     SB_GetConfigString("ServerIP", g_sServerIP, sizeof(g_sServerIP));
-}
-
-
-// SQL CALLBACKS //
-
-
-
-
-public Query_ErrorCheck(Handle:owner, Handle:hndl, const String:error[], any:data)
-{
-    if (hndl == INVALID_HANDLE || error[0])
-        LogError("%T (%s)", "Failed to query database", LANG_SERVER, error);
-}
-
-
-
-
-
-// TIMER CALL BACKS //
-public Action:ClientRecheck(Handle:timer, any:userid)
-{
-    #if defined DEBUG
-        PrintToServer("ClientRecheck(userid: %d)", userid);
-    #endif
-
-    new client = GetClientOfUserId(userid);
-    if (!client)
-        return;
-
-    if (IsClientConnected(client))
-        OnClientPostAdminCheck(client);
-
-    g_hPlayerRecheck[client] =  INVALID_HANDLE;
-}
-
-
-
-
-// STOCK FUNCTIONS //
-
-stock InitializeBackupDB()
-{
-    decl String:error[255];
-    SQLiteDB = SQLite_UseDatabase("sourcecomms-queue", error, sizeof(error));
-    if (SQLiteDB == INVALID_HANDLE)
-    {
-        SetFailState(error);
-    }
-
-    // Prune old tables
-    SQL_TQuery(SQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue");
-    SQL_TQuery(SQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue2");
-
-    SQL_TQuery(SQLiteDB, Query_ErrorCheck,
-       "CREATE TABLE IF NOT EXISTS queue3 ( \
-            id INTEGER PRIMARY KEY, \
-            steam_account_id INTEGER, name TEXT, \
-            start_time INTEGER, length INTEGER, reason TEXT, \
-            admin_id INTEGER, admin_ip TEXT, type INTEGER )"
-    );
-}
-
-
-
-
-
-
-
-
-
-
-// some more
-
-stock bool:IsAllowedBlockLength(admin, length, target_count = 1)
-{
-    if (target_count == 1)
-    {
-        if (!ConfigMaxLength)
-            return true;    // Restriction disabled
-        if (!admin)
-            return true;    // all allowed for console
-        if (AdmHasFlag(admin))
-            return true;    // all allowed for admins with special flag
-        if (!length || length > ConfigMaxLength)
-            return false;
-        else
-            return true;
-    }
-    else
-    {
-        if (length < 0)
-            return true;    // session punishments allowed for mass-tergeting
-        if (!length)
-            return false;
-        if (length > MAX_TIME_MULTI)
-            return false;
-        if (length > DefaultTime)
-            return false;
-        else
-            return true;
-    }
-}
-
-stock bool:AdmHasFlag(admin)
-{
-    return admin && CheckCommandAccess(admin, "", UNBLOCK_FLAG, true);
-}
-
-stock _:GetAdmImmunity(admin, const _:iAdminID)
-{
-    if (admin && GetUserAdmin(admin) != INVALID_ADMIN_ID)
-        return GetAdminImmunityLevel(GetUserAdmin(admin));
-    else if (!admin && !iAdminID)
-        return ConsoleImmunity;
-    else
-        return 0;
-}
-
-stock _:GetClientUserId2(client)
-{
-    if (client)
-        return GetClientUserId(client);
-    else
-        return 0;    // for CONSOLE
-}
-
-stock bool:ImmunityCheck(admin, target, const _:iAdminID, const _:iType)
-{
-    if (DisUBImCheck != 0)
-        return false;
-
-    if (!target || !IsClientInGame(target))
-        return false;
-
-    new iAdmImmunity = GetAdmImmunity(admin, iAdminID);
-
-    decl bool:bResult;
-    switch (iType)
-    {
-        case TYPE_MUTE:
-            bResult = iAdmImmunity > g_iMuteLevel[target];
-        case TYPE_GAG:
-            bResult = iAdmImmunity > g_iGagLevel[target];
-        case TYPE_SILENCE:
-            bResult = iAdmImmunity > g_iMuteLevel[target] && iAdmImmunity > g_iGagLevel[target];
-        default:
-            bResult = false;
-    }
-
-    return bResult;
-}
-
-stock bool:AdminCheck(admin, target, const _:iAdminID, const _:iType)
-{
-    if (!target || !IsClientInGame(target))
-        return false;
-
-    decl bool:bIsIssuerAdmin;
-    switch(iType)
-    {
-        case TYPE_UNMUTE:
-            bIsIssuerAdmin = iAdminID == g_iMuteAdminID[target];
-        case TYPE_UNGAG:
-            bIsIssuerAdmin = iAdminID == g_iGagAdminID[target];
-        case TYPE_UNSILENCE:
-            bIsIssuerAdmin = iAdminID == g_iMuteAdminID[target] && iAdminID == g_iGagAdminID[target];
-        default:
-            bIsIssuerAdmin = false;
-    }
-
-    new bool:bIsConsole = !admin && !iAdminID;
-
-    #if defined DEBUG
-        // WHO WE ARE?
-        PrintToServer("WHO WE ARE CHECKING!");
-        PrintToServer("We are block author: %b", bIsIssuerAdmin);
-        PrintToServer("We are console: %b", bIsConsole);
-        PrintToServer("We have special flag: %b", AdmHasFlag(admin));
-    #endif
-
-    new bool:bResult = bIsIssuerAdmin || bIsConsole || AdmHasFlag(admin);
-    return bResult;
-}
-
-stock ForcePlayersRecheck()
-{
-    for (new i = 1; i <= MaxClients; i++)
-    {
-        if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i) && g_hPlayerRecheck[i] == INVALID_HANDLE)
-        {
-            #if defined DEBUG
-            {
-                decl String:clientAuth[64];
-                GetClientAuthString(i, clientAuth, sizeof(clientAuth));
-                PrintToServer("Creating Recheck timer for %s", clientAuth);
-            }
-            #endif
-            g_hPlayerRecheck[i] = CreateTimer(float(i), ClientRecheck, GetClientUserId(i));
-        }
-    }
-}
-
-stock bool:NotApplyToThisServer(srvID)
-{
-    if (ConfigWhiteListOnly && FindValueInArray(g_hServersWhiteList, srvID) == -1)
-        return true;
-    else
-        return false;
-}
-
-
-
-
-
-stock ShowActivityToServer(admin, type, length = 0, String:reason[] = "", String:targetName[], bool:ml = false)
-{
-    #if defined DEBUG
-        PrintToServer("ShowActivityToServer(admin: %d, type: %d, length: %d, reason: %s, name: %s, ml: %b",
-            admin, type, length, reason, targetName, ml);
-    #endif
-
-    new String:actionName[32], String:translationName[64];
-    switch(type)
-    {
-        case TYPE_MUTE:
-        {
-            if (length > 0)
-                strcopy(actionName, sizeof(actionName), "Muted");
-            else if (length == 0)
-                strcopy(actionName, sizeof(actionName), "Permamuted");
-            else    // temp block
-                strcopy(actionName, sizeof(actionName), "Temp muted");
-        }
-        //-------------------------------------------------------------------------------------------------
-        case TYPE_GAG:
-        {
-            if (length > 0)
-                strcopy(actionName, sizeof(actionName), "Gagged");
-            else if (length == 0)
-                strcopy(actionName, sizeof(actionName), "Permagagged");
-            else    //temp block
-                strcopy(actionName, sizeof(actionName), "Temp gagged");
-        }
-        //-------------------------------------------------------------------------------------------------
-        case TYPE_SILENCE:
-        {
-            if (length > 0)
-                strcopy(actionName, sizeof(actionName), "Silenced");
-            else if (length == 0)
-                strcopy(actionName, sizeof(actionName), "Permasilenced");
-            else    //temp block
-                strcopy(actionName, sizeof(actionName), "Temp silenced");
-        }
-        //-------------------------------------------------------------------------------------------------
-        case TYPE_UNMUTE:
-        {
-            strcopy(actionName, sizeof(actionName), "Unmuted");
-        }
-        //-------------------------------------------------------------------------------------------------
-        case TYPE_UNGAG:
-        {
-            strcopy(actionName, sizeof(actionName), "Ungagged");
-        }
-        //-------------------------------------------------------------------------------------------------
-        case TYPE_TEMP_UNMUTE:
-        {
-            strcopy(actionName, sizeof(actionName), "Temp unmuted");
-        }
-        //-------------------------------------------------------------------------------------------------
-        case TYPE_TEMP_UNGAG:
-        {
-            strcopy(actionName, sizeof(actionName), "Temp ungagged");
-        }
-        //-------------------------------------------------------------------------------------------------
-        case TYPE_TEMP_UNSILENCE:
-        {
-            strcopy(actionName, sizeof(actionName), "Temp unsilenced");
-        }
-        //-------------------------------------------------------------------------------------------------
-        default:
-        {
-            return;
-        }
-    }
-
-    Format(translationName, sizeof(translationName), "%s %s", actionName, reason[0] == '\0' ? "player" : "player reason");
-    #if defined DEBUG
-        PrintToServer("translation name: %s", translationName);
-    #endif
-
-    if (length > 0)
-    {
-        if (ml)
-            ShowActivity2(admin, PREFIX, "%t", translationName,       targetName, length, reason);
-        else
-            ShowActivity2(admin, PREFIX, "%t", translationName, "_s", targetName, length, reason);
-    }
-    else
-    {
-        if (ml)
-            ShowActivity2(admin, PREFIX, "%t", translationName,       targetName,         reason);
-        else
-            ShowActivity2(admin, PREFIX, "%t", translationName, "_s", targetName,         reason);
-    }
 }
 
 //Yarr!
