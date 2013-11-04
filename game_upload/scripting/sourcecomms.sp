@@ -1996,17 +1996,8 @@ stock CreateBlock(client, const targetId = 0, _:iLength = -1, const _:iType, con
         return;
     }
 
-    new iAdmImmunity = GetAdmImmunity(client);
-    decl iAdmID;
-
-    if (client && IsClientInGame(client))
-    {
-        iAdmID = SB_GetAdminId(client);
-    }
-    else
-    {
-        iAdmID = 0;
-    }
+    new iAdmID = client && IsClientInGame(client) ? SB_GetAdminId(client) : 0;
+    new iAdmImmunity = GetAdmImmunity(client, iAdmID);
 
     for (new i = 0; i < iTargetCount; i++)
     {
@@ -2592,12 +2583,14 @@ stock bool:AdmHasFlag(admin)
     return admin && CheckCommandAccess(admin, "", UNBLOCK_FLAG, true);
 }
 
-stock _:GetAdmImmunity(admin)
+stock _:GetAdmImmunity(admin, const _:iAdminID)
 {
     if (admin && GetUserAdmin(admin) != INVALID_ADMIN_ID)
         return GetAdminImmunityLevel(GetUserAdmin(admin));
-    else
+    else if (!admin && !iAdminID)
         return ConsoleImmunity;
+    else
+        return 0;
 }
 
 stock _:GetClientUserId2(client)
