@@ -66,8 +66,6 @@ new Handle:hTopMenu = INVALID_HANDLE;
 /* Database handle */
 new Handle:SQLiteDB;
 
-new String:DatabasePrefix[10] = "sb";
-
 /* Timer handles */
 new Handle:g_hPlayerRecheck[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
 new Handle:g_hGagExpireTimer[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
@@ -1725,16 +1723,7 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
     {
         case ConfigStateConfig:
         {
-            if (strcmp("DatabasePrefix", key, false) == 0)
-            {
-                strcopy(DatabasePrefix, sizeof(DatabasePrefix), value);
-
-                if (DatabasePrefix[0] == '\0')
-                {
-                    DatabasePrefix = "sb";
-                }
-            }
-            else if (strcmp("RetryTime", key, false) == 0)
+            if (strcmp("RetryTime", key, false) == 0)
             {
                 RetryTime    = StringToFloat(value);
                 if (RetryTime < 15.0)
