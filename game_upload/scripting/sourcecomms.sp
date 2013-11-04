@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.93"
+#define PLUGIN_VERSION "1.0.142"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1219,60 +1219,60 @@ public Query_AddBlockInsert(Handle:owner, Handle:hndl, const String:error[], any
 
 public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-    decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
+    decl String:sReason[256];
+    decl String:sTargetName[MAX_NAME_LENGTH];
+    decl String:sTargetAuth[64];
 
     ResetPack(data);
-    new adminUserID  = ReadPackCell(data);
-    new targetUserID = ReadPackCell(data);
-    new type         = ReadPackCell(data);    // not in use unless DEBUG
-    ReadPackString(data, adminAuth,  sizeof(adminAuth));
-    ReadPackString(data, targetAuth, sizeof(targetAuth));
-    ReadPackString(data, reason,      sizeof(reason));
+    new iAdminUserID  = ReadPackCell(data);
+    new iAdmID        = ReadPackCell(data);
+    new iTargetUserID = ReadPackCell(data);
+    new iType         = ReadPackCell(data); // command type
+    ReadPackString(data, sReason,     sizeof(sReason));
+    ReadPackString(data, sTargetName, sizeof(sTargetName));
+    ReadPackString(data, sTargetAuth, sizeof(sTargetAuth));
 
-    new admin  = GetClientOfUserId(adminUserID);
-    new target = GetClientOfUserId(targetUserID);
+    new admin  = GetClientOfUserId(iAdminUserID);
+    new target = GetClientOfUserId(iTargetUserID);
 
     #if defined DEBUG
-        PrintToServer("Query_UnBlockSelect(adminUID: %d/%d, targetUID: %d/%d, type: %d, adminAuth: %s, targetAuth: %s, reason: %s)",
-            adminUserID, admin, targetUserID, target, type, adminAuth, targetAuth, reason);
+        PrintToServer("Query_UnBlockSelect(adminUID: %d/%d, adminID %d, targetUID: %d/%d, target auth/name %s / %s, type: %d, reason: %s)",
+            iAdminUserID, admin, iAdmID, iTargetUserID, target, sTargetAuth, sTargetName, iType, sReason);
     #endif
 
-    new String:targetName[MAX_NAME_LENGTH];
-    strcopy(targetName, MAX_NAME_LENGTH, target && IsClientInGame(target) ? g_sName[target] : targetAuth);        //FIXME
-
-    new bool:hasErrors = false;
+    new bool:bHasErrors = false;
     // If error is not an empty string the query failed
-    if (DB_Conn_Lost(hndl) || error[0] != '\0')
+    if (hndl == INVALID_HANDLE || error[0] != '\0')
     {
         LogError("Query_UnBlockSelect failed: %s", error);
         if (admin && IsClientInGame(admin))
         {
-            PrintToChat(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
-            PrintToConsole(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, targetAuth);
+            PrintToChat(admin,    "%s%T", PREFIX, "Unblock Select Failed", admin, sTargetName);
+            PrintToConsole(admin, "%s%T", PREFIX, "Unblock Select Failed", admin, sTargetName);
         }
         else
         {
-            PrintToServer("%s%T", PREFIX, "Unblock Select Failed", LANG_SERVER, targetAuth);
+            PrintToServer("%s%T", PREFIX, "Unblock Select Failed", LANG_SERVER, sTargetName);
         }
-        hasErrors = true;
+        bHasErrors = true;
     }
 
     // If there was no results then a ban does not exist for that id
-    if (!DB_Conn_Lost(hndl) && !SQL_GetRowCount(hndl))
+    if (hndl != INVALID_HANDLE && !SQL_GetRowCount(hndl))
     {
         if (admin && IsClientInGame(admin))
         {
-            PrintToChat(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
-            PrintToConsole(admin, "%s%t", PREFIX, "No blocks found", targetAuth);
+            PrintToChat(admin,    "%s%t", PREFIX, "No blocks found", sTargetName);
+            PrintToConsole(admin, "%s%t", PREFIX, "No blocks found", sTargetName);
         }
         else
         {
-            PrintToServer("%s%T", PREFIX, "No blocks found", LANG_SERVER, targetAuth);
+            PrintToServer("%s%T", PREFIX, "No blocks found", LANG_SERVER, sTargetName);
         }
-        hasErrors = true;
+        bHasErrors = true;
     }
 
-    if (hasErrors)
+    if (bHasErrors)
     {
         #if defined DEBUG
             PrintToServer("Calling TempUnBlock from Query_UnBlockSelect");
@@ -1283,7 +1283,7 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
     }
     else
     {
-        new bool:b_success = false;
+        new bool:bSuccess = false;
         // Get the values from the founded blocks.
         while(SQL_MoreRows(hndl))
         {
@@ -1291,125 +1291,78 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
             if (!SQL_FetchRow(hndl))
                 continue;
 
-            new bid       = SQL_FetchInt(hndl, 0);
-            new iAID      = SQL_FetchInt(hndl, 1);
-            new cAID      = SQL_FetchInt(hndl, 2);
-            new cImmunity = SQL_FetchInt(hndl, 3);
-            new cType     = SQL_FetchInt(hndl, 4);
+            new iId    = SQL_FetchInt(hndl, 0);
+            new iCType = SQL_FetchInt(hndl, 1); // current record type (TYPE_MUTE or TYPE_GAG, NOT TYPE_SILENCE)
 
             #if defined DEBUG
-                PrintToServer("Fetched from DB: bid %d, iAID: %d, cAID: %d, cImmunity: %d, cType: %d", bid, iAID, cAID, cImmunity, cType);
-                // WHO WE ARE?
-                PrintToServer("WHO WE ARE CHECKING!");
-                if (iAID == cAID)
-                    PrintToServer("we are block author");
-                if (!admin)
-                    PrintToServer("we are console (possibly)");
-                if (AdmHasFlag(admin))
-                    PrintToServer("we have special flag");
-                if (GetAdmImmunity(admin) > cImmunity)
-                    PrintToServer("we have %d immunity and block has %d. we cool", GetAdmImmunity(admin), cImmunity);
+                PrintToServer("Fetched from DB: id %d, type: %d", iId, iCType);
             #endif
 
-            // Checking - has we access to unblock?
-            if (iAID == cAID || (!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || (DisUBImCheck == 0 && (GetAdmImmunity(admin) > cImmunity)))
+            bSuccess = true;
+            // UnMute/UnGag, Show & log activity
+            if (target && IsClientInGame(target))
             {
-                // Ok! we have rights to unblock
-                b_success = true;
-                // UnMute/UnGag, Show & log activity
-                if (target && IsClientInGame(target))
-                {
-                    switch(cType)
-                    {
-                        case TYPE_MUTE:
-                        {
-                            PerformUnMute(target);
-                            LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, reason);
-                        }
-                        //-------------------------------------------------------------------------------------------------
-                        case TYPE_GAG:
-                        {
-                            PerformUnGag(target);
-                            LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, reason);
-                        }
-                    }
-                }
-
-                new Handle:dataPack = CreateDataPack();
-                WritePackCell(dataPack, adminUserID);
-                WritePackCell(dataPack, cType);
-                WritePackString(dataPack, g_sName[target]);
-                WritePackString(dataPack, targetAuth);
-
-                new String:unbanReason[sizeof(reason) * 2 + 1];
-                SB_Escape(reason, unbanReason, sizeof(unbanReason));
-
-                decl String:query[2048];
-                Format(query, sizeof(query),
-                   "UPDATE  %s_comms \
-                    SET     RemovedBy = %d, \
-                            RemoveType = 'U', \
-                            RemovedOn = UNIX_TIMESTAMP(), \
-                            ureason = '%s' \
-                    WHERE   bid = %d",
-                    DatabasePrefix, iAID, unbanReason, bid);
-                #if defined LOG_QUERIES
-                    LogToFile(logQuery, "Query_UnBlockSelect. QUERY: %s", query);
-                #endif
-                SB_Query(Query_UnBlockUpdate, query, dataPack);
-            }
-            else
-            {
-                // sorry, we don't have permission to unblock!
-                #if defined DEBUG
-                    PrintToServer("No permissions to unblock in Query_UnBlockSelect");
-                #endif
-                switch(cType)
+                switch(iCType)
                 {
                     case TYPE_MUTE:
                     {
-                        if (admin && IsClientInGame(admin))
-                        {
-                            PrintToChat(admin, "%s%t", PREFIX, "No permission unmute", targetName);
-                            PrintToConsole(admin, "%s%t", PREFIX, "No permission unmute", targetName);
-                        }
-                        LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute %s (reason \"%s\")", admin, targetAuth, reason);
+                        PerformUnMute(target);
+                        LogAction(admin, target, "\"%L\" unmuted \"%L\" (reason \"%s\")", admin, target, sReason);
                     }
                     //-------------------------------------------------------------------------------------------------
                     case TYPE_GAG:
                     {
-                        if (admin && IsClientInGame(admin))
-                        {
-                            PrintToChat(admin, "%s%t", PREFIX, "No permission ungag", targetName);
-                            PrintToConsole(admin, "%s%t", PREFIX, "No permission ungag", targetName);
-                        }
-                        LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag %s (reason \"%s\")", admin, targetAuth, reason);
+                        PerformUnGag(target);
+                        LogAction(admin, target, "\"%L\" ungagged \"%L\" (reason \"%s\")", admin, target, sReason);
                     }
                 }
             }
+
+            new Handle:hDataPack = CreateDataPack();
+            WritePackCell(hDataPack, iAdminUserID);
+            WritePackCell(hDataPack, iCType);
+            WritePackString(hDataPack, sTargetName);
+            WritePackString(hDataPack, sTargetAuth);
+
+            new String:sReasonEscaped[sizeof(sReason) * 2 + 1];
+            SB_Escape(sReason, sReasonEscaped, sizeof(sReasonEscaped));
+
+            decl String:sQuery[2048];
+            Format(sQuery, sizeof(sQuery),
+               "UPDATE {{comms}} \
+                   SET unban_admin_id = %d \
+                     , unban_time = UNIX_TIMESTAMP() \
+                     , unban_reason = '%s' \
+                 WHERE id = %d",
+                iAdmID, sReasonEscaped, iId
+            );
+            #if defined LOG_QUERIES
+                LogToFile(logQuery, "Query_UnBlockSelect. QUERY: %s", sQuery);
+            #endif
+            SB_Query(Query_UnBlockUpdate, sQuery, hDataPack);
         }
 
-        if (b_success && target && IsClientInGame(target))
+        if (bSuccess && target && IsClientInGame(target))
         {
             #if defined DEBUG
                 PrintToServer("Showing activity to server in Query_UnBlockSelect");
             #endif
-            ShowActivityToServer(admin, type, _, _, g_sName[target], _);
+            ShowActivityToServer(admin, iType, _, _, g_sName[target], _);
 
-            if (type == TYPE_UNSILENCE)
+            if (iType == TYPE_UNSILENCE)
             {
                 // check result for possible combination with temp and time punishments (temp was skipped in code above)
-                SetPackPosition(data, 16);
+                SetPackPosition(data, 24);
                 if (g_MuteType[target] > bNot)
                 {
                     WritePackCell(data, TYPE_UNMUTE);
-                    TempUnBlock(data);
+                    TempUnBlock(data);  // datapack closed inside
                     data = INVALID_HANDLE;
                 }
                 else if (g_GagType[target] > bNot)
                 {
                     WritePackCell(data, TYPE_UNGAG);
-                    TempUnBlock(data);
+                    TempUnBlock(data);  // datapack closed inside
                     data = INVALID_HANDLE;
                 }
             }
@@ -1421,17 +1374,17 @@ public Query_UnBlockSelect(Handle:owner, Handle:hndl, const String:error[], any:
 
 public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-    new admin, type;
-    new String:targetName[MAX_NAME_LENGTH], String:targetAuth[30];
+    decl String:sTargetName[MAX_NAME_LENGTH];
+    decl String:sTargetAuth[64];
 
     ResetPack(data);
-    admin = GetClientOfUserId(ReadPackCell(data));
-    type  =                   ReadPackCell(data);
-    ReadPackString(data, targetName, sizeof(targetName));
-    ReadPackString(data, targetAuth, sizeof(targetAuth));
+    new admin = GetClientOfUserId(ReadPackCell(data));
+    new iType =                   ReadPackCell(data);
+    ReadPackString(data, sTargetName, sizeof(sTargetName));
+    ReadPackString(data, sTargetAuth, sizeof(sTargetAuth));
     CloseHandle(data);
 
-    if (DB_Conn_Lost(hndl) || error[0] != '\0')
+    if (hndl == INVALID_HANDLE || error[0] != '\0')
     {
         LogError("Query_UnBlockUpdate failed: %s", error);
         if (admin && IsClientInGame(admin))
@@ -1442,32 +1395,32 @@ public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:
         return;
     }
 
-    switch(type)
+    switch(iType)
     {
         case TYPE_MUTE:
         {
-            LogAction(admin, -1, "\"%L\" removed mute for %s from DB", admin, targetAuth);
+            LogAction(admin, -1, "\"%L\" removed mute for %s from DB", admin, sTargetAuth);
             if (admin && IsClientInGame(admin))
             {
-                PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
-                PrintToConsole(admin, "%s%t", PREFIX, "successfully unmuted", targetName);
+                PrintToChat(admin, "%s%t", PREFIX, "successfully unmuted", sTargetName);
+                PrintToConsole(admin, "%s%t", PREFIX, "successfully unmuted", sTargetName);
             }
             else
             {
-                PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, targetName);
+                PrintToServer("%s%T", PREFIX, "successfully unmuted", LANG_SERVER, sTargetName);
             }
         }
         //-------------------------------------------------------------------------------------------------
         case TYPE_GAG:
         {
-            LogAction(admin, -1, "\"%L\" removed gag for %s from DB", admin, targetAuth);
+            LogAction(admin, -1, "\"%L\" removed gag for %s from DB", admin, sTargetAuth);
             if (admin && IsClientInGame(admin)){
-                PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
-                PrintToConsole(admin, "%s%t", PREFIX, "successfully ungagged", targetName);
+                PrintToChat(admin, "%s%t", PREFIX, "successfully ungagged", sTargetName);
+                PrintToConsole(admin, "%s%t", PREFIX, "successfully ungagged", sTargetName);
             }
             else
             {
-                PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, targetName);
+                PrintToServer("%s%T", PREFIX, "successfully ungagged", LANG_SERVER, sTargetName);
             }
         }
     }
@@ -2104,21 +2057,25 @@ stock CreateBlock(admin, const targetId = 0, _:iLength = -1, const _:iType, cons
     return;
 }
 
-stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const String:sArgs[] = "")
+stock ProcessUnBlock(admin, targetId = 0, const _:iType, String:sReasonArg[] = "", const String:sArgs[] = "")
 {
     #if defined DEBUG
-        PrintToServer("ProcessUnBlock(admin: %d, target: %d, type: %d, reason: %s, args: %s)", client, targetId, type, sReason, sArgs);
+        PrintToServer("ProcessUnBlock(admin: %d, target: %d, type: %d, reason: %s, args: %s)", admin, targetId, iType, sReasonArg, sArgs);
     #endif
 
-    decl target_list[MAXPLAYERS], target_count, bool:tn_is_ml, String:target_name[MAX_NAME_LENGTH], String:reason[256];
+    decl iTargetList[MAXPLAYERS];
+    decl iTargetCount;
+    decl bool:bTnIsMl;
+    decl String:sTargetName[MAX_NAME_LENGTH];
+    decl String:sReason[256];
 
     if(targetId)
     {
-        target_list[0] = targetId;
-        target_count = 1;
-        tn_is_ml = false;
-        strcopy(target_name, sizeof(target_name), g_sName[targetId]);
-        strcopy(reason,      sizeof(reason),      sReason);
+        iTargetList[0] = targetId;
+        iTargetCount = 1;
+        bTnIsMl = false;
+        strcopy(sTargetName, sizeof(sTargetName), g_sName[targetId]);
+        strcopy(sReason,     sizeof(sReason),     sReasonArg);
     }
     else
     {
@@ -2135,100 +2092,131 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
         {
             ExplodeString(sBuffer, " ", sArg, 2, 192, true);
         }
-        strcopy(reason, sizeof(reason), sArg[1]);
+        strcopy(sReason, sizeof(sReason), sArg[1]);
         // Strip spaces and quotes from reason
-        TrimString(reason);
-        StripQuotes(reason);
+        TrimString(sReason);
+        StripQuotes(sReason);
 
         // Get the target, find target returns a message on failure so we do not
-        if ((target_count = ProcessTargetString(
+        if ((iTargetCount = ProcessTargetString(
                 sArg[0],
-                client,
-                target_list,
+                admin,
+                iTargetList,
                 MAXPLAYERS,
                 COMMAND_FILTER_NO_BOTS,
-                target_name,
-                sizeof(target_name),
-                tn_is_ml)) <= 0)
+                sTargetName,
+                sizeof(sTargetName),
+                bTnIsMl)) <= 0)
         {
-            ReplyToTargetError(client, target_count);
+            ReplyToTargetError(admin, iTargetCount);
             return;
         }
     }
 
-    decl String:adminAuth[64];
-    decl String:targetAuth[64];
+    new iAdmID = admin && IsClientInGame(admin) ? SB_GetAdminId(admin) : 0;
 
-    if (client && IsClientInGame(client))
-    {
-        GetClientAuthString(client, adminAuth, sizeof(adminAuth));
-    }
-    else
-    {
-        // setup dummy adminAuth and adminIp for server
-        strcopy(adminAuth, sizeof(adminAuth), "STEAM_ID_SERVER");
-    }
-
-    if (target_count > 1)
+    if (iTargetCount > 1)
     {
         #if defined DEBUG
-            PrintToServer("ProcessUnBlock - targets_count > 1");
+            PrintToServer("ProcessUnBlock: targets_count > 1");
         #endif
 
-        for (new i = 0; i < target_count; i++)
+        new bool:bSuccess = false;
+
+        for (new i = 0; i < iTargetCount; i++)
         {
-            new target = target_list[i];
+            new target = iTargetList[i];
+            new iTargetAccountID = 0;
 
             if (IsClientInGame(target))
-                GetClientAuthString(target, targetAuth, sizeof(targetAuth));
-            else
+                iTargetAccountID = GetSteamAccountID(target);
+
+            // if target left the game or Account ID is not available
+            if (!iTargetAccountID)
                 continue;
 
-            new Handle:dataPack = CreateDataPack();
-            WritePackCell(dataPack, GetClientUserId2(client));
-            WritePackCell(dataPack, GetClientUserId(target));
-            WritePackCell(dataPack, type);
-            WritePackString(dataPack, adminAuth);
-            WritePackString(dataPack, targetAuth);    // not in use in this case
-            WritePackString(dataPack, reason);
+            // check permissions
+            new bool:bHasPermission = AdminCheck(admin, target, iAdmID, iType) || ImmunityCheck(admin, target, iAdmID, iType);
+            #if defined DEBUG
+                PrintToServer("Permissions to temporary unblock: %b", bHasPermission);
+            #endif
+            if (!bHasPermission)
+            {
+                if (admin && IsClientInGame(admin))
+                {
+                    PrintToChat(admin, "%s%t", PREFIX, "No db error unlock perm");
+                    PrintToConsole(admin, "%s%t", PREFIX, "No db error unlock perm");
+                }
+                continue;
+            }
 
-            TempUnBlock(dataPack);
+            new Handle:hDataPack = CreateDataPack();
+            WritePackCell(hDataPack, GetClientUserId2(admin));
+            SetPackPosition(hDataPack, 16);
+            WritePackCell(hDataPack, GetClientUserId(target));
+            WritePackCell(hDataPack, iType);
+            WritePackString(hDataPack, sReason);
+
+            TempUnBlock(hDataPack); // dataPack closed inside
+            bSuccess = true;
         }
 
-        #if defined DEBUG
-            PrintToServer("Showing activity to server in ProcessUnBlock for targets_count > 1");
-        #endif
-        ShowActivityToServer(client, type + TYPE_TEMP_SHIFT, _, _, target_name, tn_is_ml);
+        if (bSuccess)
+        {
+            #if defined DEBUG
+                PrintToServer("Showing activity to server in ProcessUnBlock for targets_count > 1");
+            #endif
+            ShowActivityToServer(admin, iType + TYPE_TEMP_SHIFT, _, _, sTargetName, bTnIsMl);
+        }
     }
     else
     {
-        decl String:typeWHERE[100];
-        new bool:dontCheckDB = false;
-        new target = target_list[0];
+        decl String:sTyperWHERE[100];
+        new String:sTargetAuth[64];
+        new bool:bDontCheckDB = false;
+        new target = iTargetList[0];
+        new iTargetAccountID = 0;
 
         if (IsClientInGame(target))
         {
-            GetClientAuthString(target, targetAuth, sizeof(targetAuth));
-        }
-        else
-        {
-            return;
+            iTargetAccountID = GetSteamAccountID(target);
+            GetClientAuthString(target, sTargetAuth, sizeof(sTargetAuth));
         }
 
-        switch(type)
+        // if target left the game or Account ID is not available
+        if (!iTargetAccountID)
+            return;
+
+        // check permissions
+        new bool:bHasPermission = AdminCheck(admin, target, iAdmID, iType) || ImmunityCheck(admin, target, iAdmID, iType);
+        #if defined DEBUG
+            PrintToServer("Permissions to unblock: %b", bHasPermission);
+        #endif
+
+        switch(iType)
         {
             case TYPE_UNMUTE:
             {
                 if (!BaseComm_IsClientMuted(target))
                 {
-                    ReplyToCommand(client, "%s%t", PREFIX, "Player not muted");
+                    ReplyToCommand(admin, "%s%t", PREFIX, "Player not muted");
                     return;
+                }
+                else if (bHasPermission)
+                {
+                    FormatEx(sTyperWHERE, sizeof(sTyperWHERE), "c.type = %d", TYPE_MUTE);
+                    if (g_MuteType[target] == bSess)
+                        bDontCheckDB = true;
                 }
                 else
                 {
-                    FormatEx(typeWHERE, sizeof(typeWHERE), "c.type = '%d'", TYPE_MUTE);
-                    if (g_MuteType[target] == bSess)
-                        dontCheckDB = true;
+                    if (admin && IsClientInGame(admin))
+                    {
+                        PrintToChat(admin, "%s%t", PREFIX, "No permission unmute", g_sName[target]);
+                        PrintToConsole(admin, "%s%t", PREFIX, "No permission unmute", g_sName[target]);
+                    }
+                    LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unmute \"%L\" (reason \"%s\")", admin, target, sReason);
+                    return;
                 }
             }
             //-------------------------------------------------------------------------------------------------
@@ -2236,14 +2224,24 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
             {
                 if (!BaseComm_IsClientGagged(target))
                 {
-                    ReplyToCommand(client, "%s%t", PREFIX, "Player not gagged");
+                    ReplyToCommand(admin, "%s%t", PREFIX, "Player not gagged");
                     return;
+                }
+                else if (bHasPermission)
+                {
+                    FormatEx(sTyperWHERE, sizeof(sTyperWHERE), "c.type = %d", TYPE_GAG);
+                    if (g_GagType[target] == bSess)
+                        bDontCheckDB = true;
                 }
                 else
                 {
-                    FormatEx(typeWHERE, sizeof(typeWHERE), "c.type = '%d'", TYPE_GAG);
-                    if (g_GagType[target] == bSess)
-                        dontCheckDB = true;
+                    if (admin && IsClientInGame(admin))
+                    {
+                        PrintToChat(admin, "%s%t", PREFIX, "No permission ungag", g_sName[target]);
+                        PrintToConsole(admin, "%s%t", PREFIX, "No permission ungag", g_sName[target]);
+                    }
+                    LogAction(admin, target, "\"%L\" tried (and didn't have permission) to ungag \"%L\" (reason \"%s\")", admin, target, sReason);
+                    return;
                 }
             }
             //-------------------------------------------------------------------------------------------------
@@ -2251,61 +2249,56 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
             {
                 if (!BaseComm_IsClientMuted(target) || !BaseComm_IsClientGagged(target))
                 {
-                    ReplyToCommand(client, "%s%t", PREFIX, "Player not silenced");
+                    ReplyToCommand(admin, "%s%t", PREFIX, "Player not silenced");
                     return;
+                }
+                else if (bHasPermission)
+                {
+                    FormatEx(sTyperWHERE, sizeof(sTyperWHERE), "(c.type = %d OR c.type = %d)", TYPE_MUTE, TYPE_GAG);
+                    if (g_MuteType[target] == bSess && g_GagType[target] == bSess)
+                        bDontCheckDB = true;
                 }
                 else
                 {
-                    FormatEx(typeWHERE, sizeof(typeWHERE), "(c.type = '%d' OR c.type = '%d')", TYPE_MUTE, TYPE_GAG);
-                    if (g_MuteType[target] == bSess && g_GagType[target] == bSess)
-                        dontCheckDB = true;
+                    if (admin && IsClientInGame(admin))
+                    {
+                        PrintToChat(admin, "%s%t", PREFIX, "No permission unsilence", g_sName[target]);
+                        PrintToConsole(admin, "%s%t", PREFIX, "No permission unsilence", g_sName[target]);
+                    }
+                    LogAction(admin, target, "\"%L\" tried (and didn't have permission) to unsilence \"%L\" (reason \"%s\")", admin, target, sReason);
+                    return;
                 }
             }
         }
 
         // Pack everything into a data pack so we can retain it
-        new Handle:dataPack = CreateDataPack();
-        WritePackCell(dataPack, GetClientUserId2(client));
-        WritePackCell(dataPack, GetClientUserId(target));
-        WritePackCell(dataPack, type);
-        WritePackString(dataPack, adminAuth);
-        WritePackString(dataPack, targetAuth);
-        WritePackString(dataPack, reason);
+        new Handle:hDataPack = CreateDataPack();
+        WritePackCell(hDataPack, GetClientUserId2(admin));
+        WritePackCell(hDataPack, iAdmID);
+        WritePackCell(hDataPack, GetClientUserId(target));
+        WritePackCell(hDataPack, iType);
+        WritePackString(hDataPack, sReason);
+        WritePackString(hDataPack, sTargetName);
+        WritePackString(hDataPack, sTargetAuth);
 
         // Check current player status. If player has temporary punishment - don't get info from DB
-        if (!dontCheckDB && SB_Connect())
+        if (!bDontCheckDB && SB_Connect())
         {
-            new String:sAdminAuthEscaped[sizeof(adminAuth) * 2 + 1];
-            new String:sAdminAuthYZEscaped[sizeof(adminAuth) * 2 + 1];
-            new String:sTargetAuthEscaped[sizeof(targetAuth) * 2 + 1];
-            new String:sTargetAuthYZEscaped[sizeof(targetAuth) * 2 + 1];
-
-            SB_Escape(adminAuth,     sAdminAuthEscaped,    sizeof(sAdminAuthEscaped));
-            SB_Escape(adminAuth[8],  sAdminAuthYZEscaped,  sizeof(sAdminAuthYZEscaped));
-            SB_Escape(targetAuth,    sTargetAuthEscaped,   sizeof(sTargetAuthEscaped));
-            SB_Escape(targetAuth[8], sTargetAuthYZEscaped, sizeof(sTargetAuthYZEscaped));
-
-            decl String:query[4096];
-            Format(query, sizeof(query),
-               "SELECT      c.bid, \
-                            IFNULL((SELECT aid FROM %s_admins WHERE authid = '%s' OR authid REGEXP '^STEAM_[0-9]:%s$'), '0') as iaid, \
-                            c.aid, \
-                            IF (a.immunity>=g.immunity, a.immunity, IFNULL(g.immunity,0)) as immunity, \
-                            c.type \
-                FROM        %s_comms     AS c \
-                LEFT JOIN   %s_admins    AS a ON a.aid = c.aid \
-                LEFT JOIN   %s_srvgroups AS g ON g.name = a.srv_group \
-                WHERE       RemoveType IS NULL \
-                              AND (c.authid = '%s' OR c.authid REGEXP '^STEAM_[0-9]:%s$') \
-                              AND (length = '0' OR ends > UNIX_TIMESTAMP()) \
-                              AND %s",
-                DatabasePrefix, sAdminAuthEscaped, sAdminAuthYZEscaped, DatabasePrefix, DatabasePrefix, DatabasePrefix, sTargetAuthEscaped, sTargetAuthYZEscaped, typeWHERE);
+            decl String:sQuery[4096];
+            Format(sQuery, sizeof(sQuery),
+               "SELECT c.id, c.type \
+                  FROM {{comms}} AS c \
+                 WHERE c.steam_account_id = %d \
+                       AND c.unban_time IS NULL \
+                       AND (c.length = '0' OR c.create_time + c.length * 60 > UNIX_TIMESTAMP()) \
+                       AND %s",
+                iTargetAccountID, sTyperWHERE
+            );
 
             #if defined LOG_QUERIES
-                LogToFile(logQuery, "ProcessUnBlock. QUERY: %s", query);
+                LogToFile(logQuery, "ProcessUnBlock. QUERY: %s", sQuery);
             #endif
-
-            SB_Query(Query_UnBlockSelect, query, dataPack);
+            SB_Query(Query_UnBlockSelect, sQuery, hDataPack);
         }
         else
         {
@@ -2313,122 +2306,54 @@ stock ProcessUnBlock(client, targetId = 0, type, String:sReason[] = "", const St
                 PrintToServer("Calling TempUnBlock from ProcessUnBlock");
             #endif
 
-            if (TempUnBlock(dataPack))
-                ShowActivityToServer(client, type + TYPE_TEMP_SHIFT, _, _, g_sName[target], _);
+            TempUnBlock(hDataPack); // datapack closed inside
+            ShowActivityToServer(admin, iType + TYPE_TEMP_SHIFT, _, _, g_sName[target], _);
         }
     }
 }
 
-stock bool:TempUnBlock(Handle:data)
+stock TempUnBlock(Handle:data)
 {
-    decl String:adminAuth[30], String:targetAuth[30], String:reason[256];
+    decl String:sReason[256];
+
     ResetPack(data);
-    new adminUserID  = ReadPackCell(data);
-    new targetUserID = ReadPackCell(data);
-    new type         = ReadPackCell(data);
-    ReadPackString(data, adminAuth,  sizeof(adminAuth));
-    ReadPackString(data, targetAuth, sizeof(targetAuth));
-    ReadPackString(data, reason,     sizeof(reason));
-    CloseHandle(data);    // Need to close datapack
+    new iAdminUserID  = ReadPackCell(data);
+    SetPackPosition(data, 16);              // skip AdminID
+    new iTargetUserID = ReadPackCell(data);
+    new iType         = ReadPackCell(data); // command type
+    ReadPackString(data, sReason, sizeof(sReason));
+    CloseHandle(data);                      // Need to close datapack
+
+    new admin  = GetClientOfUserId(iAdminUserID);
+    new target = GetClientOfUserId(iTargetUserID);
 
     #if defined DEBUG
-        PrintToServer("TempUnBlock(adminUID: %d, targetUID: %d, type: %d, adminAuth: %s, targetAuth: %s, reason: %s)", adminUserID, targetUserID, type, adminAuth, targetAuth, reason);
+        PrintToServer("TempUnBlock(adminUID: %d/%d, targetUID: %d/%d, type: %d, reason: %s)", iAdminUserID, admin, iTargetUserID, target, iType, sReason);
     #endif
 
-    new admin  = GetClientOfUserId(adminUserID);
-    new target = GetClientOfUserId(targetUserID);
     if (!target)
-        return false; // target has gone away
+        return; // target has gone away
 
-    new AdmImmunity = GetAdmImmunity(admin);
-    new bool:AdmImCheck = ( DisUBImCheck == 0
-                            &&  (  ( type == TYPE_MUTE    && AdmImmunity > g_iMuteLevel[target] )
-                                || ( type == TYPE_GAG     && AdmImmunity > g_iGagLevel[target]  )
-                                || ( type == TYPE_SILENCE && AdmImmunity > g_iMuteLevel[target]
-                                                          && AdmImmunity > g_iGagLevel[target])
-                                )
-                          );
-
-    #if defined DEBUG
-        PrintToServer("WHO WE ARE CHECKING!");
-        if (!admin)
-            PrintToServer("we are console (possibly)");
-        if (AdmHasFlag(admin))
-            PrintToServer("we have special flag");
-    #endif
-
-    // Check access for unblock without db changes (temporary unblock)
-    new bool:bHasPermission = (!admin && StrEqual(adminAuth, "STEAM_ID_SERVER")) || AdmHasFlag(admin) || AdmImCheck;
-    decl iAdmID;
-    if (admin)
+    switch(iType)
     {
-        iAdmID = SB_GetAdminId(admin);
-    }
-    else if (StrEqual(adminAuth, "STEAM_ID_SERVER"))
-    {
-        iAdmID = 0;
-    }
-    else
-    {
-        // something strange case.... TODO - FIX ME
-        iAdmID = -1;
-    }
-    // can, if we are console or have special flag. else - deep checking by issuer 'sourcebans admin id'
-    if (!bHasPermission) {
-        switch(type)
+        case TYPE_UNMUTE:
         {
-            case TYPE_UNMUTE:
-            {
-                bHasPermission = iAdmID == g_iMuteAdminID[target];
-            }
-            case TYPE_UNGAG:
-            {
-                bHasPermission = iAdmID == g_iGagAdminID[target];
-            }
-            case TYPE_UNSILENCE:
-            {
-                bHasPermission = iAdmID == g_iMuteAdminID[target] && iAdmID == g_iGagAdminID[target];
-            }
+            PerformUnMute(target);
+            LogAction(admin, target, "\"%L\" temporary unmuted \"%L\" (reason \"%s\")", admin, target, sReason);
         }
-    }
-
-    if (bHasPermission)
-    {
-        switch(type)
+        //-------------------------------------------------------------------------------------------------
+        case TYPE_UNGAG:
         {
-            case TYPE_UNMUTE:
-            {
-                PerformUnMute(target);
-                LogAction(admin, target, "\"%L\" temporary unmuted \"%L\" (reason \"%s\")", admin, target, reason);
-            }
-            //-------------------------------------------------------------------------------------------------
-            case TYPE_UNGAG:
-            {
-                PerformUnGag(target);
-                LogAction(admin, target, "\"%L\" temporary ungagged \"%L\" (reason \"%s\")", admin, target, reason);
-            }
-            //-------------------------------------------------------------------------------------------------
-            case TYPE_UNSILENCE:
-            {
-                PerformUnMute(target);
-                PerformUnGag(target);
-                LogAction(admin, target, "\"%L\" temporary unsilenced \"%L\" (reason \"%s\")", admin, target, reason);
-            }
-            default:
-            {
-                return false;
-            }
+            PerformUnGag(target);
+            LogAction(admin, target, "\"%L\" temporary ungagged \"%L\" (reason \"%s\")", admin, target, sReason);
         }
-        return true;
-    }
-    else
-    {
-        if (admin && IsClientInGame(admin))
+        //-------------------------------------------------------------------------------------------------
+        case TYPE_UNSILENCE:
         {
-            PrintToChat(admin, "%s%t", PREFIX, "No db error unlock perm");
-            PrintToConsole(admin, "%s%t", PREFIX, "No db error unlock perm");
+            PerformUnMute(target);
+            PerformUnGag(target);
+            LogAction(admin, target, "\"%L\" temporary unsilenced \"%L\" (reason \"%s\")", admin, target, sReason);
         }
-        return false;
     }
 }
 
@@ -2599,6 +2524,64 @@ stock _:GetClientUserId2(client)
         return GetClientUserId(client);
     else
         return 0;    // for CONSOLE
+}
+
+stock bool:ImmunityCheck(admin, target, const _:iAdminID, const _:iType)
+{
+    if (DisUBImCheck != 0)
+        return false;
+
+    if (!target || !IsClientInGame(target))
+        return false;
+
+    new iAdmImmunity = GetAdmImmunity(admin, iAdminID);
+
+    decl bool:bResult;
+    switch (iType)
+    {
+        case TYPE_MUTE:
+            bResult = iAdmImmunity > g_iMuteLevel[target];
+        case TYPE_GAG:
+            bResult = iAdmImmunity > g_iGagLevel[target];
+        case TYPE_SILENCE:
+            bResult = iAdmImmunity > g_iMuteLevel[target] && iAdmImmunity > g_iGagLevel[target];
+        default:
+            bResult = false;
+    }
+
+    return bResult;
+}
+
+stock bool:AdminCheck(admin, target, const _:iAdminID, const _:iType)
+{
+    if (!target || !IsClientInGame(target))
+        return false;
+
+    decl bool:bIsIssuerAdmin;
+    switch(iType)
+    {
+        case TYPE_MUTE:
+            bIsIssuerAdmin = iAdminID == g_iMuteAdminID[target];
+        case TYPE_GAG:
+            bIsIssuerAdmin = iAdminID == g_iGagAdminID[target];
+        case TYPE_SILENCE:
+            bIsIssuerAdmin = iAdminID == g_iMuteAdminID[target] && iAdminID == g_iGagAdminID[target];
+        default:
+            bIsIssuerAdmin = false;
+    }
+
+    new bool:bIsConsole = !admin && !iAdminID;
+
+    #if defined DEBUG
+        // WHO WE ARE?
+        PrintToServer("WHO WE ARE CHECKING!");
+        PrintToServer("We are block author: %b", bIsIssuerAdmin);
+        PrintToServer("We are console: %b", bIsConsole);
+        PrintToServer("We have special flag: %b", AdmHasFlag(admin));
+    #endif
+
+    new bool:bResult = bIsIssuerAdmin || bIsConsole || AdmHasFlag(admin);
+    return bResult;
 }
 
 stock ForcePlayersRecheck()
