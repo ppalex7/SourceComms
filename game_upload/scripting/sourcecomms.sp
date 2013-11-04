@@ -2793,12 +2793,12 @@ stock SavePunishment(admin = 0, const target, const _:iType, const iLength = -1 
     if (SB_Connect())
     {
         // Accepts length in minutes, writes to db in minutes! In all over places in plugin - length is in minutes (except timers).
-        new String:sQuotedName[MAX_NAME_LENGTH * 2 + 1];
-        new String:sQuotedReason[256 * 2 + 1];
+        new String:sNameEscaped[MAX_NAME_LENGTH * 2 + 1];
+        new String:sReasonEscaped[256 * 2 + 1];
 
         // escaping everything
-        SB_Escape(sName,   sQuotedName,   sizeof(sQuotedName));
-        SB_Escape(sReason, sQuotedReason, sizeof(sQuotedReason));
+        SB_Escape(sName,   sNameEscaped,   sizeof(sNameEscaped));
+        SB_Escape(sReason, sReasonEscaped, sizeof(sReasonEscaped));
 
         // table schema:
         // id   type    steam_account_id    name    reason  length  server_id   admin_id    admin_ip    unban_admin_id  unban_reason    unban_time  create_time
@@ -2808,7 +2808,7 @@ stock SavePunishment(admin = 0, const target, const _:iType, const iLength = -1 
         // create_time, steam_account_id, name, reason, length, server_id, admin_id, admin_ip
         FormatEx(sQueryVal, sizeof(sQueryVal),
             "UNIX_TIMESTAMP(), %d, '%s', '%s', %d, %s, %s, '%s'",
-            iTargetAccountID, sQuotedName, sQuotedReason, iLength, g_sServerID, sAdminID, sAdminIP
+            iTargetAccountID, sNameEscaped, sReasonEscaped, iLength, g_sServerID, sAdminID, sAdminIP
         );
 
         if (iType == TYPE_MUTE || iType == TYPE_SILENCE)
@@ -2831,16 +2831,16 @@ stock SavePunishment(admin = 0, const target, const _:iType, const iLength = -1 
         #endif
 
         // all data cached before calling asynchronous functions
-        new Handle:dataPack = CreateDataPack();
-        WritePackCell(dataPack, iTargetAccountID);
-        WritePackCell(dataPack, iAdminID);
-        WritePackCell(dataPack, iLength);
-        WritePackCell(dataPack, iType);
-        WritePackString(dataPack, sName);
-        WritePackString(dataPack, sReason);
-        WritePackString(dataPack, sAdminIP);
+        new Handle:hDataPack = CreateDataPack();
+        WritePackCell(hDataPack, iTargetAccountID);
+        WritePackCell(hDataPack, iAdminID);
+        WritePackCell(hDataPack, iLength);
+        WritePackCell(hDataPack, iType);
+        WritePackString(hDataPack, sName);
+        WritePackString(hDataPack, sReason);
+        WritePackString(hDataPack, sAdminIP);
 
-        SB_Query(Query_AddBlockInsert, sQuery, dataPack, DBPrio_High);
+        SB_Query(Query_AddBlockInsert, sQuery, hDataPack, DBPrio_High);
     }
     else
     {
