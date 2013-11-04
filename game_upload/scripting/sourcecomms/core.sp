@@ -1270,7 +1270,6 @@ stock bool:VerifyPlayer(const _:target)
     {
         return false;
     }
-
 }
 
 /* SQL-callback */
