@@ -1,3 +1,8 @@
+#include <sourcemod>
+#include <basecomm>
+#include <sourcebans>
+#include <sb_admins>
+
 /* Constants */
 // maximum mass-target punishment length
 #define MAX_TIME_MULTI 30
@@ -1229,7 +1234,46 @@ public Query_AddBlockFromQueue(Handle:owner, Handle:hndl, const String:error[], 
 // ------------------------------------------------------------------------------------------------------------------------
 
 
-/* SQL-callback for OnClientPostAdminCheck */
+/* Function for check player punishments in database. Returns false for invalid player Account ID */
+
+stock bool:VerifyPlayer(const _:target)
+{
+    new iTargetAccountID = GetSteamAccountID(target);
+
+    if (iTargetAccountID)
+    {
+        decl String:sQuery[4096];
+        FormatEx(sQuery, sizeof(sQuery),
+           "SELECT IF(c.length, c.create_time + c.length * 60 - UNIX_TIMESTAMP(), 0) as remaining \
+                 , c.length, c.create_time, c.type, c.reason, IFNULL(c.server_id,0) \
+                 , IFNULL(a.id, 0), IFNULL(a.name, 'CONSOLE'), MAX(IFNULL(IF(c.server_id, sgs.immunity, sgw.immunity), 0)) AS immunity \
+              FROM {{comms}} AS c \
+                   LEFT JOIN {{admins}} AS a ON a.id = c.admin_id \
+                   LEFT JOIN {{admins_server_groups}} AS asg ON asg.admin_id = c.admin_id \
+                   LEFT JOIN {{server_groups}} AS sgw ON sgw.id = asg.group_id \
+                   LEFT JOIN {{servers_server_groups}} AS ssg ON ssg.server_id = c.server_id \
+                   LEFT JOIN {{server_groups}} AS sgs ON sgs.id = asg.group_id AND sgs.id = ssg.group_id \
+             WHERE c.steam_account_id = %d \
+                   AND c.unban_time IS NULL \
+                   AND (c.length = '0' OR c.create_time + c.length * 60 > UNIX_TIMESTAMP()) \
+          GROUP BY c.id",
+            iTargetAccountID
+        );
+        #if defined LOG_QUERIES
+            LogToFile(logQuery, "VerifyPlayer for AccountID: %d. QUERY: %s", iTargetAccountID, sQuery);
+        #endif
+        SB_Query(Query_VerifyBlock, sQuery, GetClientUserId(target), DBPrio_High);
+
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+
+}
+
+/* SQL-callback */
 
 public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:userid)
 {

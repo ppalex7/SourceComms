@@ -3,8 +3,7 @@
 #include <sourcemod>
 #include <basecomm>
 #include <sourcebans>
-#include <sb_admins>
-#include "include/sourcecomms.inc"
+#include <sourcecomms>
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
@@ -18,14 +17,11 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.200"
+#define PLUGIN_VERSION "1.0.207"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
 
-
-/* Top Menu handle */
-new Handle:hTopMenu = INVALID_HANDLE;
 
 /* Database handle */
 new Handle:SQLiteDB;
@@ -136,7 +132,7 @@ public Updater_OnPluginUpdated()
 public OnLibraryRemoved(const String:name[])
 {
     if (StrEqual(name, "adminmenu"))
-        hTopMenu = INVALID_HANDLE;
+        g_hTopMenu = INVALID_HANDLE;
 }
 
 public OnMapStart()
@@ -185,43 +181,12 @@ public OnClientPostAdminCheck(client)
     {
         // if plugin was late loaded
         if (BaseComm_IsClientMuted(client))
-        {
             MarkClientAsMuted(client);
-        }
         if (BaseComm_IsClientGagged(client))
-        {
             MarkClientAsGagged(client);
-        }
 
-        new iClientAccountID = GetSteamAccountID(client);
-        if (iClientAccountID)
-        {
-            decl String:sQuery[4096];
-            FormatEx(sQuery, sizeof(sQuery),
-               "SELECT IF(c.length, c.create_time + c.length * 60 - UNIX_TIMESTAMP(), 0) as remaining \
-                     , c.length, c.create_time, c.type, c.reason, IFNULL(c.server_id,0) \
-                     , IFNULL(a.id, 0), IFNULL(a.name, 'CONSOLE'), MAX(IFNULL(IF(c.server_id, sgs.immunity, sgw.immunity), 0)) AS immunity \
-                  FROM {{comms}} AS c \
-                       LEFT JOIN {{admins}} AS a ON a.id = c.admin_id \
-                       LEFT JOIN {{admins_server_groups}} AS asg ON asg.admin_id = c.admin_id \
-                       LEFT JOIN {{server_groups}} AS sgw ON sgw.id = asg.group_id \
-                       LEFT JOIN {{servers_server_groups}} AS ssg ON ssg.server_id = c.server_id \
-                       LEFT JOIN {{server_groups}} AS sgs ON sgs.id = asg.group_id AND sgs.id = ssg.group_id \
-                 WHERE c.steam_account_id = %d \
-                       AND c.unban_time IS NULL \
-                       AND (c.length = '0' OR c.create_time + c.length * 60 > UNIX_TIMESTAMP()) \
-              GROUP BY c.id",
-                iClientAccountID);
-            #if defined LOG_QUERIES
-                LogToFile(logQuery, "OnClientPostAdminCheck for: %s. QUERY: %s", sClientAuth, sQuery);
-            #endif
-            SB_Query(Query_VerifyBlock, sQuery, GetClientUserId(client), DBPrio_High);
-        }
-        else
-        {
+        if (!VerifyPlayer(client))
             LogError("Can't determine Steam Account ID for player %s. Skip checking", sClientAuth);
-            return;
-        }
     }
 }
 
@@ -469,23 +434,23 @@ public Action:CommandCallback(client, const String:command[], args)
 public OnAdminMenuReady(Handle:topmenu)
 {
     /* Block us from being called twice */
-    if (topmenu == hTopMenu)
+    if (topmenu == g_hTopMenu)
         return;
 
     /* Save the Handle */
-    hTopMenu = topmenu;
+    g_hTopMenu = topmenu;
 
-    new TopMenuObject:MenuObject = AddToTopMenu(hTopMenu, "sourcecomm_cmds", TopMenuObject_Category, Handle_Commands, INVALID_TOPMENUOBJECT);
+    new TopMenuObject:MenuObject = AddToTopMenu(g_hTopMenu, "sourcecomm_cmds", TopMenuObject_Category, Handle_Commands, INVALID_TOPMENUOBJECT);
     if (MenuObject == INVALID_TOPMENUOBJECT)
         return;
 
-    AddToTopMenu(hTopMenu, "sourcecomm_gag",       TopMenuObject_Item, Handle_MenuGag,       MenuObject, "sm_gag",       ADMFLAG_CHAT);
-    AddToTopMenu(hTopMenu, "sourcecomm_ungag",     TopMenuObject_Item, Handle_MenuUnGag,     MenuObject, "sm_ungag",     ADMFLAG_CHAT);
-    AddToTopMenu(hTopMenu, "sourcecomm_mute",      TopMenuObject_Item, Handle_MenuMute,      MenuObject, "sm_mute",      ADMFLAG_CHAT);
-    AddToTopMenu(hTopMenu, "sourcecomm_unmute",    TopMenuObject_Item, Handle_MenuUnMute,    MenuObject, "sm_unmute",    ADMFLAG_CHAT);
-    AddToTopMenu(hTopMenu, "sourcecomm_silence",   TopMenuObject_Item, Handle_MenuSilence,   MenuObject, "sm_silence",   ADMFLAG_CHAT);
-    AddToTopMenu(hTopMenu, "sourcecomm_unsilence", TopMenuObject_Item, Handle_MenuUnSilence, MenuObject, "sm_unsilence", ADMFLAG_CHAT);
-    AddToTopMenu(hTopMenu, "sourcecomm_list",      TopMenuObject_Item, Handle_MenuList,      MenuObject, "sm_commlist",  ADMFLAG_CHAT);
+    AddToTopMenu(g_hTopMenu, "sourcecomm_gag",       TopMenuObject_Item, Handle_MenuGag,       MenuObject, "sm_gag",       ADMFLAG_CHAT);
+    AddToTopMenu(g_hTopMenu, "sourcecomm_ungag",     TopMenuObject_Item, Handle_MenuUnGag,     MenuObject, "sm_ungag",     ADMFLAG_CHAT);
+    AddToTopMenu(g_hTopMenu, "sourcecomm_mute",      TopMenuObject_Item, Handle_MenuMute,      MenuObject, "sm_mute",      ADMFLAG_CHAT);
+    AddToTopMenu(g_hTopMenu, "sourcecomm_unmute",    TopMenuObject_Item, Handle_MenuUnMute,    MenuObject, "sm_unmute",    ADMFLAG_CHAT);
+    AddToTopMenu(g_hTopMenu, "sourcecomm_silence",   TopMenuObject_Item, Handle_MenuSilence,   MenuObject, "sm_silence",   ADMFLAG_CHAT);
+    AddToTopMenu(g_hTopMenu, "sourcecomm_unsilence", TopMenuObject_Item, Handle_MenuUnSilence, MenuObject, "sm_unsilence", ADMFLAG_CHAT);
+    AddToTopMenu(g_hTopMenu, "sourcecomm_list",      TopMenuObject_Item, Handle_MenuList,      MenuObject, "sm_commlist",  ADMFLAG_CHAT);
 }
 
 

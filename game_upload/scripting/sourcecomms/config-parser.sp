@@ -1,3 +1,5 @@
+#include <sourcemod>
+
 #define MAX_REASONS 32
 #define MAX_TIMES 32
 
@@ -14,12 +16,12 @@ new g_iConfigMaxLength     = 0;
 new g_bConfigWhiteListOnly = false;
 
 /* Reasons for menu */
-new iNumReasons;
+new g_iNumReasons;
 new String:g_sReasonDisplays[MAX_REASONS][DISPLAY_SIZE];
 new String:g_sReasonKey[MAX_REASONS][REASON_SIZE];
 
 /* Punishment lenghts for menu */
-new iNumTimes;
+new g_iNumTimes;
 new g_iTimeMinutes[MAX_TIMES];
 new String:g_sTimeDisplays[MAX_TIMES][DISPLAY_SIZE];
 
@@ -81,13 +83,13 @@ stock ReadConfig()
     if (FileExists(ConfigFile))
     {
         PrintToServer("%sLoading configs/sourcecomms.cfg config file", PREFIX);
-        iNumReasons = 0;
-        iNumTimes = 0;
+        g_iNumReasons = 0;
+        g_iNumTimes = 0;
         InternalReadConfig(ConfigFile);
-        if (iNumReasons)
-            iNumReasons--;
-        if (iNumTimes)
-            iNumTimes--;
+        if (g_iNumReasons)
+            g_iNumReasons--;
+        if (g_iNumTimes)
+            g_iNumTimes--;
     }
     else
     {
@@ -187,21 +189,21 @@ public SMCResult:ReadConfig_KeyValue(Handle:smc, const String:key[], const Strin
         }
         case ConfigStateReasons:
         {
-            Format(g_sReasonKey[iNumReasons], REASON_SIZE, "%s", key);
-            Format(g_sReasonDisplays[iNumReasons], DISPLAY_SIZE, "%s", value);
+            Format(g_sReasonKey[g_iNumReasons], REASON_SIZE, "%s", key);
+            Format(g_sReasonDisplays[g_iNumReasons], DISPLAY_SIZE, "%s", value);
             #if defined DEBUG
-                PrintToServer("Loaded reason. index %d, key \"%s\", display_text \"%s\"", iNumReasons, g_sReasonKey[iNumReasons], g_sReasonDisplays[iNumReasons]);
+                PrintToServer("Loaded reason. index %d, key \"%s\", display_text \"%s\"", g_iNumReasons, g_sReasonKey[g_iNumReasons], g_sReasonDisplays[g_iNumReasons]);
             #endif
-            iNumReasons++;
+            g_iNumReasons++;
         }
         case ConfigStateTimes:
         {
-            Format(g_sTimeDisplays[iNumTimes], DISPLAY_SIZE, "%s", value);
-            g_iTimeMinutes[iNumTimes] = StringToInt(key);
+            Format(g_sTimeDisplays[g_iNumTimes], DISPLAY_SIZE, "%s", value);
+            g_iTimeMinutes[g_iNumTimes] = StringToInt(key);
             #if defined DEBUG
-                PrintToServer("Loaded time. index %d, time %d minutes, display_text \"%s\"", iNumTimes, g_iTimeMinutes[iNumTimes] , g_sTimeDisplays[iNumTimes]);
+                PrintToServer("Loaded time. index %d, time %d minutes, display_text \"%s\"", g_iNumTimes, g_iTimeMinutes[g_iNumTimes] , g_sTimeDisplays[g_iNumTimes]);
             #endif
-            iNumTimes++;
+            g_iNumTimes++;
         }
         case ConfigStateServers:
         {

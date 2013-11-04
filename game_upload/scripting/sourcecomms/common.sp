@@ -1,3 +1,5 @@
+#include <sourcemod>
+
 /* Timer handles */
 new Handle:g_hPlayerRecheck[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
 
@@ -278,7 +280,7 @@ stock _:GetClientUserId2(const _:admin)
 
 /* The function checks the ability to remove the punishment on the basis of admin immunity */
 
-stock bool:ImmunityCheck(admin, target, const _:iAdminID, const _:iType)
+stock bool:ImmunityCheck(const _:admin, const _:target, const _:iAdminID, const _:iType)
 {
     if (g_bDisUBImCheck != 0)
         return false;
@@ -309,7 +311,7 @@ stock bool:ImmunityCheck(admin, target, const _:iAdminID, const _:iType)
 
 /* The function checks the ability to remove the punishment on the basis of admin rights */
 
-stock bool:AdminCheck(admin, target, const _:iAdminID, const _:iType)
+stock bool:AdminCheck(const _:admin, const _:target, const _:iAdminID, const _:iType)
 {
     if (!target || !IsClientInGame(target))
         return false;
@@ -346,7 +348,7 @@ stock bool:AdminCheck(admin, target, const _:iAdminID, const _:iType)
 
 /* The function checks whether the punishment to be applied on the server */
 
-stock bool:NotApplyToThisServer(srvID)
+stock bool:NotApplyToThisServer(const _:srvID)
 {
     if (g_bConfigWhiteListOnly && FindValueInArray(g_hServersWhiteList, srvID) == -1)
         return true;

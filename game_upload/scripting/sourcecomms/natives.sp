@@ -1,3 +1,5 @@
+#include <sourcemod>
+
 public Native_SetClientMute(Handle:hPlugin, numParams)
 {
     new target = GetNativeCell(1);

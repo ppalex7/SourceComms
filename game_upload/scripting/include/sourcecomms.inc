@@ -2,18 +2,18 @@
  * SourceComms Include File
  */
 
-/* Punishments types */
-enum bType{
-	bNot = 0,	// Player chat or voice is not blocked
-	bSess,		// ... blocked for player session (until reconnect)
-	bTime,		// ... blocked for some time
-	bPerm		// ... permanently blocked
-}
-
 #if defined _sourcecomms_included
   #endinput
 #endif
 #define _sourcecomms_included
+
+/* Punishments types */
+enum bType{
+    bNot = 0,   // Player chat or voice is not blocked
+    bSess,      // ... blocked for player session (until reconnect)
+    bTime,      // ... blocked for some time
+    bPerm       // ... permanently blocked
+}
 
 /**
  * Sets a client's mute state.

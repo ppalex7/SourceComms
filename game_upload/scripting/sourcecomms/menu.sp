@@ -1,3 +1,9 @@
+#include <sourcemod>
+#include <adminmenu>
+
+/* Top Menu handle */
+new Handle:g_hTopMenu = INVALID_HANDLE;
+
 /* List menu */
 enum PeskyPanels
 {
@@ -146,7 +152,7 @@ stock AdminMenu_Duration(client, target, type)
     SetMenuTitle(hMenu, sBuffer);
     SetMenuExitBackButton(hMenu, true);
 
-    for (new i = 0; i <= iNumTimes; i++)
+    for (new i = 0; i <= g_iNumTimes; i++)
     {
         if (IsAllowedBlockLength(client, g_iTimeMinutes[i]))
         {
@@ -166,7 +172,7 @@ stock AdminMenu_Reason(client, target, type, lengthIndex)
     SetMenuTitle(hMenu, sBuffer);
     SetMenuExitBackButton(hMenu, true);
 
-    for (new i = 0; i <= iNumReasons; i++)
+    for (new i = 0; i <= g_iNumReasons; i++)
     {
         Format(sTemp, sizeof(sTemp), "%d %d %d %d", GetClientUserId(target), type, i, lengthIndex);    // TargetID TYPE_BLOCK ReasonIndex LenghtIndex
         AddMenuItem(hMenu, sTemp, g_sReasonDisplays[i]);
@@ -484,8 +490,8 @@ public MenuHandler_MenuTarget(Handle:menu, MenuAction:action, param1, param2)
             CloseHandle(menu);
         case MenuAction_Cancel:
         {
-            if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
-                DisplayTopMenu(hTopMenu, param1, TopMenuPosition_LastCategory);
+            if (param2 == MenuCancel_ExitBack && g_hTopMenu != INVALID_HANDLE)
+                DisplayTopMenu(g_hTopMenu, param1, TopMenuPosition_LastCategory);
         }
         case MenuAction_Select:
         {
@@ -514,8 +520,8 @@ public MenuHandler_MenuDuration(Handle:menu, MenuAction:action, param1, param2)
             CloseHandle(menu);
         case MenuAction_Cancel:
         {
-            if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
-                DisplayTopMenu(hTopMenu, param1, TopMenuPosition_LastCategory);
+            if (param2 == MenuCancel_ExitBack && g_hTopMenu != INVALID_HANDLE)
+                DisplayTopMenu(g_hTopMenu, param1, TopMenuPosition_LastCategory);
         }
         case MenuAction_Select:
         {
@@ -530,7 +536,7 @@ public MenuHandler_MenuDuration(Handle:menu, MenuAction:action, param1, param2)
                 new type = StringToInt(sTemp[1]);
                 new lengthIndex = StringToInt(sTemp[2]);
 
-                if (iNumReasons) // we have reasons to show
+                if (g_iNumReasons) // we have reasons to show
                     AdminMenu_Reason(param1, target, type, lengthIndex);
                 else
                     CreateBlock(param1, target, g_iTimeMinutes[lengthIndex], type);
@@ -547,8 +553,8 @@ public MenuHandler_MenuReason(Handle:menu, MenuAction:action, param1, param2)
             CloseHandle(menu);
         case MenuAction_Cancel:
         {
-            if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
-                DisplayTopMenu(hTopMenu, param1, TopMenuPosition_LastCategory);
+            if (param2 == MenuCancel_ExitBack && g_hTopMenu != INVALID_HANDLE)
+                DisplayTopMenu(g_hTopMenu, param1, TopMenuPosition_LastCategory);
         }
         case MenuAction_Select:
         {
@@ -564,7 +570,7 @@ public MenuHandler_MenuReason(Handle:menu, MenuAction:action, param1, param2)
                 new reasonIndex = StringToInt(sTemp[2]);
                 new lengthIndex = StringToInt(sTemp[3]);
                 new length;
-                if (lengthIndex >= 0 && lengthIndex <= iNumTimes)
+                if (lengthIndex >= 0 && lengthIndex <= g_iNumTimes)
                     length = g_iTimeMinutes[lengthIndex];
                 else
                 {
@@ -587,8 +593,8 @@ public MenuHandler_MenuList(Handle:menu, MenuAction:action, param1, param2)
         case MenuAction_Cancel:
         {
             if (!g_iPeskyPanels[param1][viewingList])
-                if (param2 == MenuCancel_ExitBack && hTopMenu != INVALID_HANDLE)
-                    DisplayTopMenu(hTopMenu, param1, TopMenuPosition_LastCategory);
+                if (param2 == MenuCancel_ExitBack && g_hTopMenu != INVALID_HANDLE)
+                    DisplayTopMenu(g_hTopMenu, param1, TopMenuPosition_LastCategory);
         }
         case MenuAction_Select:
         {
