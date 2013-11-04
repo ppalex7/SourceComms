@@ -18,7 +18,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.143"
+#define PLUGIN_VERSION "1.0.144"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -1195,7 +1195,7 @@ public SB_OnReload()
 
 public Query_AddBlockInsert(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-    if (DB_Conn_Lost(hndl) || error[0])
+    if (hndl == INVALID_HANDLE || error[0])
     {
         LogError("Query_AddBlockInsert failed: %s", error);
 
@@ -1499,7 +1499,7 @@ public Query_ProcessQueue(Handle:owner, Handle:hndl, const String:error[], any:d
 public Query_AddBlockFromQueue(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
     decl String:sQuery[512];
-    if (!DB_Conn_Lost(hndl) && error[0] == '\0')
+    if (hndl != INVALID_HANDLE && error[0] == '\0')
     {
         // The insert was successful so delete the record from the queue
         FormatEx(sQuery, sizeof(sQuery), "DELETE FROM queue3 WHERE id = %d", data);
@@ -1516,7 +1516,7 @@ public Query_AddBlockFromQueue(Handle:owner, Handle:hndl, const String:error[], 
 
 public Query_ErrorCheck(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-    if (DB_Conn_Lost(hndl) || error[0])
+    if (hndl == INVALID_HANDLE || error[0])
         LogError("%T (%s)", "Failed to query database", LANG_SERVER, error);
 }
 
@@ -1533,7 +1533,7 @@ public Query_VerifyBlock(Handle:owner, Handle:hndl, const String:error[], any:us
         return;
 
     /* Failure happen. Do retry with delay */
-    if (DB_Conn_Lost(hndl))
+    if (hndl == INVALID_HANDLE || error[0])
     {
         LogError("Query_VerifyBlock failed: %s", error);
         if (g_hPlayerRecheck[client] == INVALID_HANDLE)
@@ -1829,22 +1829,6 @@ public SMCResult:ReadConfig_EndSection(Handle:smc)
 }
 
 // STOCK FUNCTIONS //
-
-stock bool:DB_Conn_Lost(Handle:hndl)
-{
-    if (hndl == INVALID_HANDLE)
-    {
-        if (!SB_Connect())
-        {
-            LogError("Lost connection to DB. Reconnect after delay.");
-        }
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
 
 stock InitializeBackupDB()
 {
