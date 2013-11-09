@@ -1,4 +1,5 @@
-#include <sourcemod>
+#include "all-includes.inc"
+
 
 #define MAX_REASONS 32
 #define MAX_TIMES 32
@@ -14,6 +15,8 @@ new g_bDisUBImCheck        = false;
 new g_iConsoleImmunity     = 0;
 new g_iConfigMaxLength     = 0;
 new g_bConfigWhiteListOnly = false;
+new Handle:g_hServersWhiteList = INVALID_HANDLE;    // Servers white-list array
+
 
 /* Reasons for menu */
 new g_iNumReasons;

@@ -1,4 +1,5 @@
-#include <sourcemod>
+#include "all-includes.inc"
+
 
 public Native_SetClientMute(Handle:hPlugin, numParams)
 {

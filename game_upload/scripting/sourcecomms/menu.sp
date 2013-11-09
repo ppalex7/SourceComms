@@ -1,5 +1,5 @@
-#include <sourcemod>
-#include <adminmenu>
+#include "all-includes.inc"
+
 
 /* Top Menu handle */
 new Handle:g_hTopMenu = INVALID_HANDLE;

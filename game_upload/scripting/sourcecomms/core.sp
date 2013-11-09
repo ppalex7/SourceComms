@@ -1,7 +1,5 @@
-#include <sourcemod>
-#include <basecomm>
-#include <sourcebans>
-#include <sb_admins>
+#include "all-includes.inc"
+
 
 /* Constants */
 // maximum mass-target punishment length
@@ -255,8 +253,8 @@ stock InsertTempBlock(const _:iTargetAccountID, const String:sName[], const _:iL
     new String:sQueryMute[2048], String:sQueryGag[2048];
 
     // escaping everything
-    SQL_EscapeString(SQLiteDB, sName,   sNameEscaped,   sizeof(sNameEscaped));
-    SQL_EscapeString(SQLiteDB, sReason, sReasonEscaped, sizeof(sReasonEscaped));
+    SQL_EscapeString(g_hSQLiteDB, sName,   sNameEscaped,   sizeof(sNameEscaped));
+    SQL_EscapeString(g_hSQLiteDB, sReason, sReasonEscaped, sizeof(sReasonEscaped));
 
     // table schema:
     // id   steam_account_id    name    start_time  length  reason  admin_id    admin_ip    type
@@ -282,7 +280,7 @@ stock InsertTempBlock(const _:iTargetAccountID, const String:sName[], const _:iL
         LogToFile(logQuery, "InsertTempBlock. QUERY: %s", sQuery);
     #endif
 
-    SQL_TQuery(SQLiteDB, Query_ErrorCheck, sQuery);
+    SQL_TQuery(g_hSQLiteDB, Query_ErrorCheck, sQuery);
 }
 
 // ------------------------------------------------------------------------------------------------------------------------
@@ -1137,7 +1135,7 @@ public Query_UnBlockUpdate(Handle:owner, Handle:hndl, const String:error[], any:
 
 stock ProcessQueue()
 {
-    SQL_TQuery(SQLiteDB, Query_ProcessQueue,
+    SQL_TQuery(g_hSQLiteDB, Query_ProcessQueue,
         "SELECT id, steam_account_id, name, start_time, length, reason, admin_id, admin_ip, type FROM queue3"
     );
 }
@@ -1223,7 +1221,7 @@ public Query_AddBlockFromQueue(Handle:owner, Handle:hndl, const String:error[], 
         #if defined LOG_QUERIES
             LogToFile(logQuery, "Query_AddBlockFromQueue. QUERY: %s", sQuery);
         #endif
-        SQL_TQuery(SQLiteDB, Query_ErrorCheck, sQuery);
+        SQL_TQuery(g_hSQLiteDB, Query_ErrorCheck, sQuery);
     }
     else
     {

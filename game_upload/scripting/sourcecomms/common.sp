@@ -1,4 +1,5 @@
-#include <sourcemod>
+#include "all-includes.inc"
+
 
 /* Timer handles */
 new Handle:g_hPlayerRecheck[MAXPLAYERS + 1] = {INVALID_HANDLE, ...};
@@ -68,23 +69,22 @@ stock ForcePlayersRecheck()
 
 // ------------------------------------------------------------------------------------------------------------------------
 
-
 /* Drops old tables and creates new (if not exists) into local database */
 
 stock InitializeBackupDB()
 {
     decl String:error[255];
-    SQLiteDB = SQLite_UseDatabase("sourcecomms-queue", error, sizeof(error));
-    if (SQLiteDB == INVALID_HANDLE)
+    g_hSQLiteDB = SQLite_UseDatabase("sourcecomms-queue", error, sizeof(error));
+    if (g_hSQLiteDB == INVALID_HANDLE)
     {
         SetFailState(error);
     }
 
     // Drop old tables
-    SQL_TQuery(SQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue");
-    SQL_TQuery(SQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue2");
+    SQL_TQuery(g_hSQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue");
+    SQL_TQuery(g_hSQLiteDB, Query_ErrorCheck, "DROP TABLE IF EXISTS queue2");
 
-    SQL_TQuery(SQLiteDB, Query_ErrorCheck,
+    SQL_TQuery(g_hSQLiteDB, Query_ErrorCheck,
        "CREATE TABLE IF NOT EXISTS queue3 ( \
             id INTEGER PRIMARY KEY, \
             steam_account_id INTEGER, name TEXT, \

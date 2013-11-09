@@ -2,7 +2,8 @@
 
 #include <sourcemod>
 #include <sourcebans>
-#include <sourcecomms>
+#include <sb_admins>
+#include "include/sourcecomms.inc"
 
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 
@@ -11,28 +12,28 @@
 // #define REPLACE_BASECOMM
 
 #if !defined REPLACE_BASECOMM
-#include <basecomm>
+    #include <basecomm>
 #endif
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
 
 #if !defined DEBUG
-#include <updater>
+    #include <updater>
 #endif
 
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.226"
+#define PLUGIN_VERSION "1.0.246"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sourcecomms-up.txt"
 
 
 /* Database handle */
-new Handle:SQLiteDB;
+new Handle:g_hSQLiteDB;
 
 /* Log Stuff */
 #if defined LOG_QUERIES
@@ -40,14 +41,11 @@ new Handle:SQLiteDB;
 #endif
 
 /* Server info */
-
 new g_iServerID;
 new String:g_sServerIP[16];
 new String:g_sServerID[5];
 
-/* Servers white-list array */
 
-new Handle:g_hServersWhiteList = INVALID_HANDLE;
 
 // ---------------------------------------------------------------
 #include "sourcecomms/config-parser.sp"     // Config parser code
