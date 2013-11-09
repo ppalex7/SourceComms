@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.210"
+#define PLUGIN_VERSION "1.0.213"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
@@ -105,15 +105,17 @@ public OnPluginStart()
     SB_Connect();
     InitializeBackupDB();
 
-    // for late loading
+    // Account for late loading
+#if !defined DEBUG
     if (LibraryExists("updater"))
         Updater_AddPlugin(UPDATE_URL);
+#endif
 
-    // Account for late loading
     if(LibraryExists("sourcebans"))
         SB_Init();
 }
 
+#if !defined DEBUG
 public OnLibraryAdded(const String:name[])
 {
     if (StrEqual(name, "updater"))
@@ -128,6 +130,7 @@ public Updater_OnPluginUpdated()
 
     ReloadPlugin();
 }
+#endif
 
 public OnLibraryRemoved(const String:name[])
 {
