@@ -1,23 +1,31 @@
 #pragma semicolon 1
 
 #include <sourcemod>
-#include <basecomm>
 #include <sourcebans>
 #include <sourcecomms>
-
-#undef REQUIRE_PLUGIN
-#include <adminmenu>
-#include <updater>
 
 #define UNBLOCK_FLAG ADMFLAG_CUSTOM2
 
 #define DEBUG
 #define LOG_QUERIES
+// #define REPLACE_BASECOMM
+
+#if !defined REPLACE_BASECOMM
+#include <basecomm>
+#endif
+
+#undef REQUIRE_PLUGIN
+#include <adminmenu>
+
+#if !defined DEBUG
+#include <updater>
+#endif
+
 
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.213"
+#define PLUGIN_VERSION "1.0.225"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
