@@ -2,10 +2,6 @@
 A sourcemod plugin, which provides extended, temporary and permanent punishments with full history storing in sourcebans system.
 Also includes files and instructions to integration to existing sourcebans web-pages.
 
-***********
-**Important note:** If you has installed web part before 16th March 2013, please follow the [instructions](https://github.com/d-ai/SourceComms/tree/master/web_updates/update01.md) to update it to actual version.
-***********
-
 ## Requirements
 * Working sourcebans system *(yes, you need MySQL server and web server with PHP)*. Currently supported versions **2.0**.
 * SourceMod **1.5.0-hg3761** or **newer** is required to use plugin on server.
