@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.188';
+        return '1.0.218';
     }
 
     public function getUrl()
@@ -38,6 +38,24 @@ class CommsPlugin extends SBPlugin
         $transaction = Yii::app()->db->beginTransaction();
 
         try {
+            // Checks database for old/another table versions
+            if (Yii::app()->db->createCommand()->setText("SHOW TABLES LIKE '{{comms}}'")->queryScalar() !== false)
+            {
+                Yii::log('Founded old {{comms}} table in database');
+                if (Yii::app()->db->createCommand()->select('*')->from('{{comms}}')->limit(1)->queryScalar() !== false)
+                {
+                    $new_table_name = '{{comms_old_' . time() . '}}';
+                    Yii::log('Old table contains data and will be renamed to ' . $new_table_name);
+                    Yii::app()->db->createCommand()->renameTable('{{comms}}', $new_table_name);
+                }
+                else
+                {
+                    Yii::log('Old table is empty and will be dropped');
+                    Yii::app()->db->createCommand()->dropTable('{{comms}}');
+                }
+            }
+
+            // Creates new table
             Yii::app()->db->createCommand()->createTable('{{comms}}', array(
                 'id' => 'mediumint(8) unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY',
                 'type' => 'tinyint(1) unsigned NOT NULL DEFAULT 0',
@@ -55,14 +73,20 @@ class CommsPlugin extends SBPlugin
                 'KEY steam (steam_account_id)',
                 'KEY server_id (server_id)',
                 'KEY admin_id (admin_id)',
+                'CONSTRAINT comms_admin FOREIGN KEY (admin_id) REFERENCES {{admins}} (id) ON DELETE SET NULL',
+                'CONSTRAINT comms_server FOREIGN KEY co(server_id) REFERENCES {{servers}} (id) ON DELETE SET NULL',
+                'CONSTRAINT comms_unban_admin FOREIGN KEY (unban_admin_id) REFERENCES {{admins}} (id) ON DELETE SET NULL'
             ), 'ENGINE=InnoDB DEFAULT CHARSET=utf8');
+
             $transaction->commit();
             return true;
         }
 
         catch(Exception $e)
         {
+            Yii::log('Sourcecomms installation failed');
             Yii::log($e);
+
             $transaction->rollback();
             return false;
         }
