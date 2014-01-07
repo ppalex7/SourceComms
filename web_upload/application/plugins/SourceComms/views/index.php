@@ -33,7 +33,7 @@
             ),
             'type'=>'html',
             'value'=>'CHtml::image(Yii::app()->baseUrl . "/images/games/" . (isset($data->server) ? $data->server->game->icon : "web.png"), isset($data->server) ? $data->server->game->name : "SourceBans") . "&nbsp;" . ' .
-                'CHtml::image("' . CHtml::asset($plugin->getPath('assets')) . '/images/type_" . ($data->type == Comms::GAG_TYPE ? "c" : "v") . ".png", ($types = Comms::getTypes()) ? $types[$data->type] : null)',
+                'CHtml::image(Comms::getIcon($data->type,"' . CHtml::asset($plugin->getPath('assets')) . '"), Comms::getType($data->type))',
         ),
         array(
             'headerHtmlOptions'=>array(

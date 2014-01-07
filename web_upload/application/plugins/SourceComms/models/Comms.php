@@ -44,6 +44,77 @@ class Comms extends CActiveRecord
     const MUTE_TYPE = 1;
     const COMMENTS_TYPE = 'C';
 
+    /**
+     * @var array with supported punishment types.
+     */
+    private static $_types;
+
+    /**
+     * @var array with icons for supported punishment types.
+     */
+    private static $_icons;
+
+    /**
+     * Returns the supported punishment types
+     *
+     * @return array the supported punishment types
+     */
+    public static function getTypes()
+    {
+        if (self::$_types === null)
+            self::$_types = array(
+                self::GAG_TYPE  => Yii::t('CommsPlugin.main', 'Gag'),
+                self::MUTE_TYPE => Yii::t('CommsPlugin.main', 'Mute'),
+            );
+
+        return self::$_types;
+    }
+
+    /**
+     * Returns name of punishment type.
+     * @param integer $type - Punishment Type.
+     * @return string Type name
+     */
+    public static function getType($type)
+    {
+        if (array_key_exists($type, self::getTypes()))
+            return self::getTypes()[$type];
+        else
+            return Yii::t("sourcebans", "Unknown");
+    }
+
+    /**
+     * Returns relative icon path for supported punishment types
+     *
+     * @return array icon paths
+     */
+    public static function getIcons()
+    {
+        if (self::$_icons === null)
+            self::$_icons = array(
+                self::GAG_TYPE  => '/images/type_c.png',
+                self::MUTE_TYPE => '/images/type_v.png',
+        );
+
+        return self::$_icons;
+    }
+
+    /**
+     * Returns relative icon path for punishment type.
+     * @param integer $type - Punishment Type.
+     * @param string $assetsUrl - part of path (optional).
+     * @return string path to icon
+     */
+    public static function getIcon($type, $assetsUrl = '')
+    {
+        if (array_key_exists($type, self::getIcons()))
+        {
+            $icon = self::getIcons()[$type];
+            return $assetsUrl . $icon;
+        }
+        else
+            return "/images/countries/unknown.gif";
+    }
 
     /**
      * Returns the static model of the specified AR class.
@@ -250,21 +321,6 @@ class Comms extends CActiveRecord
     public function getIsUnbanned()
     {
         return !!$this->unban_time;
-    }
-
-
-
-    /**
-     * Returns the supported ban types
-     *
-     * @return array the supported ban types
-     */
-    public static function getTypes()
-    {
-        return array(
-            self::GAG_TYPE  => Yii::t('CommsPlugin.main', 'Gag'),
-            self::MUTE_TYPE => Yii::t('CommsPlugin.main', 'Mute'),
-        );
     }
 
     /**
