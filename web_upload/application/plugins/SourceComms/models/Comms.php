@@ -84,22 +84,6 @@ class Comms extends CActiveRecord
     }
 
     /**
-     * Returns relative icon path for supported punishment types
-     *
-     * @return array icon paths
-     */
-    public static function getIcons()
-    {
-        if (self::$_icons === null)
-            self::$_icons = array(
-                self::GAG_TYPE  => '/images/type_c.png',
-                self::MUTE_TYPE => '/images/type_v.png',
-        );
-
-        return self::$_icons;
-    }
-
-    /**
      * Returns relative icon path for punishment type.
      * @param integer $type - Punishment Type.
      * @param string $assetsUrl - part of path (optional).
@@ -107,11 +91,14 @@ class Comms extends CActiveRecord
      */
     public static function getIcon($type, $assetsUrl = '')
     {
-        if (array_key_exists($type, self::getIcons()))
-        {
-            $icon = self::getIcons()[$type];
-            return $assetsUrl . $icon;
-        }
+        if (self::$_icons === null)
+            self::$_icons = array(
+                self::GAG_TYPE  => '/images/type_c.png',
+                self::MUTE_TYPE => '/images/type_v.png',
+            );
+
+        if (array_key_exists($type, self::$_icons))
+            return $assetsUrl . self::$_icons[$type];
         else
             return "/images/countries/unknown.gif";
     }
