@@ -167,7 +167,7 @@
         array(
             'label' => Yii::t('sourcebans', 'Comments'),
             'url' => array('comments/index', 'object_type'=>Comms::COMMENTS_TYPE, 'object_id'=>'__ID__'),
-            'itemOptions' => array('class' => 'ban-menu-comments'),
+            'itemOptions' => array('class' => 'comms-menu-comments'),
             'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_BANS'),
         ),
     ), $this->menu),
@@ -236,7 +236,7 @@
       else {
         $section.find(".ban-menu-unban a").prop("rel", $(header).data("key"));
       }
-      $section.find(".ban-menu-comments a").append(" (" + $(header).data("commentsCount") + ")");
+      $section.find(".comms-menu-comments a").append(" (" + $(header).data("commentsCount") + ")");
     });
 
     updateSections();
@@ -302,7 +302,7 @@
 </div>
 
 <?php Yii::app()->clientScript->registerScript('site_comms_commentsDialog', '
-  $(document).on("click", ".ban-menu-comments a", function(e) {
+  $(document).on("click", ".comms-menu-comments a", function(e) {
     e.preventDefault();
     $("#comments-dialog .modal-body").load($(this).attr("href"), function(data) {
       this.scrollTop = this.scrollHeight - $(this).height();
@@ -324,7 +324,7 @@
       $this.find(":submit").attr("disabled", true);
       tinyMCE.activeEditor.setContent("");
 
-      $("#comms-grid tr.selected").next("tr.section").find(".ban-menu-comments a").trigger("click");
+      $("#comms-grid tr.selected").next("tr.section").find(".comms-menu-comments a").trigger("click");
       $("#' . $grid->id . '").yiiGridView("update");
     }, "json");
   });
