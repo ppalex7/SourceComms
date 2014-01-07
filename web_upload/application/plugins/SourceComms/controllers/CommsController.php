@@ -58,6 +58,14 @@ class CommsController extends Controller
     {
         return array(
             array('allow',
+                'actions'=>array('admin'),
+                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS", "IMPORT_COMMS")',
+            ),
+            array('allow',
+                'actions'=>array('add'),
+                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS")',
+            ),
+            array('allow',
                 'actions'=>array('index'),
             ),
             array('deny',  // deny all users
@@ -92,5 +100,92 @@ class CommsController extends Controller
             'plugin' => $this->_plugin,
             'comment' => $comment,
         ));
+    }
+
+    /**
+     * Displays the 'Comms' admin page
+     */
+    public function actionAdmin()
+    {
+        $this->_loadPlugin();
+
+        $this->layout = '//layouts/column2';
+
+        $this->pageTitle = Yii::t('CommsPlugin.main', 'Comms');
+
+        $this->breadcrumbs = array(
+            Yii::t('sourcebans', 'controllers.admin.index.title') => array('admin/index'),
+            $this->pageTitle,
+        );
+
+        $this->menu = array(
+            array(
+                'label' => Yii::t('CommsPlugin.main', 'Add punishment'),
+                'url' => '#add',
+                'visible' => Yii::app()->user->data->hasPermission('ADD_COMMS')
+            ),
+            // array(
+            //     'label' => Yii::t('CommsPlugin.main', 'Import punishments'),
+            //     'url' => '#import',
+            //     'visible' => Yii::app()->user->data->hasPermission('IMPORT_COMMS')
+            // ),
+        );
+
+        $comms = new Comms;
+        $comms->unsetAttributes();  // clear any default values
+
+        $this->render($this->_plugin->getViewFile('admin'),array(
+            'comms' => $comms,
+            'plugin' => $this->_plugin,
+        ));
+    }
+
+    /**
+     * Creates a new model.
+     * If creation is successful, the browser will be redirected to the 'view' page.
+     */
+    public function actionAdd()
+    {
+        $this->_loadPlugin();
+        $model = new Comms;
+
+        // Uncomment the following line if AJAX validation is needed
+        $this->performAjaxValidation($model);
+
+        if(isset($_POST['Comms']))
+        {
+            $model->attributes=$_POST['Comms'];
+            if($model->save())
+            {
+                switch ($model->type)
+                {
+                    case Comms::GAG_TYPE:
+                        SourceBans::log('Gag added', 'Gag against "' . $model->steam . '" was added');
+                        break;
+                    case Comms::MUTE_TYPE:
+                        SourceBans::log('Mute added', 'Mute against "' . $model->steam . '" was added');
+                        break;
+                    default:
+                        SourceBans::log('Communication punishment added', 'Communication punshment against "' . $model->steam . '" was added');
+                        break;
+                }
+                Yii::app()->user->setFlash('success', Yii::t('sourcebans', 'Saved successfully'));
+
+                $this->redirect(array('site/comms','#'=>$model->id));
+            }
+        }
+    }
+
+    /**
+     * Performs the AJAX validation.
+     * @param Comms $model the model to be validated
+     */
+    protected function performAjaxValidation($model)
+    {
+        if(isset($_POST['ajax']) && $_POST['ajax']==='comms-form')
+        {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
     }
 }

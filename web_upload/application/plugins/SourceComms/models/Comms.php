@@ -1,7 +1,10 @@
 <?php
-
 /**
  * This is the model class for table "{{comms}}".
+ *
+ * @author Alex
+ * @copyright (C)2013-2014 Alexandr Duplishchev.
+ * @link https://github.com/d-ai/SourceComms
  *
  * The followings are the available columns in table '{{comms}}':
  * @property integer $id ID
@@ -68,7 +71,7 @@ class Comms extends CActiveRecord
         // NOTE: you should only define rules for those attributes that
         // will receive user inputs.
         return array(
-            array('type, reason, length', 'required'),
+            array('steam, type, reason, length', 'required'),
             array('type, length', 'numerical', 'integerOnly'=>true),
             array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
             array('name', 'length', 'max'=>64),

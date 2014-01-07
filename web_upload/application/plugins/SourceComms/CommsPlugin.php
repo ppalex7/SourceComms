@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.231';
+        return '1.0.287';
     }
 
     public function getUrl()
@@ -118,9 +118,13 @@ class CommsPlugin extends SBPlugin
         Yii::app()->controllerMap['comms'] = $this->getPathAlias('controllers.CommsController');
 
         // Add URL rule
-        Yii::app()->urlManager->addRules(array(
-            'comms' => 'comms/index',
-        ), false);
+        Yii::app()->urlManager->addRules(
+            array(
+                'comms'         => 'comms/index',
+                'admin/comms'   => 'comms/admin'
+            ),
+            false
+        );
 
         // Add permissions
         SourceBans::app()->permissions->add('ADD_COMMS',        Yii::t('CommsPlugin.permissions', 'Ban communication'));

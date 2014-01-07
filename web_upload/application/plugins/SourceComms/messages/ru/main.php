@@ -17,10 +17,12 @@
  * NOTE, this file must be saved in UTF-8 encoding.
  */
 return array (
+  'Add punishment' => 'Добавить блокировку',
   'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.' => '',
   'Comms' => '',
   'Extended, temporary and permanent punishments' => '',
-  'Gag' => '',
-  'Mute' => '',
+  'Gag' => 'Чат',
+  'Import punishments' => 'Импортировать блокировки',
+  'Mute' => 'Микрофон',
   'Temporary' => 'Временно',
 );

@@ -17,10 +17,12 @@
  * NOTE, this file must be saved in UTF-8 encoding.
  */
 return array (
+  'Add punishment' => '',
   'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.' => '',
   'Comms' => 'Comms',
   'Extended, temporary and permanent punishments' => 'Uitgebreide, tijdelijke en permanente straffen',
   'Gag' => 'Knevelen',
+  'Import punishments' => '',
   'Mute' => 'Dempen',
   'Temporary' => '',
 );
