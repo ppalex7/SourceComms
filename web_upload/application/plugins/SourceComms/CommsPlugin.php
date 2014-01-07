@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.228';
+        return '1.0.229';
     }
 
     public function getUrl()
@@ -150,6 +150,9 @@ class CommsPlugin extends SBPlugin
                         'visible' => true,
                     );
                 }
+                break;
+            case 'site/bans':
+                // Add 'Block Comms' link to each ban details
                 break;
         }
     }
