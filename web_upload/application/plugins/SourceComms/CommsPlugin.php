@@ -123,15 +123,15 @@ class CommsPlugin extends SBPlugin
         ), false);
 
         // Add permissions
-        SourceBans::app()->permissions->add('ADD_COMMS',        Yii::t('CommsPlugin.main', 'Ban communication'));
-        SourceBans::app()->permissions->add('IMPORT_COMMS',     Yii::t('CommsPlugin.main', 'Import communication punishments'));
-        SourceBans::app()->permissions->add('EDIT_OWN_COMMS',   Yii::t('CommsPlugin.main', 'Edit own communication punishments'));
-        SourceBans::app()->permissions->add('EDIT_GROUP_COMMS', Yii::t('CommsPlugin.main', 'Edit group communication punishments'));
-        SourceBans::app()->permissions->add('EDIT_ALL_COMMS',   Yii::t('CommsPlugin.main', 'Edit all communication punishments'));
-        SourceBans::app()->permissions->add('UNBAN_OWN_COMMS',  Yii::t('CommsPlugin.main', 'Unban own communication punishments'));
-        SourceBans::app()->permissions->add('UNBAN_GROUP_COMMS',Yii::t('CommsPlugin.main', 'Unban group communication punishments'));
-        SourceBans::app()->permissions->add('UNBAN_ALL_COMMS',  Yii::t('CommsPlugin.main', 'Unban all communication punishments'));
-        SourceBans::app()->permissions->add('DELETE_COMMS',     Yii::t('CommsPlugin.main', 'Delete communication punishments'));
+        SourceBans::app()->permissions->add('ADD_COMMS',        Yii::t('CommsPlugin.permissions', 'Ban communication'));
+        SourceBans::app()->permissions->add('IMPORT_COMMS',     Yii::t('CommsPlugin.permissions', 'Import communication punishments'));
+        SourceBans::app()->permissions->add('EDIT_OWN_COMMS',   Yii::t('CommsPlugin.permissions', 'Edit own communication punishments'));
+        SourceBans::app()->permissions->add('EDIT_GROUP_COMMS', Yii::t('CommsPlugin.permissions', 'Edit group communication punishments'));
+        SourceBans::app()->permissions->add('EDIT_ALL_COMMS',   Yii::t('CommsPlugin.permissions', 'Edit all communication punishments'));
+        SourceBans::app()->permissions->add('UNBAN_OWN_COMMS',  Yii::t('CommsPlugin.permissions', 'Unban own communication punishments'));
+        SourceBans::app()->permissions->add('UNBAN_GROUP_COMMS',Yii::t('CommsPlugin.permissions', 'Unban group communication punishments'));
+        SourceBans::app()->permissions->add('UNBAN_ALL_COMMS',  Yii::t('CommsPlugin.permissions', 'Unban all communication punishments'));
+        SourceBans::app()->permissions->add('DELETE_COMMS',     Yii::t('CommsPlugin.permissions', 'Delete communication punishments'));
     }
 
     public function onBeforeAction($action)
