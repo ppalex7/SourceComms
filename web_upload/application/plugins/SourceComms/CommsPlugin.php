@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.218';
+        return '1.0.228';
     }
 
     public function getUrl()
@@ -31,6 +31,7 @@ class CommsPlugin extends SBPlugin
     {
         SourceBans::app()->on('app.beginRequest', array($this, 'onBeginRequest'));
         SourceBans::app()->on('app.beforeAction', array($this, 'onBeforeAction'));
+        SourceBans::app()->on('app.beforeRender', array($this, 'onBeforeRender'));
     }
 
     public function runInstall()
@@ -132,5 +133,24 @@ class CommsPlugin extends SBPlugin
                 'title' => Yii::t('CommsPlugin.main', 'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.')
             ),
         );
+    }
+
+    public function onBeforeRender($event)
+    {
+        switch(Yii::app()->controller->route)
+        {
+            case 'admin/index':
+                // Add Comms to Adminitstration page menu
+                if (!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_BANS'))
+                {
+                    Yii::app()->controller->menu[] = array(
+                        'label' => Yii::t('CommsPlugin.main', 'Comms'),
+                        'url' => array('admin/comms'),
+                        'itemOptions' => array('class'=>'comms'),
+                        'visible' => true,
+                    );
+                }
+                break;
+        }
     }
 }
