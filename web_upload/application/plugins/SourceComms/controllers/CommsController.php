@@ -46,6 +46,7 @@ class CommsController extends Controller
     {
         return array(
             'accessControl', // perform access control for CRUD operations
+            'postOnly + add, unban', // we only allow deletion via POST request
         );
     }
 
@@ -64,6 +65,10 @@ class CommsController extends Controller
             array('allow',
                 'actions'=>array('add'),
                 'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS")',
+            ),
+            array('allow',
+                'actions'=>array('unban'),
+                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("UNBAN_ALL_BANS", "UNBAN_GROUP_BANS", "UNBAN_OWN_BANS")',
             ),
             array('allow',
                 'actions'=>array('index'),
@@ -177,6 +182,70 @@ class CommsController extends Controller
     }
 
     /**
+     * Unbans a particular model.
+     * @param integer $id the ID of the model to be unbanned
+     * @throws CHttpException
+     */
+    public function actionUnban($id)
+    {
+        $this->_loadPlugin();
+
+        $reason=Yii::app()->request->getPost('reason');
+        $model=$this->loadModel($id);
+
+        if(!$this->canUpdate('UNBAN', $model))
+            throw new CHttpException(403, Yii::t('yii', 'You are not authorized to perform this action.'));
+
+        $unbanned = $model->unban($reason);
+        if ($unbanned)
+        {
+            switch ($model->type)
+            {
+                case Comms::GAG_TYPE:
+                    SourceBans::log('Player ungagged', 'Player ' . $model->nameForLog . ' has been ungagged');
+                    break;
+                case Comms::MUTE_TYPE:
+                    SourceBans::log('Player unmuted', 'Player ' . $model->nameForLog . ' has been unmuted');
+                    break;
+                default:
+                    SourceBans::log('Communication punishment unbanned', 'Communication punshment against ' . $model->nameForLog . ' was unbanned');
+                    break;
+            }
+        }
+
+        Yii::app()->end(CJSON::encode($unbanned));
+    }
+
+    /**
+     * Checks admin permmisions for action
+     * @param string $type type of action to check permissions
+     * @param Comms $model - model to permissions check
+     * @return boolean check result
+     */
+    public function canUpdate($type, $model)
+    {
+        if(Yii::app()->user->data->hasPermission($type . '_ALL_COMMS'))
+            return true;
+
+        if(Yii::app()->user->data->hasPermission($type . '_GROUP_COMMS') && isset($model->admin))
+        {
+            $groups = CHtml::listData($model->admin->server_groups, 'id', 'name');
+            if(Yii::app()->user->data->hasGroup($groups))
+                return true;
+        }
+
+        return Yii::app()->user->data->hasPermission($type . '_OWN_COMMS') && Yii::app()->user->id == $model->admin_id;
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return SBBan the loaded model
+     * @throws CHttpException
+     */
+
+    /**
      * Performs the AJAX validation.
      * @param Comms $model the model to be validated
      */
@@ -187,5 +256,20 @@ class CommsController extends Controller
             echo CActiveForm::validate($model);
             Yii::app()->end();
         }
+    }
+
+    /**
+     * Returns the data model based on the primary key given in the GET variable.
+     * If the data model is not found, an HTTP exception will be raised.
+     * @param integer $id the ID of the model to be loaded
+     * @return SBBan the loaded model
+     * @throws CHttpException
+     */
+    public function loadModel($id)
+    {
+        $model=Comms::model()->with('admin')->findByPk($id);
+        if($model===null)
+            throw new CHttpException(404,'The requested page does not exist.');
+        return $model;
     }
 }

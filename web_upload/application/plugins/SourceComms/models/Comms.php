@@ -55,6 +55,11 @@ class Comms extends CActiveRecord
     private static $_icons;
 
     /**
+     * @var string with json translations for unban confirmation window.
+     */
+    private static $_unban_translations;
+
+    /**
      * Returns the supported punishment types
      * @return array the supported punishment types
      */
@@ -67,6 +72,29 @@ class Comms extends CActiveRecord
             );
 
         return self::$_types;
+    }
+
+    /**
+     * Returns translated string for js code
+     * @return string json encoded translations
+     */
+    public static function getUnbanJsonTranslations()
+    {
+        if (self::$_unban_translations === null)
+            self::$_unban_translations = CJSON::encode(array(
+                self::GAG_TYPE => array(
+                    'unban_reason'          => Yii::t('CommsPlugin.main', 'Ungag reason'),
+                    'unban_confirmation'    => Yii::t('CommsPlugin.main', 'Please give a short comment, why you are going to ungag &laquo;__NAME__&raquo;:'),
+                    'unban'                 => Yii::t('CommsPlugin.main', 'Ungag'),
+                ),
+                self::MUTE_TYPE => array(
+                    'unban_reason'          => Yii::t('CommsPlugin.main', 'Unmute reason'),
+                    'unban_confirmation'    => Yii::t('CommsPlugin.main', 'Please give a short comment, why you are going to unmute &laquo;__NAME__&raquo;:'),
+                    'unban'                 => Yii::t('CommsPlugin.main', 'Unmute'),
+                ),
+            ));
+
+        return self::$_unban_translations;
     }
 
     /**
@@ -360,6 +388,18 @@ class Comms extends CActiveRecord
     }
 
     /**
+     * Returns the unban admin name or "CONSOLE" if not set
+     * @return string admin name
+     */
+    public function getUnbanAdminName()
+    {
+        if (isset($this->admin))
+            return $this->admin->name;
+        else
+            return Yii::app()->params["consoleName"];
+    }
+
+    /**
      * Returns formatted punishment length
      * @return string length
      */
@@ -386,6 +426,18 @@ class Comms extends CActiveRecord
     }
 
     /**
+     * Returns formatted datetime when punished was removed
+     * @return string datetime or null
+     */
+    public function getUnbanTimeText()
+    {
+        if ($this->unban_time)
+            return Yii::app()->format->formatDatetime($this->unban_time);
+        else
+            return null;
+    }
+
+    /**
      * Returns formatted player steam with name (if present) for log
      * @return string name with steam
      */
@@ -398,19 +450,18 @@ class Comms extends CActiveRecord
     }
 
     /**
-     * Unbans the ban
-     *
+     * Unbans the communication punishment
      * @param string $reason optional unban reason
      * @return boolean whether the unbanning is successful
      */
-    // public function unban($reason = null)
-    // {
-    //     $this->unban_admin_id = Yii::app()->user->id;
-    //     $this->unban_reason   = $reason;
-    //     $this->unban_time     = time();
+    public function unban($reason = null)
+    {
+        $this->unban_admin_id = Yii::app()->user->id;
+        $this->unban_reason   = $reason;
+        $this->unban_time     = time();
 
-    //     return $this->save(false);
-    // }
+        return $this->save(false);
+    }
 
 
     protected function beforeSave()

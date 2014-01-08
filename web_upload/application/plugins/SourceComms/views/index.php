@@ -83,12 +83,16 @@
         "data-steam"=>$data->steam,
         "data-datetime"=>Yii::app()->format->formatDatetime($data->create_time),
         "data-datetime-expired"=>$data->expireText,
+        "data-datetime-unbanned"=>$data->unbanTimeText,
         "data-length"=>$data->lengthText,
         "data-reason"=>$data->reason,
+        "data-unban-reason"=>$data->unban_reason,
         "data-admin-name"=>$data->adminName,
+        "data-unban-admin-name"=>$data->unbanAdminName,
         "data-server-id"=>$data->server_id,
         "data-community-id"=>$data->communityId,
         "data-comments-count"=>$data->commentsCount,
+        "data-type"=>$data->type,
     )',
     'pagerCssClass'=>'pagination pagination-right',
     'selectableRows'=>0,
@@ -122,6 +126,12 @@
         <td><%=header.data("datetimeExpired") %></td>
       </tr>
 <% } %>
+<% if(header.data("datetimeUnbanned")) { %>
+      <tr>
+        <th><?php echo Yii::t('CommsPlugin.main', 'Removed on') ?></th>
+        <td><%=header.data("datetimeUnbanned") %></td>
+      </tr>
+<% } %>
       <tr>
         <th><?php echo $comms->getAttributeLabel('length') ?></th>
         <td><%=header.data("length") %></td>
@@ -142,6 +152,18 @@
         <td class="ServerQuery_hostname"><?php echo Yii::t('sourcebans', 'components.ServerQuery.loading') ?></td>
       </tr>
 <% } %>
+<% if(header.data("datetimeUnbanned")) { %>
+      <tr>
+        <th><?php echo Yii::t('CommsPlugin.main', 'Reason for removal') ?></th>
+        <td><%=header.data("unbanReason") || nullDisplay %></td>
+      </tr>
+<?php if(!(Yii::app()->user->isGuest && SourceBans::app()->settings->bans_hide_admin)): ?>
+      <tr>
+        <th><?php echo Yii::t('CommsPlugin.main', 'Removed by') ?></th>
+        <td><%=header.data("unbanAdminName") %></td>
+      </tr>
+<?php endif ?>
+<% } %>
     </tbody>
   </table>
   <div class="ban-menu pull-right">
@@ -152,12 +174,12 @@
         //     'url' => array('bans/edit', 'id'=>'__ID__'),
         //     'visible' => !Yii::app()->user->isGuest,
         // ),
-        // array(
-        //     'label' => Yii::t('sourcebans', 'Unban'),
-        //     'url' => '#',
-        //     'itemOptions' => array('class' => 'ban-menu-unban'),
-        //     'visible' => !Yii::app()->user->isGuest,
-        // ),
+        array(
+            'label' => 'Undo punishment',
+            'url' => '#',
+            'itemOptions' => array('class' => 'comms-menu-unban'),
+            'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('UNBAN_OWN_COMMS', 'UNBAN_GROUP_COMMS', 'UNBAN_ALL_COMMS'),
+        ),
         // array(
         //     'label' => Yii::t('sourcebans', 'Delete'),
         //     'url' => array('bans/delete', 'id'=>'__ID__'),
@@ -217,6 +239,8 @@
 ') ?>
 
 <?php Yii::app()->clientScript->registerScript('site_comms_createSections', '
+  var unbanTranslations = ' . Comms::getUnbanJsonTranslations() . ';
+
   function createSections() {
     var nullDisplay = "' . addslashes($grid->nullDisplay) . '";
 
@@ -231,12 +255,13 @@
         this.href = this.href.replace("__ID__", $(header).data("key"));
       });
       if($(header).hasClass("expired") || $(header).hasClass("unbanned")) {
-        $section.find(".ban-menu-unban").addClass("disabled");
+        $section.find(".comms-menu-unban").addClass("disabled");
       }
       else {
-        $section.find(".ban-menu-unban a").prop("rel", $(header).data("key"));
+        $section.find(".comms-menu-unban a").prop("rel", $(header).data("key"));
       }
       $section.find(".comms-menu-comments a").append(" (" + $(header).data("commentsCount") + ")");
+      $section.find(".comms-menu-unban a").html(unbanTranslations[$(header).data("type")]["unban"]);
     });
 
     updateSections();
@@ -253,16 +278,6 @@
     });
   }
 
-  $(document).on("click", ".ban-menu-unban a", function(e) {
-    if($(this).parents("li").hasClass("disabled"))
-      return;
-
-    $.post("' . $this->createUrl('comms/unban', array("id" => "__ID__")) . '".replace("__ID__", $(this).prop("rel")), {
-      reason: ""
-    }, function() {
-      $("#' . $grid->id . '").yiiGridView("update");
-    });
-  });
   $(document).on("click", ".ban-menu-delete a", function(e) {
     if(!confirm("' . Yii::t('zii', 'Are you sure you want to delete this item?') . '")) return false;
     $("#' . $grid->id . '").yiiGridView("update", {
@@ -273,6 +288,21 @@
       }
     });
     return false;
+  });
+
+  $(document).on("click", ".comms-menu-unban a", function(e) {
+    if($(this).parents("li").hasClass("disabled"))
+      return;
+
+    var header = $("#comms-grid tr[data-key=\"" + $(this).prop("rel") + "\"]");
+    var name = header.data("name") ? header.data("name") : header.data("steam");
+
+    document.getElementById("confirm_title").innerHTML = unbanTranslations[header.data("type")]["unban_reason"];
+    document.getElementById("confirm_text").innerHTML = unbanTranslations[header.data("type")]["unban_confirmation"].replace("__NAME__", name);
+    document.getElementById("confirm_button").innerHTML = unbanTranslations[header.data("type")]["unban"];
+
+    $("#confirm_button").prop("rel", $(this).prop("rel"));
+    $("#unban-confirm").modal("show"); return false;
   });
 
   createSections();
@@ -286,6 +316,46 @@
     updateSections();
   });
 ') ?>
+
+<?php $this->beginWidget('bootstrap.widgets.TbModal', array('id'=>'unban-confirm')); ?>
+<div class="modal-header">
+    <a class="close" data-dismiss="modal">&times;</a>
+    <h4 id="confirm_title">Unban reason</h4>
+</div>
+
+<div class="modal-body">
+    <p id="confirm_text">Please give a short comment, why you are going to unban &laquo;name&raquo;:</p>
+    <div class="modal-form">
+            <textarea size="60" maxlength="255" id="unban_reason"></textarea>
+    </div>
+</div>
+
+<div class="modal-footer">
+    <?php $this->widget('bootstrap.widgets.TbButton', array(
+        'type'=>'primary',
+        'label'=>'Unban',
+        'url'=>'#',
+        'htmlOptions'=>array(
+            'id' => 'confirm_button',
+            'onclick' => '
+                $.post("' . $this->createUrl('comms/unban', array("id" => "__ID__")) . '".replace("__ID__", $(this).prop("rel")), {
+                  reason: $("#unban_reason").val()
+                }, function() {
+                  $("#' . $grid->id . '").yiiGridView("update");
+                  $("#unban_reason").val("");
+                  $("#unban-confirm").modal("hide");
+                });
+            '
+        ),
+    )); ?>
+    <?php $this->widget('bootstrap.widgets.TbButton', array(
+        'label'=>Yii::t('CommsPlugin.main', 'Cancel'),
+        'url'=>'#',
+        'htmlOptions'=>array('data-dismiss'=>'modal'),
+    )); ?>
+</div>
+<?php $this->endWidget(); ?>
+
 
 <?php if(!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_BANS')): ?>
 <div aria-hidden="true" class="modal fade hide" id="comments-dialog" role="dialog">
