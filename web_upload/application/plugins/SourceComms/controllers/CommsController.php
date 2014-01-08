@@ -160,13 +160,13 @@ class CommsController extends Controller
                 switch ($model->type)
                 {
                     case Comms::GAG_TYPE:
-                        SourceBans::log('Gag added', 'Gag against "' . $model->steam . '" was added');
+                        SourceBans::log('Gag added', 'Gag against ' . $model->nameForLog . ' was added');
                         break;
                     case Comms::MUTE_TYPE:
-                        SourceBans::log('Mute added', 'Mute against "' . $model->steam . '" was added');
+                        SourceBans::log('Mute added', 'Mute against ' . $model->nameForLog . ' was added');
                         break;
                     default:
-                        SourceBans::log('Communication punishment added', 'Communication punshment against "' . $model->steam . '" was added');
+                        SourceBans::log('Communication punishment added', 'Communication punshment against ' . $model->nameForLog . ' was added');
                         break;
                 }
                 Yii::app()->user->setFlash('success', Yii::t('sourcebans', 'Saved successfully'));

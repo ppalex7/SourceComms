@@ -385,6 +385,17 @@ class Comms extends CActiveRecord
             return Yii::app()->format->formatDatetime($this->create_time + $this->length * 60);
     }
 
+    /**
+     * Returns formatted player steam with name (if present) for log
+     * @return string name with steam
+     */
+    public function getNameForLog()
+    {
+        if ($this->name)
+            return sprintf('"%s" (%s)', $this->name, $this->steam);
+        else
+            return sprintf('"%s"', $this->steam);
+    }
 
     /**
      * Unbans the ban
