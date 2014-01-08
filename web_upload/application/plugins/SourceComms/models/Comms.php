@@ -56,7 +56,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns the supported punishment types
-     *
      * @return array the supported punishment types
      */
     public static function getTypes()
@@ -262,7 +261,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns whether the ban is active
-     *
      * @return boolean whether the ban is active
      */
     public function getIsActive()
@@ -272,7 +270,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns whether the ban is expired
-     *
      * @return boolean whether the ban is expired
      */
     public function getIsExpired()
@@ -282,7 +279,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns whether the ban is permanent
-     *
      * @return boolean whether the ban is permanent
      */
     public function getIsPermanent()
@@ -292,7 +288,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns whether the ban is temporary
-     *
      * @return boolean whether the ban is temporary
      */
     public function getIsTemporary()
@@ -302,7 +297,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns whether the ban is unbanned
-     *
      * @return boolean whether the ban is unbanned
      */
     public function getIsUnbanned()
@@ -313,7 +307,6 @@ class Comms extends CActiveRecord
     /**
      * Custom setter - converts SteamID to Steam Account ID and saves it in model.
      * @param string $steam - SteamID.
-     *
      */
     public function setSteam($steam)
     {
@@ -325,7 +318,6 @@ class Comms extends CActiveRecord
 
     /**
      * Rerurns the Steam ID (converts it from Steam Account ID)
-     *
      * @return string Steam ID
      */
     public function getSteam()
@@ -345,7 +337,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns the Steam Community ID
-     *
      * @return integer the Steam Community ID
      */
     public function getCommunityId()
@@ -358,7 +349,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns the admin name or "CONSOLE" if not set
-     *
      * @return string admin name
      */
     public function getAdminName()
@@ -371,7 +361,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns formatted punishment length
-     *
      * @return string length
      */
     public function getLengthText()
@@ -386,7 +375,6 @@ class Comms extends CActiveRecord
 
     /**
      * Returns formatted punishment expired datetime
-     *
      * @return string datetime or null
      */
     public function getExpireText()
