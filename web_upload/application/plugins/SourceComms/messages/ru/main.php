@@ -18,9 +18,9 @@
  */
 return array (
   'Add punishment' => 'Добавить блокировку',
-  'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.' => '',
-  'Comms' => '',
-  'Extended, temporary and permanent punishments' => '',
+  'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.' => 'Все блокировки коммуникаций (такие как отключения чата или микрофона) в базе данных - могут быть просмотрены здесь',
+  'Comms' => 'Чат и микрофон',
+  'Extended, temporary and permanent punishments' => 'Расширенные, временные и постоянные блокировки чата и микрофона',
   'Gag' => 'Чат',
   'Import punishments' => 'Импортировать блокировки',
   'Mute' => 'Микрофон',
