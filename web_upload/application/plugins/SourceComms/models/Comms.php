@@ -463,7 +463,9 @@ class Comms extends CActiveRecord
         return $this->save(false);
     }
 
-
+    /**
+     * This method is invoked before saving a record (after validation, if any).
+     */
     protected function beforeSave()
     {
         if($this->isNewRecord)
@@ -474,10 +476,6 @@ class Comms extends CActiveRecord
             }
 
             $this->admin_ip = $_SERVER['REMOTE_ADDR'];
-        }
-        if(!empty($this->steam))
-        {
-            $this->steam = strtoupper($this->steam);
         }
 
         return parent::beforeSave();
