@@ -340,11 +340,17 @@
             'onclick' => '
                 $.post("' . $this->createUrl('comms/unban', array("id" => "__ID__")) . '".replace("__ID__", $(this).prop("rel")), {
                   reason: $("#unban_reason").val()
-                }, function() {
-                  $("#' . $grid->id . '").yiiGridView("update");
-                  $("#unban_reason").val("");
-                  $("#unban-confirm").modal("hide");
+                }, function(result) {
+                  if(result == "true") {
+                    $("#' . $grid->id . '").yiiGridView("update");
+                  } else {
+                    $.alert("' . Yii::t('CommsPlugin.main', 'An error was occurred') . '", "warning");
+                  }
+                }).fail(function(jqXHR, textStatus) {
+                  $.alert(jqXHR.responseText, "error");
                 });
+                $("#unban_reason").val("");
+                $("#unban-confirm").modal("hide");
             '
         ),
     )); ?>
