@@ -411,7 +411,7 @@ class Comms extends CActiveRecord
                 $this->admin_id = Yii::app()->user->id;
             }
 
-            $this->admin_ip = $_SERVER['SERVER_ADDR'];
+            $this->admin_ip = $_SERVER['REMOTE_ADDR'];
         }
         if(!empty($this->steam))
         {
