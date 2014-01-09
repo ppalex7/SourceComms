@@ -60,6 +60,11 @@ class Comms extends CActiveRecord
     private static $_unban_translations;
 
     /**
+     * @var $_tableName - Name of table which is associated with model
+     */
+    protected $_tableName;
+
+    /**
      * Returns the supported punishment types
      * @return array the supported punishment types
      */
@@ -131,6 +136,33 @@ class Comms extends CActiveRecord
     }
 
     /**
+     * Checks table in the database for the compatibility with this model.
+     * @param string $table - name of table for check
+     * @return boolean - whether the table is compatible
+     */
+    public static function isTableValidForModel($table)
+    {
+        return in_array($table, Yii::app()->db->getSchema()->getTableNames(), true)
+               && Yii::app()->db->getSchema()->getTable($table)->getColumnNames()
+                  === array('id',
+                            'type',
+                            'steam_account_id',
+                            'name',
+                            'reason',
+                            'length',
+                            'server_id',
+                            'admin_id',
+                            'admin_ip',
+                            'unban_admin_id',
+                            'unban_reason',
+                            'unban_time',
+                            'create_time',
+                      );
+
+
+    }
+
+    /**
      * Returns the static model of the specified AR class.
      * @param string $className active record class name.
      * @return Comms the static model class
@@ -141,11 +173,25 @@ class Comms extends CActiveRecord
     }
 
     /**
+     * Constructor.
+     * @param $scenario - scenario name
+     * @param $tableName - name of source table for creted model.
+     */
+    public function __construct($scenario = 'insert', $tableName = null)
+    {
+        $this->_tableName = $tableName;
+        parent::__construct($scenario);
+    }
+
+    /**
      * @return string the associated database table name
      */
     public function tableName()
     {
-        return '{{comms}}';
+        if ($this->_tableName)
+            return $this->_tableName;
+        else
+            return '{{comms}}';
     }
 
     /**
