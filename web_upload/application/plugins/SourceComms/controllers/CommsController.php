@@ -11,6 +11,17 @@
  */
 class CommsController extends Controller
 {
+    const ITEMS_PER_ITERATION = 50;
+    const POSSIBLE_TABLE_NAMES = '/(?:comms|^extendedcomm)$/i';
+
+    /**
+     * @var array of model names which is available for import
+     */
+    protected static $availableModels = array(
+        'OldComms',
+        'Comms',
+    );
+
     /**
      * @var SBPlugin - SourceComms plugin model.
      */
@@ -46,7 +57,8 @@ class CommsController extends Controller
     {
         return array(
             'accessControl', // perform access control for CRUD operations
-            'postOnly + add, unban', // we only allow deletion via POST request
+            'postOnly + add, unban, import', // we only allow deletion via POST request
+            'ajaxOnly + import',
         );
     }
 
@@ -60,7 +72,7 @@ class CommsController extends Controller
         return array(
             array('allow',
                 'actions'=>array('admin'),
-                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS", "IMPORT_COMMS")',
+                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS", "OWNER")',
             ),
             array('allow',
                 'actions'=>array('add'),
@@ -69,6 +81,10 @@ class CommsController extends Controller
             array('allow',
                 'actions'=>array('unban'),
                 'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("UNBAN_ALL_BANS", "UNBAN_GROUP_BANS", "UNBAN_OWN_BANS")',
+            ),
+            array('allow',
+                'actions'=>array('import'),
+                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("OWNER")',
             ),
             array('allow',
                 'actions'=>array('index'),
@@ -129,19 +145,35 @@ class CommsController extends Controller
                 'url' => '#add',
                 'visible' => Yii::app()->user->data->hasPermission('ADD_COMMS')
             ),
-            // array(
-            //     'label' => Yii::t('CommsPlugin.main', 'Import punishments'),
-            //     'url' => '#import',
-            //     'visible' => Yii::app()->user->data->hasPermission('IMPORT_COMMS')
-            // ),
+            array(
+                'label' => Yii::t('CommsPlugin.main', 'Import punishments'),
+                'url' => '#import',
+                'visible' => Yii::app()->user->data->hasPermission('OWNER')
+            ),
         );
 
         $comms = new Comms;
         $comms->unsetAttributes();  // clear any default values
 
+        // Get available tables for importing
+        $tables = array();
+        if (Yii::app()->user->data->hasPermission("OWNER"))
+        {
+            foreach (Yii::app()->db->getSchema()->getTableNames() as $tableName) {
+                if (preg_match(self::POSSIBLE_TABLE_NAMES, $tableName)
+                    && $tableName != $comms->getTableSchema()->name
+                ) {
+                    $tables[] = array('tableName' => $tableName);
+                }
+            }
+        }
+        $gridDataProvider = new CArrayDataProvider($tables);
+        $gridDataProvider->pagination = false;
+
         $this->render($this->_plugin->getViewFile('admin'),array(
             'comms' => $comms,
             'plugin' => $this->_plugin,
+            'tables' => $gridDataProvider,
         ));
     }
 
@@ -214,6 +246,102 @@ class CommsController extends Controller
         }
 
         Yii::app()->end(CJSON::encode($unbanned));
+    }
+
+    public function actionImport()
+    {
+        Yii::log(Yii::app()->request->rawBody);
+        $this->_loadPlugin();
+
+        $tableName  = Yii::app()->request->getParam('table');
+        $offset     = Yii::app()->request->getParam('offset');
+
+        if (!$tableName || $offset === null || $offset < 0)
+        {
+            Yii::log('Sourcecomms error 102: No table name or offset specified');
+            echo CJSON::encode(array('status' => 'error', 'code' => 102));
+            Yii::app()->end();
+        }
+
+        $modelName;
+        foreach (self::$availableModels as $curModelName)
+        {
+            if ($curModelName::isTableValidForModel($tableName))
+            {
+                $modelName = $curModelName;
+                break;
+            }
+        }
+
+        // No valid model
+        if (!$modelName)
+        {
+            Yii::log('Sourcecomms error 103: No valid model for specified table');
+            echo CJSON::encode(array('status' => 'error', 'code' => 103));
+            Yii::app()->end();
+        }
+
+        $model = new $modelName('insert', $tableName);
+        $totalCount = $model->count();
+        if ($offset >= $totalCount)
+        {
+            echo CJSON::encode(array('status' => 'finish', 'table' => $tableName));
+            Yii::app()->end();
+        }
+
+        $criteria = new CDbCriteria();
+        $criteria->offset = $offset;
+        $criteria->limit = self::ITEMS_PER_ITERATION;
+        $data = $model->with('admin','server','unban_admin')->FindAll($criteria);
+
+        if (!$data)
+        {
+            // something strange was happened
+            echo CJSON::encode(array('status' => 'finish'));
+            Yii::app()->end();
+        }
+
+        $added = 0;
+        $skipped = 0;
+        foreach ($data as $record)
+        {
+            foreach ($record->getDataForImport() as $possibleRecord) {
+                if ($possibleRecord['search'] === null)
+                {
+                    $skipped++;
+                    continue;
+                }
+
+                $comms = new Comms();
+                if ($comms->findByAttributes($possibleRecord['search']) === null)
+                {
+                    if ($possibleRecord['save'] === null)
+                    {
+                        $skipped++;
+                        continue;
+                    }
+                    $comms->setAttributes($possibleRecord['save'], false);
+                    $comms->isInternalRecord = true;
+                    $comms->detachBehavior('CTimestampBehavior');
+                    if ($comms->save())
+                        $added++;
+                    else
+                        $skipped++;
+                }
+                else
+                {
+                    $skipped++;
+                }
+            }
+        }
+        echo CJSON::encode(array(
+            'status'    => 'process',
+            'added'     => $added,
+            'skipped'   => $skipped,
+            'offset'    => $offset + self::ITEMS_PER_ITERATION,
+            'total'     => +$totalCount,
+            'table'     => $tableName,
+        ));
     }
 
     /**

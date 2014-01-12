@@ -2,6 +2,7 @@
 /* @var $this CommsController */
 /* @var $plugin CommsPlugin */
 /* @var $comms Comms */
+/* @var $tables CArrayDataProvider of tables available for import */
 ?>
 
 <?php if(Yii::app()->user->data->hasPermission('ADD_COMMS')): ?>
@@ -14,9 +15,11 @@
     </section>
 <?php endif ?>
 
-<?php if(Yii::app()->user->data->hasPermission('IMPORT_COMMS')): ?>
+<?php if(Yii::app()->user->data->hasPermission('OWNER')): ?>
     <section class="tab-pane fade" id="pane-import">
-<?php echo $this->renderPartial($plugin->getViewFile('_import')) ?>
+<?php echo $this->renderPartial($plugin->getViewFile('_import'), array(
+    'tables' => $tables,
+)) ?>
 
     </section>
 <?php endif ?>

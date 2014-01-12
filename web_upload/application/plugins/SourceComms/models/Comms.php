@@ -65,6 +65,11 @@ class Comms extends CActiveRecord
     protected $_tableName;
 
     /**
+     * @var boolean - is this records was internally created
+     */
+    public $isInternalRecord = false;
+
+    /**
      * Returns the supported punishment types
      * @return array the supported punishment types
      */
@@ -334,6 +339,69 @@ class Comms extends CActiveRecord
     }
 
     /**
+     * @return boolean - whether the record is valid
+     */
+    private function isValid()
+    {
+        return $this->steam_account_id
+               && ($this->type == self::GAG_TYPE
+                   || $this->type == self::MUTE_TYPE
+                  );
+    }
+
+    /**
+     * @return array attributes for search the related Comms model
+     */
+    private function getAttributesForSearch()
+    {
+        if ($this->isValid())
+            return array(
+                'type'              => $this->type,
+                'steam_account_id'  => $this->steam_account_id,
+                'create_time'       => $this->create_time,
+            );
+        else
+            return null;
+    }
+
+    /**
+     * @return array attributes for saving to new Comms record
+     */
+    private function getAttributesForSave()
+    {
+        if ($this->isValid())
+            return array(
+                'type'              => $this->type,
+                'steam_account_id'  => $this->steam_account_id,
+                'name'              => $this->name ? $this->name : null,
+                'reason'            => $this->reason ? $this->reason : Yii::t('CommsPlugin.main', 'Imported from same SourceComms version'),
+                'length'            => $this->length >= 0 ? $this->length : -1,
+                'server_id'         => $this->server ? $this->server->id : null,
+                'admin_id'          => $this->admin ? $this->admin->id : null,
+                'admin_ip'          => $this->admin_ip ? $this->admin_ip : $_SERVER['SERVER_ADDR'],
+                'unban_admin_id'    => ($this->unban_time && $this->unban_admin) ? $this->unban_admin->id : null,
+                'unban_reason'      => ($this->unban_time && $this->unban_reason) ? $this->unban_reason : null,
+                'unban_time'        => $this->unban_time ? $this->unban_time : null,
+                'create_time'       => $this->create_time,
+            );
+        else
+            return null;
+    }
+
+    /**
+     * @return array of arrays of attributes for search and saving Comms model
+     */
+    public function getDataForImport()
+    {
+        return array(
+            array(
+                'search' => $this->getAttributesForSearch(),
+                'save'   => $this->getAttributesForSave(),
+            ),
+        );
+    }
+
+    /**
      * Returns whether the ban is active
      * @return boolean whether the ban is active
      */
@@ -514,7 +582,7 @@ class Comms extends CActiveRecord
      */
     protected function beforeSave()
     {
-        if($this->isNewRecord)
+        if($this->isNewRecord && !$this->isInternalRecord)
         {
             if(!Yii::app()->user->isGuest)
             {

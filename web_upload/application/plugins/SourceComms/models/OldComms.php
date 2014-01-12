@@ -33,6 +33,8 @@ class OldComms extends CActiveRecord
     const GAG_TYPE  = 2;
     const MUTE_TYPE = 1;
 
+    const REMOVED_BY_ADMIN = 'U';
+
     /**
      * @var $_tableName - Name of table which is associated with model
      */
@@ -105,6 +107,90 @@ class OldComms extends CActiveRecord
             'admin' => array(self::BELONGS_TO, 'SBAdmin', 'aid'),
             'server' => array(self::BELONGS_TO, 'SBServer', 'sid'),
             'unban_admin' => array(self::BELONGS_TO, 'SBAdmin', 'RemovedBy'),
+        );
+    }
+
+    /**
+     * @return boolean - whether the record is valid
+     */
+    private function isValid()
+    {
+        return preg_match(SourceBans::STEAM_PATTERN, $this->authid)
+               && ($this->type == self::GAG_TYPE
+                   || $this->type == self::MUTE_TYPE
+                  );
+    }
+
+    /**
+     * @return integer steam account id
+     */
+    public function getSteamAccountID()
+    {
+        return substr($this->authid, 8, 1) + 2 * substr($this->authid, 10, 10);
+    }
+
+    /**
+     * @return integer length of punishment in minutes
+     */
+    private function getLength()
+    {
+        if ($this->length > 0)
+            return (int) $this->length / 60;
+        else if ($this->length == 0)
+            return 0;
+        else
+            return -1;
+    }
+
+    /**
+     * @return array attributes for search the related Comms model
+     */
+    private function getAttributesForSearch()
+    {
+        if ($this->isValid())
+            return array(
+                'type'              => $this->type,
+                'steam_account_id'  => $this->getSteamAccountID(),
+                'create_time'       => $this->created,
+            );
+        else
+            return null;
+    }
+
+    /**
+     * @return array attributes for saving to new Comms record
+     */
+    private function getAttributesForSave()
+    {
+        if ($this->isValid())
+            return array(
+                'type'              => $this->type,
+                'steam_account_id'  => $this->getSteamAccountID(),
+                'name'              => $this->name ? $this->name : null,
+                'reason'            => $this->reason ? $this->reason : Yii::t('CommsPlugin.main', 'Imported from previous SourceComms version'),
+                'length'            => $this->getLength(),
+                'server_id'         => $this->server ? $this->server->id : null,
+                'admin_id'          => $this->admin ? $this->admin->id : null,
+                'admin_ip'          => ($this->admin || $this->aid == 0) ? $this->adminIp : $_SERVER['SERVER_ADDR'],
+                'unban_admin_id'    => ($this->RemoveType == self::REMOVED_BY_ADMIN && $this->unban_admin) ? $this->unban_admin->id : null,
+                'unban_reason'      => ($this->RemoveType == self::REMOVED_BY_ADMIN && $this->ureason) ? $this->ureason : null,
+                'unban_time'        => ($this->RemoveType == self::REMOVED_BY_ADMIN && $this->RemovedOn) ? $this->RemovedOn : null,
+                'create_time'       => $this->created,
+            );
+        else
+            return null;
+    }
+
+    /**
+     * @return array of arrays of attributes for search and saving Comms model
+     */
+    public function getDataForImport()
+    {
+        return array(
+            array(
+                'search' => $this->getAttributesForSearch(),
+                'save'   => $this->getAttributesForSave(),
+            ),
         );
     }
 }

@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.500';
+        return '1.0.717';
     }
 
     public function getUrl()
@@ -128,7 +128,6 @@ class CommsPlugin extends SBPlugin
 
         // Add permissions
         SourceBans::app()->permissions->add('ADD_COMMS',        Yii::t('CommsPlugin.permissions', 'Ban communication'));
-        SourceBans::app()->permissions->add('IMPORT_COMMS',     Yii::t('CommsPlugin.permissions', 'Import communication punishments'));
         SourceBans::app()->permissions->add('EDIT_OWN_COMMS',   Yii::t('CommsPlugin.permissions', 'Edit own communication punishments'));
         SourceBans::app()->permissions->add('EDIT_GROUP_COMMS', Yii::t('CommsPlugin.permissions', 'Edit group communication punishments'));
         SourceBans::app()->permissions->add('EDIT_ALL_COMMS',   Yii::t('CommsPlugin.permissions', 'Edit all communication punishments'));
@@ -156,7 +155,7 @@ class CommsPlugin extends SBPlugin
         {
             case 'admin/index':
                 // Add Comms to Adminitstration page menu
-                if (!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_COMMS', 'IMPORT_COMMS'))
+                if (!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_COMMS', 'OWNER'))
                 {
                     Yii::app()->controller->menu[] = array(
                         'label' => Yii::t('CommsPlugin.main', 'Comms'),
