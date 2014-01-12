@@ -108,6 +108,8 @@ class CommsController extends Controller
             $this->pageTitle,
         );
 
+        $hideInactive = Yii::app()->request->getQuery('hideinactive', 'false') == 'true';
+
         $comms = new Comms('search');
         $comms->unsetAttributes();  // clear any default values
         if(isset($_GET['Comms']))
@@ -120,6 +122,10 @@ class CommsController extends Controller
             'comms' => $comms,
             'plugin' => $this->_plugin,
             'comment' => $comment,
+            'hideInactive' => $hideInactive,
+            'total_punishments' => Comms::model()->count(array(
+                'scopes' => $hideInactive ? 'active' : null,
+            )),
         ));
     }
 

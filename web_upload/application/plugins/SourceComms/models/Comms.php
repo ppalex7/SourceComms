@@ -261,12 +261,12 @@ class Comms extends CActiveRecord
      * Retrieves a list of models based on the current search/filter conditions.
      * @return CActiveDataProvider the data provider that can return the models based on the search/filter conditions.
      */
-    public function search()
+    public function search($criteria=array())
     {
         // Warning: Please modify the following code to remove attributes that
         // should not be searched.
 
-        $criteria=new CDbCriteria;
+        $criteria=new CDbCriteria($criteria);
         $criteria->with=array('admin','server','server.game','unban_admin');
         $criteria->compare('t.id',$this->id);
         $criteria->compare('t.type',$this->type);

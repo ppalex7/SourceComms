@@ -2,7 +2,15 @@
 /* @var $this CommsController */
 /* @var $plugin CommsPlugin */
 /* @var $comms Comms */
+/* @var $comment SBComment */
+/* @var $hideInactive string */
+/* @var $total_punishments integer */
+
 ?>
+
+<?php $summaryText = CHtml::link(
+    $hideInactive == 'true' ? Yii::t('CommsPlugin.main', 'Show inactive punishments') : Yii::t('CommsPlugin.main', 'Hide inactive punishments'),
+    array('', 'hideinactive' => $hideInactive == 'true' ? 'false' : 'true')) . ' | <em>' . Yii::t('CommsPlugin.main', 'Total punishments') . ': ' . $total_punishments . '</em>'; ?>
 
 <section>
   <div class="container" style="margin-bottom: 1em; width: 500px;">
@@ -16,7 +24,9 @@
 
 <?php $grid=$this->widget('zii.widgets.grid.CGridView', array(
     'id'=>'comms-grid',
-    'dataProvider'=>$comms->search(),
+    'dataProvider'=>$comms->search(array(
+        'scopes' => $hideInactive ? 'active' : null,
+    )),
     'columns'=>array(
         array(
             'class'=>'CCheckBoxColumn',
@@ -96,6 +106,7 @@
     )',
     'pagerCssClass'=>'pagination pagination-right',
     'selectableRows'=>0,
+    'summaryText'=>$summaryText,
 )) ?><!-- comms grid -->
 
 </section>
