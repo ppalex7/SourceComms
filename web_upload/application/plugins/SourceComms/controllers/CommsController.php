@@ -245,7 +245,7 @@ class CommsController extends Controller
             }
         }
 
-        Yii::app()->end(CJSON::encode($unbanned));
+        Yii::app()->end($unbanned);
     }
 
     public function actionImport()
