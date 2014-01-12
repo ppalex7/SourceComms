@@ -60,7 +60,7 @@ class Comms extends CActiveRecord
     private static $_unban_translations;
 
     /**
-     * @var $_tableName - Name of table which is associated with model
+     * @var string - Name of table which is associated with model
      */
     protected $_tableName;
 

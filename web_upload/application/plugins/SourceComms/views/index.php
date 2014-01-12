@@ -344,7 +344,7 @@
                   if(result == "true") {
                     $("#' . $grid->id . '").yiiGridView("update");
                   } else {
-                    $.alert("' . Yii::t('CommsPlugin.main', 'An error was occurred') . '", "warning");
+                    $.alert("' . Yii::t('CommsPlugin.main', 'An error was occurred, code: {code}', array('code' => 101)) . '", "warning");
                   }
                 }).fail(function(jqXHR, textStatus) {
                   $.alert(jqXHR.responseText, "error");

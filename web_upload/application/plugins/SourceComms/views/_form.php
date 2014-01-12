@@ -1,6 +1,6 @@
 <?php
 /* @var $this CommsController */
-/* @var $model SBBan */
+/* @var $model Comms */
 /* @var $form CActiveForm */
 ?>
 
