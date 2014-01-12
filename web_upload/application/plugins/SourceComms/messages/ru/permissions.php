@@ -26,7 +26,6 @@ return array (
   'Edit all communication punishments' => 'Редактирование всех блокировок общения',
   'Edit group communication punishments' => 'Редактирование блокировок общения группы',
   'Edit own communication punishments' => 'Редактирование собственных блокировок общения',
-  'Import communication punishments' => 'Импорт блокировок общения',
   'Unban all communication punishments' => 'Снятие всех блокировок общения',
   'Unban group communication punishments' => 'Снятие блокировок общения группы',
   'Unban own communication punishments' => 'Снятие собственных блокировок общения',

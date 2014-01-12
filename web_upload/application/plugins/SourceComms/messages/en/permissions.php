@@ -22,7 +22,6 @@ return array (
   'Edit all communication punishments' => '',
   'Edit group communication punishments' => '',
   'Edit own communication punishments' => '',
-  'Import communication punishments' => '',
   'Unban all communication punishments' => '',
   'Unban group communication punishments' => '',
   'Unban own communication punishments' => '',
