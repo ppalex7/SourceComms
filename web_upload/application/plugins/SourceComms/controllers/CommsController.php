@@ -250,7 +250,6 @@ class CommsController extends Controller
 
     public function actionImport()
     {
-        Yii::log(Yii::app()->request->rawBody);
         $this->_loadPlugin();
 
         $tableName  = Yii::app()->request->getParam('table');
