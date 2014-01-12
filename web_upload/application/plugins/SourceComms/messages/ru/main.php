@@ -33,6 +33,7 @@ return array (
   'Import' => 'Импортировать',
   'Import completed' => 'Импорт завершен',
   'Import punishments' => 'Импортировать блокировки',
+  'Imported from ExtendedComm' => 'Импортировано из ExtendedComm',
   'Imported from previous SourceComms version' => 'Импортировано из SourceComms предыдущей версии',
   'Imported from same SourceComms version' => 'Импортировано из SourceComms аналогичной версии',
   'Mute' => 'Микрофон',

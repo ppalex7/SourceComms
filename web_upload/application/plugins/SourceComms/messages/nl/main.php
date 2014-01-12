@@ -29,6 +29,7 @@ return array (
   'Import' => '',
   'Import completed' => '',
   'Import punishments' => '',
+  'Imported from ExtendedComm' => '',
   'Imported from previous SourceComms version' => '',
   'Imported from same SourceComms version' => '',
   'Mute' => 'Dempen',

@@ -19,6 +19,7 @@ class CommsController extends Controller
      */
     protected static $availableModels = array(
         'OldComms',
+        'ExtendedComm',
         'Comms',
     );
 
@@ -297,7 +298,7 @@ class CommsController extends Controller
         $criteria = new CDbCriteria();
         $criteria->offset = $offset;
         $criteria->limit = self::ITEMS_PER_ITERATION;
-        $data = $model->with('admin','server','unban_admin')->FindAll($criteria);
+        $data = $model->with($modelName::$availableRelations)->FindAll($criteria);
 
         if (!$data)
         {

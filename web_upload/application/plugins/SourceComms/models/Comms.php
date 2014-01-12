@@ -219,6 +219,11 @@ class Comms extends CActiveRecord
     }
 
     /**
+     * @var $availableRelations - Array of relations which could be used at import
+     */
+    public static $availableRelations = array('admin','server','unban_admin');
+
+    /**
      * @return array relational rules.
      */
     public function relations()
