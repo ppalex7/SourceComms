@@ -17,11 +17,7 @@
 
 #undef REQUIRE_PLUGIN
 #include <adminmenu>
-
-#if !defined DEBUG
-    #include <updater>
-#endif
-
+#include <updater>
 
 // Do not edit below this line //
 //-----------------------------//
