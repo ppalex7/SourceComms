@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.814';
+        return '1.0.820';
     }
 
     public function getUrl()
@@ -41,17 +41,14 @@ class CommsPlugin extends SBPlugin
 
         try {
             // Checks database for old/another table versions
-            if (Yii::app()->db->createCommand()->setText("SHOW TABLES LIKE '{{comms}}'")->queryScalar() !== false)
-            {
+            if (Yii::app()->db->createCommand()->setText("SHOW TABLES LIKE '{{comms}}'")->queryScalar() !== false) {
                 Yii::log('Founded old {{comms}} table in database');
-                if (Yii::app()->db->createCommand()->select('*')->from('{{comms}}')->limit(1)->queryScalar() !== false)
-                {
+
+                if (Yii::app()->db->createCommand()->select('*')->from('{{comms}}')->limit(1)->queryScalar() !== false) {
                     $new_table_name = '{{comms_old_' . time() . '}}';
                     Yii::log('Old table contains data and will be renamed to ' . $new_table_name);
                     Yii::app()->db->createCommand()->renameTable('{{comms}}', $new_table_name);
-                }
-                else
-                {
+                } else {
                     Yii::log('Old table is empty and will be dropped');
                     Yii::app()->db->createCommand()->dropTable('{{comms}}');
                 }
@@ -84,8 +81,7 @@ class CommsPlugin extends SBPlugin
             return true;
         }
 
-        catch(Exception $e)
-        {
+        catch (Exception $e) {
             Yii::log('Sourcecomms installation failed');
             Yii::log($e);
 
@@ -98,16 +94,14 @@ class CommsPlugin extends SBPlugin
     {
         $transaction = Yii::app()->db->beginTransaction();
 
-        try
-        {
+        try {
             Yii::app()->db->createCommand()->dropTable('{{comms}}');
 
             $transaction->commit();
             return true;
         }
 
-        catch(Exception $e)
-        {
+        catch(Exception $e) {
             $transaction->rollback();
             return false;
         }
@@ -149,8 +143,7 @@ class CommsPlugin extends SBPlugin
     {
         static $loaded;
 
-        if(!isset($loaded))
-        {
+        if(!isset($loaded)) {
             // Add header tab
             Yii::app()->controller->tabs[] = array(
                 'label' => Yii::t('CommsPlugin.main', 'Comms'),
@@ -178,7 +171,23 @@ class CommsPlugin extends SBPlugin
                         'visible' => true,
                     );
                 }
+
+                // Add Comms stat to admin dashboard
+                $model = new Comms;
+                $total_mutes = $model->countByAttributes(array('type' => Comms::MUTE_TYPE));
+                $total_gags = $model->countByAttributes(array('type' => Comms::GAG_TYPE));
+
+                Yii::app()->clientScript->registerScript('admin_index_commsStats',
+                    '$(".table-stat>tbody>tr").eq(2).after("<tr>\
+                            <td class=\"value\" width=\"20%\">'. $total_mutes .'</td>\
+                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Mutes count') . '</td>\
+                            <td class=\"value\" width=\"20%\">' . $total_gags . '</td>\
+                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Gags count') . '</td>\
+                        </tr>"
+                    );',
+                    CClientScript::POS_READY);
                 break;
+
             case 'site/bans':
                 // Add 'Block Comms' link to each ban details
                 break;
