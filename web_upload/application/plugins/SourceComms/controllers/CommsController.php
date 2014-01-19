@@ -327,8 +327,7 @@ class CommsController extends Controller
                         continue;
                     }
                     $comms->setAttributes($possibleRecord['save'], false);
-                    $comms->isInternalRecord = true;
-                    $comms->detachBehavior('CTimestampBehavior');
+                    $comms->detachBehaviors();
                     if ($comms->save())
                         $added++;
                     else

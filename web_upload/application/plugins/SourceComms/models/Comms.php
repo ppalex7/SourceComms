@@ -65,11 +65,6 @@ class Comms extends CActiveRecord
     protected $_tableName;
 
     /**
-     * @var boolean - is this records was internally created
-     */
-    public $isInternalRecord = false;
-
-    /**
      * Returns the supported punishment types
      * @return array the supported punishment types
      */
@@ -388,6 +383,14 @@ class Comms extends CActiveRecord
                 'class' => 'zii.behaviors.CTimestampBehavior',
                 'updateAttribute' => null,
             ),
+            'UserIdBehavior' => array(
+                'class' => 'application.behaviors.UserIdBehavior',
+                'attributes' => 'admin_id',
+            ),
+            'UserIpBehavior' => array(
+                'class' => 'application.behaviors.UserIpBehavior',
+                'attributes' => 'admin_ip',
+            ),
         );
     }
 
@@ -625,20 +628,5 @@ class Comms extends CActiveRecord
         $this->unban_time     = time();
 
         return $this->save(false);
-    }
-
-    /**
-     * This method is invoked before saving a record (after validation, if any).
-     */
-    protected function beforeSave()
-    {
-        if($this->isNewRecord && !$this->isInternalRecord) {
-            if(!Yii::app()->user->isGuest)
-                $this->admin_id = Yii::app()->user->id;
-
-            $this->admin_ip = $_SERVER['REMOTE_ADDR'];
-        }
-
-        return parent::beforeSave();
     }
 }
