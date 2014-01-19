@@ -29,26 +29,12 @@ class CommsController extends Controller
     private $_plugin;
 
     /**
-     * @var string - assets URL for SourceComms plugin.
-     */
-    private $_assetsUrl;
-
-    /**
      * Does common actions before doing anyting
      */
-    private function _loadPlugin()
+    public function init()
     {
         // Load plugin info
         $this->_plugin = SBPlugin::model()->findById('SourceComms');
-
-        // Import plugin models
-        Yii::import($this->_plugin->getPathAlias('models.*'));
-
-        // Get and register assets path
-        $this->_assetsUrl = Yii::app()->assetManager->publish($this->_plugin->getPath('assets'));
-
-        // Register custom css file
-        Yii::app()->clientScript->registerCssFile($this->_assetsUrl . '/css/sourcecomms.css');
     }
 
     /**
@@ -72,26 +58,29 @@ class CommsController extends Controller
     {
         return array(
             array('allow',
-                'actions'=>array('admin'),
-                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS", "OWNER")',
+                'actions' => array('admin'),
+                'expression' => '!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS", "OWNER")',
             ),
             array('allow',
-                'actions'=>array('add'),
-                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS")',
+                'actions' => array('add'),
+                'expression' => '!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("ADD_COMMS")',
             ),
             array('allow',
-                'actions'=>array('unban'),
-                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("UNBAN_ALL_BANS", "UNBAN_GROUP_BANS", "UNBAN_OWN_BANS")',
+                'actions' => array('unban'),
+                'expression' => '!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("UNBAN_ALL_BANS", "UNBAN_GROUP_BANS", "UNBAN_OWN_BANS")',
             ),
             array('allow',
-                'actions'=>array('import'),
-                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("OWNER")',
+                'actions' => array('import'),
+                'expression' => '!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("OWNER")',
             ),
             array('allow',
-                'actions'=>array('index'),
+                'actions' => array('index'),
+            ),
+            array('allow',
+                'actions' => array('test'),
             ),
             array('deny',  // deny all users
-                'users'=>array('*'),
+                'users' => array('*'),
             ),
         );
     }
@@ -101,11 +90,9 @@ class CommsController extends Controller
      */
     public function actionIndex()
     {
-        $this->_loadPlugin();
+        $this->pageTitle = Yii::t('CommsPlugin.main', 'Comms');
 
-        $this->pageTitle=Yii::t('CommsPlugin.main', 'Comms');
-
-        $this->breadcrumbs=array(
+        $this->breadcrumbs = array(
             $this->pageTitle,
         );
 
@@ -124,7 +111,7 @@ class CommsController extends Controller
             'plugin' => $this->_plugin,
             'comment' => $comment,
             'hideInactive' => $hideInactive,
-            'total_punishments' => Comms::model()->count(array(
+            'total_punishments' => $comms->count(array(
                 'scopes' => $hideInactive ? 'active' : null,
             )),
         ));
@@ -135,8 +122,6 @@ class CommsController extends Controller
      */
     public function actionAdmin()
     {
-        $this->_loadPlugin();
-
         $this->layout = '//layouts/column2';
 
         $this->pageTitle = Yii::t('CommsPlugin.main', 'Comms');
@@ -190,19 +175,16 @@ class CommsController extends Controller
      */
     public function actionAdd()
     {
-        $this->_loadPlugin();
         $model = new Comms;
 
         // Uncomment the following line if AJAX validation is needed
         $this->performAjaxValidation($model);
 
-        if(isset($_POST['Comms']))
-        {
-            $model->attributes=$_POST['Comms'];
-            if($model->save())
-            {
-                switch ($model->type)
-                {
+        if(isset($_POST['Comms'])) {
+            $model->attributes = $_POST['Comms'];
+
+            if($model->save()) {
+                switch ($model->type) {
                     case Comms::GAG_TYPE:
                         SourceBans::log('Gag added', 'Gag against ' . $model->nameForLog . ' was added');
                         break;
@@ -213,6 +195,7 @@ class CommsController extends Controller
                         SourceBans::log('Communication punishment added', 'Communication punshment against ' . $model->nameForLog . ' was added');
                         break;
                 }
+
                 Yii::app()->user->setFlash('success', Yii::t('sourcebans', 'Saved successfully'));
 
                 $this->redirect(array('site/comms','#'=>$model->id));
@@ -227,19 +210,15 @@ class CommsController extends Controller
      */
     public function actionUnban($id)
     {
-        $this->_loadPlugin();
-
-        $reason=Yii::app()->request->getPost('reason');
-        $model=$this->loadModel($id);
+        $reason = Yii::app()->request->getPost('reason');
+        $model = $this->loadModel($id);
 
         if(!$this->canUpdate('UNBAN', $model))
             throw new CHttpException(403, Yii::t('yii', 'You are not authorized to perform this action.'));
 
         $unbanned = $model->unban($reason);
-        if ($unbanned)
-        {
-            switch ($model->type)
-            {
+        if ($unbanned) {
+            switch ($model->type) {
                 case Comms::GAG_TYPE:
                     SourceBans::log('Player ungagged', 'Player ' . $model->nameForLog . ' has been ungagged');
                     break;
@@ -257,7 +236,6 @@ class CommsController extends Controller
 
     public function actionImport()
     {
-        $this->_loadPlugin();
 
         $tableName  = Yii::app()->request->getParam('table');
         $offset     = Yii::app()->request->getParam('offset');
@@ -309,20 +287,16 @@ class CommsController extends Controller
 
         $added = 0;
         $skipped = 0;
-        foreach ($data as $record)
-        {
+        foreach ($data as $record) {
             foreach ($record->getDataForImport() as $possibleRecord) {
-                if ($possibleRecord['search'] === null)
-                {
+                if ($possibleRecord['search'] === null) {
                     $skipped++;
                     continue;
                 }
 
                 $comms = new Comms();
-                if ($comms->findByAttributes($possibleRecord['search']) === null)
-                {
-                    if ($possibleRecord['save'] === null)
-                    {
+                if ($comms->findByAttributes($possibleRecord['search']) === null) {
+                    if ($possibleRecord['save'] === null) {
                         $skipped++;
                         continue;
                     }
@@ -332,9 +306,7 @@ class CommsController extends Controller
                         $added++;
                     else
                         $skipped++;
-                }
-                else
-                {
+                } else {
                     $skipped++;
                 }
             }
@@ -360,8 +332,7 @@ class CommsController extends Controller
         if(Yii::app()->user->data->hasPermission($type . '_ALL_COMMS'))
             return true;
 
-        if(Yii::app()->user->data->hasPermission($type . '_GROUP_COMMS') && isset($model->admin))
-        {
+        if(Yii::app()->user->data->hasPermission($type . '_GROUP_COMMS') && isset($model->admin)) {
             $groups = CHtml::listData($model->admin->server_groups, 'id', 'name');
             if(Yii::app()->user->data->hasGroup($groups))
                 return true;
@@ -384,8 +355,7 @@ class CommsController extends Controller
      */
     protected function performAjaxValidation($model)
     {
-        if(isset($_POST['ajax']) && $_POST['ajax']==='comms-form')
-        {
+        if(isset($_POST['ajax']) && $_POST['ajax'] === 'comms-form') {
             echo CActiveForm::validate($model);
             Yii::app()->end();
         }
@@ -400,9 +370,11 @@ class CommsController extends Controller
      */
     public function loadModel($id)
     {
-        $model=Comms::model()->with('admin')->findByPk($id);
-        if($model===null)
+        $model = Comms::model()->with('admin')->findByPk($id);
+
+        if($model === null)
             throw new CHttpException(404,'The requested page does not exist.');
+
         return $model;
     }
 }

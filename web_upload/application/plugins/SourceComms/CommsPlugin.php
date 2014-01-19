@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.790';
+        return '1.0.814';
     }
 
     public function getUrl()
@@ -36,6 +36,7 @@ class CommsPlugin extends SBPlugin
 
     public function runInstall()
     {
+        // doesn't affects changing tables structure :(
         $transaction = Yii::app()->db->beginTransaction();
 
         try {
@@ -114,6 +115,13 @@ class CommsPlugin extends SBPlugin
 
     public function onBeginRequest($event)
     {
+        // Import plugin models
+        Yii::import($this->getPathAlias('models.Comms'));
+        // Get and register assets path
+        $assetsUrl = Yii::app()->assetManager->publish($this->getPath('assets'));
+        // Register custom css file
+        Yii::app()->clientScript->registerCssFile($assetsUrl . '/css/sourcecomms.css');
+
         // Register controller
         Yii::app()->controllerMap['comms'] = $this->getPathAlias('controllers.CommsController');
 
@@ -139,24 +147,30 @@ class CommsPlugin extends SBPlugin
 
     public function onBeforeAction($action)
     {
-        // Add header tab
-        Yii::app()->controller->tabs[] = array(
-            'label' => Yii::t('CommsPlugin.main', 'Comms'),
-            'url' => array('comms/index'),
-            'linkOptions' => array(
-                'title' => Yii::t('CommsPlugin.main', 'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.')
-            ),
-        );
+        static $loaded;
+
+        if(!isset($loaded))
+        {
+            // Add header tab
+            Yii::app()->controller->tabs[] = array(
+                'label' => Yii::t('CommsPlugin.main', 'Comms'),
+                'url' => array('comms/index'),
+                'linkOptions' => array(
+                    'title' => Yii::t('CommsPlugin.main', 'All of the communication punishments (such as chat gags and voice mutes) in the database can be viewed from here.')
+                ),
+            );
+            $loaded = true;
+        }
+
+        return true;
     }
 
     public function onBeforeRender($event)
     {
-        switch(Yii::app()->controller->route)
-        {
+        switch(Yii::app()->controller->route) {
             case 'admin/index':
                 // Add Comms to Adminitstration page menu
-                if (!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_COMMS', 'OWNER'))
-                {
+                if (!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('ADD_COMMS', 'OWNER')) {
                     Yii::app()->controller->menu[] = array(
                         'label' => Yii::t('CommsPlugin.main', 'Comms'),
                         'url' => array('admin/comms'),
