@@ -26,9 +26,9 @@ Also includes files and instructions to integration to existing sourcebans web-p
 	* Extended punishments will automatically expire in-game at the designated time.
 	* Permanent punishments remain on the player until an administrator removes them.
 	* If the server has problems with access to the database, the punishments will store in SQLite database and would be added in the main database when connection is restored. *(like in sourcebans plugin, yes)*
-* Also you could apply punishments to multi-targets (such as `@all`, `@ct`, `@blue`, etc...)^
+* Also you could apply punishments to multi-targets (such as `@all`, `@ct`, `@blue`, etc...):
 	* Multi-target punishments will **not** be saved in db.
-    * Removing punishments from multi-targets will removed punishments **temporary** (not from db).
+    * Removing punishments from multi-targets will remove punishments **temporary** (not from db).
     * Allowed session (temporary) punishments and extended with length less than 30 minutes **and** less than `DefaultTime` setting.
     * Permanent multi-target punishments **is not available**.
 * SourceComms has support for protecting current punishments based on immunity levels.
