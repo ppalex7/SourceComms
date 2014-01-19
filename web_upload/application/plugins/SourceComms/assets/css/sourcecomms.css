@@ -1,0 +1,18 @@
+#comms-grid tr.expired td.length,
+#comms-grid tr.unbanned td.length {
+  background-color: #dbf4d7;
+}
+#comms-grid tr.section > td > div {
+  margin: 10px auto 0;
+  width: 780px;
+}
+#comms-grid tr.section > td > div table {
+  width: 570px;
+}
+#comms-grid tr.section > td > div table th {
+  white-space: nowrap;
+  width: 150px;
+}
+#comms-grid tr.section > td > div .ban-menu ul {
+  width: 200px;
+}

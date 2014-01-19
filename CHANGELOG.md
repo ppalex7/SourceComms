@@ -1,4 +1,8 @@
 #Changelog
+* **1.0.212**
+    * Now plugin works through sourcebans plugin.
+    * Note: plugin uses new db schema and is incompatible with `0.*` versions.
+    * Note: plugin config file was moved one folder up.
 * **0.9.262**
     * Fixed plugin include file to prevent compiling errors when twice included.
 * **0.9.260** - Added Deutsch translation. Thank to [winter](http://steamcommunity.com/profiles/76561198012507628).

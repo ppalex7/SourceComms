@@ -305,6 +305,12 @@
 		"pt"			"O amordaçamento de {1} não pôde ser removido porque foi efetuado por um administrador de nível mais alto!"
 		"de"			"Es ist unmöglich {1}im Chat zu entsperren, weil er von höherem Administrator gesperrt wurde!"
 	}
+    "No permission unsilence"
+    {
+        "#format"       "{1:s}"
+        "en"            "The silence on {1} was unable to be removed due to being silenced by a higher administrator!"
+        "ru"            "Невозможно включить чат и микрофон {1}, т.к. они были отключен более высоким администратором!"
+    }
 	"Unmuted player"
 	{
 		"#format"		"{1:t}"

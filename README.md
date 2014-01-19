@@ -2,12 +2,8 @@
 A sourcemod plugin, which provides extended, temporary and permanent punishments with full history storing in sourcebans system.
 Also includes files and instructions to integration to existing sourcebans web-pages.
 
-***********
-**Important note:** If you has installed web part before 16th March 2013, please follow the [instructions](https://github.com/d-ai/SourceComms/tree/master/web_updates/update01.md) to update it to actual version.
-***********
-
 ## Requirements
-* Working sourcebans system *(yes, you need MySQL server and web server with PHP)*. Currently supported versions **1.4.*** (and 1.5.0 for sourcebans plugin). Integration into sourcebans 2.0 currently in development.
+* Working sourcebans system *(yes, you need MySQL server and web server with PHP)*. Currently supported versions **2.0**.
 * SourceMod **1.5.0-hg3761** or **newer** is required to use plugin on server.
 * SourceMod **1.6** is required to **compile** the plugin. *(Compiled plugin also works on SourceMod 1.5)*
 
@@ -41,6 +37,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * SourceComms supports [auto-update](https://forums.alliedmods.net/showthread.php?p=1570806).
 
 ### Web part provides the following functionality:
+**Note: not all of this was implemented in SourceBans 2 plugin at this moment.**
 * Full punishments history (includes time, server, admin, reason, block length, comments, etc).
 * Showing type of block as icon in first column.
 * Showing count of other blocks for this player (steam-id) at the right end of *'Player Name'* column (This allows you to quickly identify regular offenders).
@@ -50,7 +47,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * Admin-page *'Comms'* for adding new punishments.
 * Command *'Block comms'* in player context menu on servers page
 
-**Sample of web-part you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)
+**Sample of web-part (old version) you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)
 
 ##Commands:
 * `sm_comms` - Shows to player their communications status. *(Also may be used in chat as `/comms`)*
@@ -78,18 +75,7 @@ The **time** parameter controls how long the player is punished. (`< 0` == Tempo
 First of all, download this repository as a zip file.
 ###Installation of server part
 1. Upload all the contents of `game_upload` directory from the zip file to your gameserver into `/addons/sourcemod` folder.
-2. Edit `addons/sourcemod/configs/databases.cfg` on your gameserver and add an entry for SourceComms. It should have the following general format:
-
-		"sourcecomms"
-		{
-			"driver"			"mysql"
-			"host"				"your_mysql_host"
-			"database"			"your_sourcebans_database"
-			"user"				"your_mysql_login"
-			"pass"				"your_mysql_password"
-			//"timeout"			"0"
-			"port"				"your_database_port(default_3306)"
-		}
+2. Upload all the contents of `web_upload` directory from the zip file to your web server into "root" (it contains `application` or `framework` folders) sourcebans folder.
 3. (Optional) Edit `/addons/sourcemod/configs/adminmenu_sorting.txt`. Find `}` at the end of file and add **before**:
 
 		"sourcecomm_cmds"
@@ -102,64 +88,10 @@ First of all, download this repository as a zip file.
 			"item" "sourcecomm_unsilence"
 			"item" "sourcecomm_list"
 		}
+4. Go to the sourcebans settings page and install SourceComms plugin.
 
 ### Installation of database part
-1. **Check your sourcebans tables prefix!** Replace in query bellow prefix `sb` to yours, if you use another. Execute the following query on your sourcebans database:
-
-		CREATE TABLE `sb_comms` (
-		`bid` int(6) NOT NULL AUTO_INCREMENT,
-		`authid` varchar(64) NOT NULL,
-		`name` varchar(128) NOT NULL DEFAULT 'unnamed',
-		`created` int(11) NOT NULL DEFAULT '0',
-  		`ends` int(11) NOT NULL DEFAULT '0',
-		`length` int(10) NOT NULL DEFAULT '0',
-		`reason` text NOT NULL,
-		`aid` int(6) NOT NULL DEFAULT '0',
-		`adminIp` varchar(32) NOT NULL DEFAULT '',
-		`sid` int(6) NOT NULL DEFAULT '0',
-		`RemovedBy` int(8) DEFAULT NULL,
-		`RemoveType` varchar(3) DEFAULT NULL,
-		`RemovedOn` int(11) DEFAULT NULL,
-		`type` tinyint(4) NOT NULL DEFAULT '0' COMMENT '1 - Mute, 2 - Gag',
-		`ureason` text,
-		PRIMARY KEY (`bid`),
-		KEY `authid` (`authid`),
-		KEY `created` (`created`),
-		KEY `RemoveType` (`RemoveType`),
-		KEY `type` (`type`),
-		KEY `sid` (`sid`),
-		KEY `aid` (`aid`),
-		FULLTEXT KEY `authid_2` (`authid`),
-		FULLTEXT KEY `name` (`name`),
-		FULLTEXT KEY `reason` (`reason`)
-		) ENGINE=MyISAM  DEFAULT CHARSET=utf8;
-or you could import `sb_comms.sql` file **(please check table prefix in file!)** to database instead of copying code from this manual.
-2. If you want to import punishments from ExtendedComm plugin:
-* Check sourcebans table prefix and extendedcomm table name.
-* If you have different prefix (not `sb_`) or table_name (not `extendedcomm`) - replace their in code below (or in `import.sql` file) to your values.
-* If your `extendedcomm` table is in the different database - replace in code below (or in `import.sql` file) `extendedcomm` to `'database_with_table'.'name_of_extendedcomm_table'`
-* Execute folowing queries on your sourcebans database (or import `import.sql` file)
-
-		INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, mute_time, mute_length, mute_time+mute_length, mute_reason, 1 FROM extendedcomm WHERE (mute_type='1' OR mute_type='2');
-		INSERT INTO sb_comms (authid, name, created, length, ends, reason, type) SELECT steam_id, name, gag_time, gag_length, gag_time+gag_length, gag_reason, 2 FROM extendedcomm WHERE (gag_type='1' OR gag_type='2');
-
-### Installation of Web part
-1. Upload all the contents of `web_upload` directory from the zip file to your webserver into root sourcebans folder (which contains such files as index.php, config.php, getdemo.php).
-Place files from sourcecomms-web.zip archive to your sourcebans web folder.
-2. You need to edit a few files **(make backup before you doing this!!!)** Instructions for editing are placed in `files_to_edit.txt` from zip. Example from this file:
-	<pre><code>\includes\page-builder.php
-At line 38 --		case "servers":		--
-Add BEFORE
-
-	case "commslist":
-		RewritePageTitle("Communications Block List");
-		$page = TEMPLATES_PATH ."/page.commslist.php";
-		break;</code></pre>
-This means, that you need to open file `<sourcebans_web_folder>\includes\page-builder.php` from your webserver, find in it `case "servers":` on 38th line (or near from it) and add **before** this line next code:
-<pre><code>case "commslist":
-		RewritePageTitle("Communications Block List");
-		$page = TEMPLATES_PATH ."/page.commslist.php";
-		break;</code></pre>
+Tools or instructions for importing punishments from old SourceComms and ExtendedComm plugins are still in development.
 
 ## For plugin developers
 **SourceComms** releases several natives to provide compatibility with other plugins and for additional functionality.
