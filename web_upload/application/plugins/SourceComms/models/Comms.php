@@ -207,13 +207,63 @@ class Comms extends CActiveRecord
         return array(
             array('steam, type, reason, length', 'required'),
             array('steam', 'match', 'pattern' => SourceBans::STEAM_PATTERN),
-            array('type, length', 'numerical', 'integerOnly' => true),
+            array('length', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 64),
             array('reason, unban_reason', 'length', 'max' => 255),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
             array('id, type, steam_account_id, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on' => 'search'),
+            // custom validators
+            array('type', 'validateType'),
+            array('steam_account_id', 'oneActiveTypePerSteam', 'on' => 'insert, update'),
         );
+    }
+
+    /**
+     * Validates attribute type
+     */
+    public function validateType($attribute, $params)
+    {
+        if ($attribute === 'type') {
+            if (!array_key_exists($this->type, self::getTypes()))
+                $this->addError('type', Yii::t('CommsPlugin.main', 'Invalid punishment type'));
+        } else {
+            throw new CException('validateType is not intended for atrribute ' . $attribute);
+        }
+    }
+
+    /**
+     * Checks that player doesn't have any active punishments of the same type
+     */
+    public function oneActiveTypePerSteam($attribute, $params)
+    {
+        if ($attribute === 'steam_account_id') {
+            if($this->steam_account_id && ($this->isNewRecord || $this->isActive)) {
+                $criteria = new CDbCriteria();
+                $criteria->scopes = 'active';
+                $criteria->condition = 'steam_account_id = :id AND type = :type';
+                $criteria->params = array(
+                    ':id'   => $this->steam_account_id,
+                    ':type' => $this->type,
+                );
+
+                if (self::model()->exists($criteria)) {
+                    switch ($this->type) {
+                        case self::GAG_TYPE:
+                            $this->addError('steam', Yii::t('CommsPlugin.main', 'Already gagged'));
+                            break;
+                        case self::MUTE_TYPE:
+                            $this->addError('steam', Yii::t('CommsPlugin.main', 'Already muted'));
+                            break;
+                        default:
+                            $this->addError('steam', Yii::t('CommsPlugin.main', 'Already punished'));
+                            break;
+                    }
+                }
+            }
+        } else {
+            throw new CException('oneActiveTypePerSteam is not intended for atrribute ' . $attribute);
+        }
     }
 
     /**

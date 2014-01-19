@@ -12,12 +12,29 @@
 	'clientOptions'=>array(
 		'inputContainer'=>'.control-group',
 		'validateOnSubmit'=>true,
-	),
-	'errorMessageCssClass'=>'help-inline',
-	'htmlOptions'=>array(
-		'class'=>'form-horizontal',
-		'enctype'=>'multipart/form-data',
-	),
+        'afterValidateAttribute' => 'js:function(form, attribute, data, hasError) {
+            var to_update;
+            switch (attribute.name) {
+                case "steam":
+                    to_update = "type";
+                    break;
+
+                case "type":
+                    to_update = "steam";
+                    break;
+            }
+            $.each($.fn.yiiactiveform.getSettings(form).attributes, function () {
+                if (this.name == to_update && this.status !== 2 && this.status !== 3) {
+                    $.fn.yiiactiveform.updateInput(this, data, form);
+                }
+            });
+        }',
+    ),
+    'errorMessageCssClass'=>'help-inline',
+    'htmlOptions'=>array(
+        'class'=>'form-horizontal',
+        'enctype'=>'multipart/form-data',
+    ),
 )) ?>
 
   <div class="control-group">
