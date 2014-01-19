@@ -71,11 +71,31 @@ public SharedPlugin:__pl_sourcecomms =
 	#endif
 };
 
+#if defined REPLACE_BASECOMM
+    public SharedPlugin:__pl_basecomm =
+    {
+        name = "basecomm",
+        file = "sourcecomms.smx",
+        #if defined REQUIRE_PLUGIN
+            required = 1
+        #else
+            required = 0
+        #endif
+    };
+#endif
+
 public __pl_sourcecomms_SetNTVOptional()
 {
-	MarkNativeAsOptional("SourceComms_SetClientMute");
-	MarkNativeAsOptional("SourceComms_SetClientGag");
-	MarkNativeAsOptional("SourceComms_GetClientMuteType");
-	MarkNativeAsOptional("SourceComms_GetClientGagType");
+    MarkNativeAsOptional("SourceComms_SetClientMute");
+    MarkNativeAsOptional("SourceComms_SetClientGag");
+    MarkNativeAsOptional("SourceComms_GetClientMuteType");
+    MarkNativeAsOptional("SourceComms_GetClientGagType");
 
+    #if defined REPLACE_BASECOMM
+        MarkNativeAsOptional("BaseComm_IsClientGagged");
+        MarkNativeAsOptional("BaseComm_IsClientMuted");
+        MarkNativeAsOptional("BaseComm_SetClientGag");
+        MarkNativeAsOptional("BaseComm_SetClientMute");
+    #endif
 }
+

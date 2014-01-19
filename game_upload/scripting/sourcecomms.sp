@@ -22,7 +22,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.246"
+#define PLUGIN_VERSION "1.0.258"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sourcecomms-up.txt"
@@ -68,6 +68,28 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
     CreateNative("SourceComms_GetClientGagType",  Native_GetClientGagType);
     MarkNativeAsOptional("SQL_SetCharset");
     RegPluginLibrary("sourcecomms");
+
+#if defined REPLACE_BASECOMM
+    decl String:sBasecommPath[PLATFORM_MAX_PATH + 1];
+    BuildPath(Path_SM, sBasecommPath, sizeof(sBasecommPath), "plugins/basecomm.smx");
+
+    if(!FileExists(sBasecommPath))
+    {
+        // Ok, let's rock this party!
+        CreateNative("BaseComm_IsClientGagged", Native_BaseComm_IsClientGagged);
+        CreateNative("BaseComm_IsClientMuted",  Native_BaseComm_IsClientMuted);
+        CreateNative("BaseComm_SetClientGag",   Native_BaseComm_SetClientGag);
+        CreateNative("BaseComm_SetClientMute",  Native_BaseComm_SetClientMute);
+        RegPluginLibrary("basecomm");
+    }
+    else
+    {
+#if defined DEBUG
+        PrintToServer("Basecomm plugin exists - skip registering replacement natives");
+#endif
+    }
+#endif
+
     return APLRes_Success;
 }
 
@@ -145,6 +167,16 @@ public OnMapStart()
     ReadConfig();
 }
 
+#if defined REPLACE_BASECOMM
+public OnConfigsExecuted()
+{
+    if(DisablePlugin("basecomm"))
+    {
+        // Reload itself
+        ReloadPlugin();
+    }
+}
+#endif
 
 // CLIENT CONNECTION FUNCTIONS //
 
