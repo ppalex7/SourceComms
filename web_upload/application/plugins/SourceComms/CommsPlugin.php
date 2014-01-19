@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.820';
+        return '1.0.826';
     }
 
     public function getUrl()
@@ -180,9 +180,9 @@ class CommsPlugin extends SBPlugin
                 Yii::app()->clientScript->registerScript('admin_index_commsStats',
                     '$(".table-stat>tbody>tr").eq(2).after("<tr>\
                             <td class=\"value\" width=\"20%\">'. $total_mutes .'</td>\
-                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Mutes count') . '</td>\
+                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Mutes count', $total_mutes) . '</td>\
                             <td class=\"value\" width=\"20%\">' . $total_gags . '</td>\
-                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Gags count') . '</td>\
+                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Gags count', $total_gags) . '</td>\
                         </tr>"
                     );',
                     CClientScript::POS_READY);
