@@ -163,8 +163,6 @@ class Comms extends CActiveRecord
                             'unban_time',
                             'create_time',
                       );
-
-
     }
 
     /**
@@ -180,7 +178,7 @@ class Comms extends CActiveRecord
     /**
      * Constructor.
      * @param $scenario - scenario name
-     * @param $tableName - name of source table for creted model.
+     * @param $tableName - name of source table for created model.
      */
     public function __construct($scenario = 'insert', $tableName = null)
     {
@@ -208,13 +206,13 @@ class Comms extends CActiveRecord
         // will receive user inputs.
         return array(
             array('steam, type, reason, length', 'required'),
-            array('type, length', 'numerical', 'integerOnly'=>true),
-            array('steam', 'match', 'pattern'=>SourceBans::STEAM_PATTERN),
-            array('name', 'length', 'max'=>64),
-            array('reason, unban_reason', 'length', 'max'=>255),
+            array('steam', 'match', 'pattern' => SourceBans::STEAM_PATTERN),
+            array('type, length', 'numerical', 'integerOnly' => true),
+            array('name', 'length', 'max' => 64),
+            array('reason, unban_reason', 'length', 'max' => 255),
             // The following rule is used by search().
             // Please remove those attributes that should not be searched.
-            array('id, type, steam_account_id, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on'=>'search'),
+            array('id, type, steam_account_id, name, reason, length, server_id, admin_id, admin_ip, unban_admin_id, unban_reason, unban_time, create_time', 'safe', 'on' => 'search'),
         );
     }
 
@@ -469,12 +467,9 @@ class Comms extends CActiveRecord
      */
     public function getSteam()
     {
-        if (empty($this->steam_account_id))
-        {
+        if (empty($this->steam_account_id)) {
             return null;
-        }
-        else
-        {
+        } else {
             $y = $this->steam_account_id % 2;
             $z = ($this->steam_account_id - $y) / 2;
 
@@ -587,12 +582,9 @@ class Comms extends CActiveRecord
      */
     protected function beforeSave()
     {
-        if($this->isNewRecord && !$this->isInternalRecord)
-        {
+        if($this->isNewRecord && !$this->isInternalRecord) {
             if(!Yii::app()->user->isGuest)
-            {
                 $this->admin_id = Yii::app()->user->id;
-            }
 
             $this->admin_ip = $_SERVER['REMOTE_ADDR'];
         }
