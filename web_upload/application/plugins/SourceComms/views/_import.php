@@ -152,7 +152,7 @@ $this->widget('zii.widgets.grid.CGridView', array(
             function () {
                 unlockButtons();
                 progress.hide();
-                $.alert("' . Yii::t('CommsPlugin.main', 'An error was occurred, code: {code}', array('code' => 104)) . '", "error");
+                $.alert("' . Yii::t('CommsPlugin.main', 'An error was occurred, code: {code}', array('{code}' => 104)) . '", "error");
             }
         );
     };
