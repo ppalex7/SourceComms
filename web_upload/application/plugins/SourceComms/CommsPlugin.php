@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.836';
+        return '1.0.837';
     }
 
     public function getUrl()
@@ -110,7 +110,7 @@ class CommsPlugin extends SBPlugin
     public function onBeginRequest($event)
     {
         // Import plugin models
-        Yii::import($this->getPathAlias('models.Comms'));
+        Yii::import($this->getPathAlias('models.*'));
         // Get and register assets path
         $assetsUrl = Yii::app()->assetManager->publish($this->getPath('assets'));
         // Register custom css file
