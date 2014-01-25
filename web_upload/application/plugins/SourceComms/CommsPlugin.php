@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.866';
+        return '1.0.882';
     }
 
     public function getUrl()
@@ -36,6 +36,12 @@ class CommsPlugin extends SBPlugin
 
     public function runInstall()
     {
+        Yii::import($this->getPathAlias('models.*'));
+
+        // Cleanup cache
+        Yii::app()->db->schema->getTables();
+        Yii::app()->db->schema->refresh();
+
         // doesn't affects changing tables structure :(
         $transaction = Yii::app()->db->beginTransaction();
 
@@ -45,12 +51,16 @@ class CommsPlugin extends SBPlugin
                 Yii::log('Founded old {{comms}} table in database');
 
                 if (Yii::app()->db->createCommand()->select('*')->from('{{comms}}')->limit(1)->queryScalar() !== false) {
-                    $new_table_name = '{{comms_old_' . time() . '}}';
+                    $new_table_name = 'old_comms_' . time();
                     Yii::log('Old table contains data and will be renamed to ' . $new_table_name);
                     Yii::app()->db->createCommand()->renameTable('{{comms}}', $new_table_name);
-                    Yii::app()->db->createCommand()->dropForeignKey('comms_admin', $new_table_name);
-                    Yii::app()->db->createCommand()->dropForeignKey('comms_server', $new_table_name);
-                    Yii::app()->db->createCommand()->dropForeignKey('comms_unban_admin', $new_table_name);
+
+                    // If it was table of the same comms version - We can't create new table with the same foreign keys
+                    if (CommsForImport::isTableValidForModel($new_table_name)) {
+                        Yii::app()->db->createCommand()->dropForeignKey('comms_admin', $new_table_name);
+                        Yii::app()->db->createCommand()->dropForeignKey('comms_server', $new_table_name);
+                        Yii::app()->db->createCommand()->dropForeignKey('comms_unban_admin', $new_table_name);
+                    }
                 } else {
                     Yii::log('Old table is empty and will be dropped');
                     Yii::app()->db->createCommand()->dropTable('{{comms}}');
@@ -86,7 +96,7 @@ class CommsPlugin extends SBPlugin
 
         catch (Exception $e) {
             Yii::log('Sourcecomms installation failed');
-            Yii::log($e);
+            Yii::log($e->getMessage());
 
             $transaction->rollback();
             return false;

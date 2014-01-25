@@ -12,7 +12,7 @@
 class CommsController extends Controller
 {
     const ITEMS_PER_ITERATION = 50;
-    const POSSIBLE_TABLE_NAMES = '/(?:comms(?:_old_\d+)?|^extendedcomm)$/i';
+    const POSSIBLE_TABLE_NAMES = '/(?:comms|^old_comms_\d+|^extendedcomm)$/i';
 
     /**
      * @var array of model names which is available for import
