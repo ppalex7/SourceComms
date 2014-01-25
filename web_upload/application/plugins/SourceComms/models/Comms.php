@@ -52,7 +52,10 @@ class Comms extends CActiveRecord
     /**
      * @var array with icons for supported punishment types.
      */
-    private static $_icons;
+    private static $_icons = array(
+        self::GAG_TYPE  => '/images/type_c.png',
+        self::MUTE_TYPE => '/images/type_v.png',
+    );
 
     /**
      * @var string with json translations for unban confirmation window.
@@ -118,12 +121,6 @@ class Comms extends CActiveRecord
      */
     public static function getIcon($type, $assetsUrl = '')
     {
-        if (self::$_icons === null)
-            self::$_icons = array(
-                self::GAG_TYPE  => '/images/type_c.png',
-                self::MUTE_TYPE => '/images/type_v.png',
-            );
-
         if (array_key_exists($type, self::$_icons))
             return $assetsUrl . self::$_icons[$type];
         else
