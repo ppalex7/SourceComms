@@ -18,7 +18,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.837';
+        return '1.0.848';
     }
 
     public function getUrl()
@@ -48,6 +48,9 @@ class CommsPlugin extends SBPlugin
                     $new_table_name = '{{comms_old_' . time() . '}}';
                     Yii::log('Old table contains data and will be renamed to ' . $new_table_name);
                     Yii::app()->db->createCommand()->renameTable('{{comms}}', $new_table_name);
+                    Yii::app()->db->createCommand()->dropForeignKey('comms_admin', $new_table_name);
+                    Yii::app()->db->createCommand()->dropForeignKey('comms_server', $new_table_name);
+                    Yii::app()->db->createCommand()->dropForeignKey('comms_unban_admin', $new_table_name);
                 } else {
                     Yii::log('Old table is empty and will be dropped');
                     Yii::app()->db->createCommand()->dropTable('{{comms}}');
