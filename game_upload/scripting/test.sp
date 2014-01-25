@@ -1,5 +1,5 @@
 #include <sourcemod>
-
+#include <sourcebans>
 
 public SharedPlugin:__pl_basecomm =
 {
@@ -37,38 +37,54 @@ public Native_SetClientMute(Handle:hPlugin, numParams)
 
 public OnPluginStart()
 {
-    AddCommandListener(CommandCallback, "sm_test4");
-	AddCommandListener(CommandCallback, "sm_test3");
-
-	// pack = ;
-
+    RegServerCmd("test_sb_connect", sbc, _, _);
+    RegServerCmd("test_sb_execute_good", sbe1);
+    RegServerCmd("test_sb_execute_bad", sbe2);
+    RegServerCmd("test_sb_query_good", sbq1);
+    RegServerCmd("test_sb_query_bad", sbq2);
 }
 
-public Action:CommandCallback(client, const String:command[], args)
+public Action:sbc(args) {
+    PrintToServer("SB_Connect returns: %b", SB_Connect());
+    PrintToServer("done");
+}
+
+public Action:sbe1(args) {
+    PrintToServer("SB_Execute('SELECT 1')");
+    SB_Execute("SELECT 1");
+    PrintToServer("done");
+}
+
+public Action:sbe2(args) {
+    SB_Execute("SELECT blabla from unkown");
+    PrintToServer("SB_Execute('SELECT blabla from unkown')");
+    PrintToServer("done");
+}
+
+public Action:sbq1(args) {
+    PrintToServer("SB_Query('SELECT 1')");
+    SB_Query(cb, "SELECT 121");
+    PrintToServer("done");
+}
+
+public Action:sbq2(args) {
+    PrintToServer("SB_Query('SELECT bla from bla')");
+    SB_Query(cb, "SELECT bla from bla");
+    PrintToServer("done");
+}
+
+public cb(Handle:owner, Handle:hndl, const String:error[], any:data)
 {
-	// new String:a[1], String:big[128];
-
-	new String:q[20*1000-1];
-
-	new String:q5[1];
-	new String:q6[1];
-
-        PrintToServer("%s: %d, %d",command, client, args);
-	return Plugin_Continue;
-
+    if(error[0])
+    {
+        PrintToServer("Error: (%s)", error);
+    }
+    else
+    {
+        PrintToServer("no errors");
+        while (SQL_FetchRow(hndl))
+        {
+            PrintToServer("data: %d", SQL_FetchInt(hndl, 0));
+        }
+    }
 }
-
-public OnClientPostAdminCheck(client){
-	PrintToServer("%d",GetSteamAccountID(1));
-}
-
-stock Fu(String:val[])
-{
-
-
-}
-
-/*Header size:           1976 bytes
-Code size:             2132 bytes
-Data size:             1244 bytes
-Stack/heap size:      16384 bytes; Total requirements:   21736 bytes*/
