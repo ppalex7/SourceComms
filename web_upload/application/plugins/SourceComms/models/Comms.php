@@ -60,11 +60,6 @@ class Comms extends CActiveRecord
     private static $_unban_translations;
 
     /**
-     * @var string - Name of table which is associated with model
-     */
-    protected $_tableName;
-
-    /**
      * Returns the supported punishment types
      * @return array the supported punishment types
      */
@@ -136,31 +131,6 @@ class Comms extends CActiveRecord
     }
 
     /**
-     * Checks table in the database for the compatibility with this model.
-     * @param string $table - name of table for check
-     * @return boolean - whether the table is compatible
-     */
-    public static function isTableValidForModel($table)
-    {
-        return in_array($table, Yii::app()->db->getSchema()->getTableNames(), true)
-               && Yii::app()->db->getSchema()->getTable($table)->getColumnNames()
-                  === array('id',
-                            'type',
-                            'steam_account_id',
-                            'name',
-                            'reason',
-                            'length',
-                            'server_id',
-                            'admin_id',
-                            'admin_ip',
-                            'unban_admin_id',
-                            'unban_reason',
-                            'unban_time',
-                            'create_time',
-                      );
-    }
-
-    /**
      * Returns the static model of the specified AR class.
      * @param string $className active record class name.
      * @return Comms the static model class
@@ -171,25 +141,11 @@ class Comms extends CActiveRecord
     }
 
     /**
-     * Constructor.
-     * @param $scenario - scenario name
-     * @param $tableName - name of source table for created model.
-     */
-    public function __construct($scenario = 'insert', $tableName = null)
-    {
-        $this->_tableName = $tableName;
-        parent::__construct($scenario);
-    }
-
-    /**
      * @return string the associated database table name
      */
     public function tableName()
     {
-        if ($this->_tableName)
-            return $this->_tableName;
-        else
-            return '{{comms}}';
+        return '{{comms}}';
     }
 
     /**
@@ -260,11 +216,6 @@ class Comms extends CActiveRecord
             throw new CException('oneActiveTypePerSteam is not intended for atrribute ' . $attribute);
         }
     }
-
-    /**
-     * @var $availableRelations - Array of relations which could be used at import
-     */
-    public static $availableRelations = array('admin','server','unban_admin');
 
     /**
      * @return array relational rules.
@@ -390,69 +341,6 @@ class Comms extends CActiveRecord
             'UserIpBehavior' => array(
                 'class' => 'application.behaviors.UserIpBehavior',
                 'attributes' => 'admin_ip',
-            ),
-        );
-    }
-
-    /**
-     * @return boolean - whether the record is valid
-     */
-    private function isValid()
-    {
-        return $this->steam_account_id
-               && ($this->type == self::GAG_TYPE
-                   || $this->type == self::MUTE_TYPE
-                  );
-    }
-
-    /**
-     * @return array attributes for search the related Comms model
-     */
-    private function getAttributesForSearch()
-    {
-        if ($this->isValid())
-            return array(
-                'type'              => $this->type,
-                'steam_account_id'  => $this->steam_account_id,
-                'create_time'       => $this->create_time,
-            );
-        else
-            return null;
-    }
-
-    /**
-     * @return array attributes for saving to new Comms record
-     */
-    private function getAttributesForSave()
-    {
-        if ($this->isValid())
-            return array(
-                'type'              => $this->type,
-                'steam_account_id'  => $this->steam_account_id,
-                'name'              => $this->name ? $this->name : null,
-                'reason'            => $this->reason ? $this->reason : Yii::t('CommsPlugin.main', 'Imported from same SourceComms version'),
-                'length'            => $this->length >= 0 ? $this->length : -1,
-                'server_id'         => $this->server ? $this->server->id : null,
-                'admin_id'          => $this->admin ? $this->admin->id : null,
-                'admin_ip'          => $this->admin_ip ? $this->admin_ip : $_SERVER['SERVER_ADDR'],
-                'unban_admin_id'    => ($this->unban_time && $this->unban_admin) ? $this->unban_admin->id : null,
-                'unban_reason'      => ($this->unban_time && $this->unban_reason) ? $this->unban_reason : null,
-                'unban_time'        => $this->unban_time ? $this->unban_time : null,
-                'create_time'       => $this->create_time,
-            );
-        else
-            return null;
-    }
-
-    /**
-     * @return array of arrays of attributes for search and saving Comms model
-     */
-    public function getDataForImport()
-    {
-        return array(
-            array(
-                'search' => $this->getAttributesForSearch(),
-                'save'   => $this->getAttributesForSave(),
             ),
         );
     }

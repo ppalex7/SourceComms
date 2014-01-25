@@ -20,7 +20,7 @@ class CommsController extends Controller
     protected static $availableModels = array(
         'OldComms',
         'ExtendedComm',
-        'Comms',
+        'CommsForImport',
     );
 
     /**
@@ -240,35 +240,36 @@ class CommsController extends Controller
         $tableName  = Yii::app()->request->getParam('table');
         $offset     = Yii::app()->request->getParam('offset');
 
-        if (!$tableName || $offset === null || $offset < 0)
-        {
+        if (!$tableName || $offset === null || $offset < 0) {
             Yii::log('Sourcecomms error 102: No table name or offset specified');
             echo CJSON::encode(array('status' => 'error', 'code' => 102));
             Yii::app()->end();
         }
 
         $modelName;
-        foreach (self::$availableModels as $curModelName)
-        {
-            if ($curModelName::isTableValidForModel($tableName))
-            {
+        foreach (self::$availableModels as $curModelName) {
+            if ($curModelName::isTableValidForModel($tableName)) {
                 $modelName = $curModelName;
                 break;
             }
         }
 
         // No valid model
-        if (!$modelName)
-        {
+        if (!$modelName) {
             Yii::log('Sourcecomms error 103: No valid model for specified table');
             echo CJSON::encode(array('status' => 'error', 'code' => 103));
             Yii::app()->end();
         }
 
-        $model = new $modelName('insert', $tableName);
+        // Clearing schema cache at start
+        if ($offset === 0) {
+            Yii::app()->db->schema->getTables();
+            Yii::app()->db->schema->refresh();
+        }
+
+        $model = new $modelName('search', $tableName);
         $totalCount = $model->count();
-        if ($offset >= $totalCount)
-        {
+        if ($offset >= $totalCount) {
             echo CJSON::encode(array('status' => 'finish', 'table' => $tableName));
             Yii::app()->end();
         }
@@ -278,8 +279,7 @@ class CommsController extends Controller
         $criteria->limit = self::ITEMS_PER_ITERATION;
         $data = $model->with($modelName::$availableRelations)->FindAll($criteria);
 
-        if (!$data)
-        {
+        if (!$data) {
             // something strange was happened
             echo CJSON::encode(array('status' => 'finish'));
             Yii::app()->end();
