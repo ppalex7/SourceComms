@@ -22,7 +22,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.247"
+#define PLUGIN_VERSION "1.0.248"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sourcecomms-up.txt"
@@ -328,22 +328,27 @@ public Action:FWUngag(args)
     new String:sArgs[256];
     new String:sArg[1][64];
     GetCmdArgString(sArgs, sizeof(sArgs));
-    if(!ExplodeString(sArgs, " ", sArg, 1, 64))
-    {
+
+    new iTargetAccountID;
+    if (!ExplodeString(sArgs, " ", sArg, 1, 64)
+        || !StringToIntEx(sArg[0], iTargetAccountID)
+        || iTargetAccountID <= 0
+    ) {
         LogError("Wrong usage of sc_fw_ungag");
         return Plugin_Stop;
     }
 
-    LogMessage("Received ungag command from web: steam %s", sArg[0]);
+    LogMessage("Received ungag command from web: Steam AccountID %d", iTargetAccountID);
 
     for (new i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
         {
-            decl String:sClientAuth[64];
-            GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
-            if (strcmp(sClientAuth, sArg[0], false) == 0)
+            new iClientAccountID = GetSteamAccountID(i);
+            if (iClientAccountID && iClientAccountID == iTargetAccountID)
             {
+                decl String:sClientAuth[64];
+                GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
                 #if defined DEBUG
                     PrintToServer("Catched %s for ungagging from web", sClientAuth);
                 #endif
@@ -368,22 +373,27 @@ public Action:FWUnmute(args)
     new String:sArgs[256];
     new String:sArg[1][64];
     GetCmdArgString(sArgs, sizeof(sArgs));
-    if(!ExplodeString(sArgs, " ", sArg, 1, 64))
-    {
+
+    new iTargetAccountID;
+    if (!ExplodeString(sArgs, " ", sArg, 1, 64)
+        || !StringToIntEx(sArg[0], iTargetAccountID)
+        || iTargetAccountID <= 0
+    ) {
         LogError("Wrong usage of sc_fw_ungag");
         return Plugin_Stop;
     }
 
-    LogMessage("Received unmute command from web: steam %s", sArg[0]);
+    LogMessage("Received unmute command from web: Steam AccountID %s", iTargetAccountID);
 
     for (new i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
         {
-            decl String:sClientAuth[64];
-            GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
-            if (strcmp(sClientAuth, sArg[0], false) == 0)
+            new iClientAccountID = GetSteamAccountID(i);
+            if (iClientAccountID && iClientAccountID == iTargetAccountID)
             {
+                decl String:sClientAuth[64];
+                GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
                 #if defined DEBUG
                     PrintToServer("Catched %s for unmuting from web", sClientAuth);
                 #endif
