@@ -22,7 +22,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.246"
+#define PLUGIN_VERSION "1.0.247"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sourcecomms-up.txt"
@@ -276,22 +276,29 @@ public Action:FWBlock(args)
 
     new iType;
     new iLength;
-    if(ExplodeString(sArgs, " ", sArg, 3, 64) != 3 || !StringToIntEx(sArg[0], iType) || iType < TYPE_MUTE || iType > TYPE_SILENCE || !StringToIntEx(sArg[1], iLength))
-    {
+    new iTargetAccountID;
+    if (ExplodeString(sArgs, " ", sArg, 3, 64) != 3
+        || !StringToIntEx(sArg[0], iType)
+        || iType < TYPE_MUTE || iType > TYPE_SILENCE
+        || !StringToIntEx(sArg[1], iLength)
+        || !StringToIntEx(sArg[2], iTargetAccountID)
+        || iTargetAccountID <= 0
+    ) {
         LogError("Wrong usage of sc_fw_block");
         return Plugin_Stop;
     }
 
-    LogMessage("Received block command from web: steam %s, type %d, length %d", sArg[2], iType, iLength);
+    LogMessage("Received block command from web: Steam AccountID %d, type %d, length %d", iTargetAccountID, iType, iLength);
 
     for (new i = 1; i <= MaxClients; i++)
     {
         if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
         {
-            decl String:sClientAuth[64];
-            GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
-            if (strcmp(sClientAuth, sArg[2], false) == 0)
+            new iClientAccountID = GetSteamAccountID(i);
+            if (iClientAccountID && iClientAccountID == iTargetAccountID)
             {
+                decl String:sClientAuth[64];
+                GetClientAuthString(i, sClientAuth, sizeof(sClientAuth));
                 #if defined DEBUG
                     PrintToServer("Catched %s for blocking from web", sClientAuth);
                 #endif
