@@ -120,7 +120,7 @@ class OldComms extends CActiveRecord
      */
     private function isValid()
     {
-        return preg_match(SourceBans::STEAM_PATTERN, $this->authid)
+        return preg_match(SourceBans::PATTERN_STEAM, $this->authid)
                && ($this->type == self::GAG_TYPE
                    || $this->type == self::MUTE_TYPE
                   );

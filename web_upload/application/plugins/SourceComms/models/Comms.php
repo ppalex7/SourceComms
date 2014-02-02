@@ -154,7 +154,7 @@ class Comms extends CActiveRecord
         // will receive user inputs.
         return array(
             array('steam, type, reason, length', 'required'),
-            array('steam', 'match', 'pattern' => SourceBans::STEAM_PATTERN),
+            array('steam', 'match', 'pattern' => SourceBans::PATTERN_STEAM),
             array('length', 'numerical', 'integerOnly' => true),
             array('name', 'length', 'max' => 64),
             array('reason, unban_reason', 'length', 'max' => 255),

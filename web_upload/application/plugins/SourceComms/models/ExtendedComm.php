@@ -108,7 +108,7 @@ class ExtendedComm extends CActiveRecord
      */
     private function isValid($type)
     {
-        return preg_match(SourceBans::STEAM_PATTERN, $this->steam_id)
+        return preg_match(SourceBans::PATTERN_STEAM, $this->steam_id)
                && (     $type == self::GAG_TYPE
                         && ($this->gag_type == self::COMM_TIME
                             || $this->gag_type == self::COMM_PERM)
