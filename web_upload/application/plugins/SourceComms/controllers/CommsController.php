@@ -186,13 +186,13 @@ class CommsController extends Controller
             if($model->save()) {
                 switch ($model->type) {
                     case Comms::GAG_TYPE:
-                        SourceBans::log('Gag added', 'Gag against ' . $model->nameForLog . ' was added');
+                        SourceBans::log('Gag added', 'Gag against ' . $model->nameForLog . ' was added', SBLog::TYPE_INFORMATION);
                         break;
                     case Comms::MUTE_TYPE:
-                        SourceBans::log('Mute added', 'Mute against ' . $model->nameForLog . ' was added');
+                        SourceBans::log('Mute added', 'Mute against ' . $model->nameForLog . ' was added', SBLog::TYPE_INFORMATION);
                         break;
                     default:
-                        SourceBans::log('Communication punishment added', 'Communication punshment against ' . $model->nameForLog . ' was added');
+                        SourceBans::log('Communication punishment added', 'Communication punshment against ' . $model->nameForLog . ' was added', SBLog::TYPE_INFORMATION);
                         break;
                 }
 
@@ -220,13 +220,13 @@ class CommsController extends Controller
         if ($unbanned) {
             switch ($model->type) {
                 case Comms::GAG_TYPE:
-                    SourceBans::log('Player ungagged', 'Player ' . $model->nameForLog . ' has been ungagged');
+                    SourceBans::log('Player ungagged', 'Player ' . $model->nameForLog . ' has been ungagged', SBLog::TYPE_INFORMATION);
                     break;
                 case Comms::MUTE_TYPE:
-                    SourceBans::log('Player unmuted', 'Player ' . $model->nameForLog . ' has been unmuted');
+                    SourceBans::log('Player unmuted', 'Player ' . $model->nameForLog . ' has been unmuted', SBLog::TYPE_INFORMATION);
                     break;
                 default:
-                    SourceBans::log('Communication punishment unbanned', 'Communication punshment against ' . $model->nameForLog . ' was unbanned');
+                    SourceBans::log('Communication punishment unbanned', 'Communication punshment against ' . $model->nameForLog . ' was unbanned', SBLog::TYPE_INFORMATION);
                     break;
             }
         }
