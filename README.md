@@ -47,7 +47,7 @@ Also includes files and instructions to integration to existing sourcebans web-p
 * Admin-page *'Comms'* for adding new punishments.
 * Command *'Block comms'* in player context menu on servers page
 
-**Sample of web-part (old version) you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)
+~~**Sample of web-part (old version) you may look [there](http://z.tf2news.ru/tbans/index.php?p=commslist)** (Login/pass `test`/`test`)~~
 
 ##Commands:
 * `sm_comms` - Shows to player their communications status. *(Also may be used in chat as `/comms`)*
