@@ -191,12 +191,12 @@
             'itemOptions' => array('class' => 'comms-menu-unban'),
             'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('UNBAN_OWN_COMMS', 'UNBAN_GROUP_COMMS', 'UNBAN_ALL_COMMS'),
         ),
-        // array(
-        //     'label' => Yii::t('sourcebans', 'Delete'),
-        //     'url' => array('bans/delete', 'id'=>'__ID__'),
-        //     'itemOptions' => array('class' => 'ban-menu-delete'),
-        //     'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('DELETE_BANS'),
-        // ),
+        array(
+            'label' => Yii::t('sourcebans', 'Delete'),
+            'url' => array('comms/delete', 'id'=>'__ID__'),
+            'itemOptions' => array('class' => 'comms-menu-delete'),
+            'visible' => !Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission('DELETE_COMMS'),
+        ),
         array(
             'label' => Yii::t('sourcebans', 'Comments'),
             'url' => array('comments/index', 'object_type'=>Comms::COMMENTS_TYPE, 'object_id'=>'__ID__'),
@@ -289,18 +289,6 @@
     });
   }
 
-  $(document).on("click", ".ban-menu-delete a", function(e) {
-    if(!confirm("' . Yii::t('zii', 'Are you sure you want to delete this item?') . '")) return false;
-    $("#' . $grid->id . '").yiiGridView("update", {
-      type: "POST",
-      url: $(this).attr("href"),
-      success: function(data) {
-        $("#' . $grid->id . '").yiiGridView("update");
-      }
-    });
-    return false;
-  });
-
   $(document).on("click", ".comms-menu-unban a", function(e) {
     if($(this).parents("li").hasClass("disabled"))
       return;
@@ -314,6 +302,20 @@
 
     $("#confirm_button").prop("rel", $(this).prop("rel"));
     $("#unban-confirm").modal("show"); return false;
+  });
+
+  $(document).on("click", ".comms-menu-delete a", function(e) {
+    if(!confirm("' . Yii::t('zii', 'Are you sure you want to delete this item?') . '"))
+      return false;
+
+    $("#' . $grid->id . '").yiiGridView("update", {
+      type: "POST",
+      url: $(this).attr("href"),
+      success: function(data) {
+        $("#' . $grid->id . '").yiiGridView("update");
+      }
+    });
+    return false;
   });
 
   createSections();

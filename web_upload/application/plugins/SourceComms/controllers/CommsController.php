@@ -44,7 +44,7 @@ class CommsController extends Controller
     {
         return array(
             'accessControl', // perform access control for CRUD operations
-            'postOnly + add, unban, import', // we only allow deletion via POST request
+            'postOnly + add, unban, import, delete', // we only allow deletion via POST request
             'ajaxOnly + import',
         );
     }
@@ -68,6 +68,10 @@ class CommsController extends Controller
             array('allow',
                 'actions' => array('unban'),
                 'expression' => '!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("UNBAN_ALL_BANS", "UNBAN_GROUP_BANS", "UNBAN_OWN_BANS")',
+            ),
+            array('allow',
+                'actions'=>array('delete'),
+                'expression'=>'!Yii::app()->user->isGuest && Yii::app()->user->data->hasPermission("DELETE_COMMS")',
             ),
             array('allow',
                 'actions' => array('import'),
@@ -232,6 +236,33 @@ class CommsController extends Controller
         }
 
         Yii::app()->end($unbanned);
+    }
+
+    /**
+     * Deletes a particular model.
+     * If deletion is successful, the browser will be redirected to the 'admin' page.
+     * @param integer $id the ID of the model to be deleted
+     */
+    public function actionDelete($id)
+    {
+        $model=$this->loadModel($id);
+        if ($model->delete()) {
+            switch ($model->type) {
+                case Comms::GAG_TYPE:
+                    SourceBans::log('Gag deleted', 'Gag against ' . $model->nameForLog . ' was deleted', SBLog::TYPE_WARNING);
+                    break;
+                case Comms::MUTE_TYPE:
+                    SourceBans::log('Mute deleted', 'Mute against ' . $model->nameForLog . ' was deleted', SBLog::TYPE_WARNING);
+                    break;
+                default:
+                    SourceBans::log('Communication punishment deleted', 'Communication punshment against ' . $model->nameForLog . ' was deleted', SBLog::TYPE_WARNING);
+                    break;
+            }
+        }
+
+        // if AJAX request (triggered by deletion via admin grid view), we should not redirect the browser
+        if(!isset($_GET['ajax']))
+            $this->redirect(isset($_POST['returnUrl']) ? $_POST['returnUrl'] : array('admin'));
     }
 
     public function actionImport()
