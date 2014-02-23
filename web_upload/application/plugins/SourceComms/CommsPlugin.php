@@ -44,7 +44,7 @@ class CommsPlugin extends SBPlugin
         );
 
         Yii::app()->clientScript->registerScript('site_index_commsStats',
-            '$("html>body#site_dashboard>div.container>div.row").eq(2).after("' . CJavaScript::quote($script) . '");',
+            '$("html>body>div.container>div.row").eq(2).after("' . CJavaScript::quote($script) . '");',
             CClientScript::POS_END);
 
         // we can't apply YiiGridView function before rendering the appropriate table - let's swap actions
@@ -73,7 +73,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.992';
+        return '1.0.995';
     }
 
     public function getUrl()
