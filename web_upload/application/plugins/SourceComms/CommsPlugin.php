@@ -24,7 +24,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.904';
+        return '1.0.921';
     }
 
     public function getUrl()
@@ -206,17 +206,17 @@ class CommsPlugin extends SBPlugin
 
                 // Add Comms stat to admin dashboard
                 $model = new Comms;
-                $total_mutes = $model->countByAttributes(array('type' => Comms::MUTE_TYPE));
-                $total_gags = $model->countByAttributes(array('type' => Comms::GAG_TYPE));
 
+                $script = Yii::app()->controller->renderPartial(
+                    $this->getViewFile('_admin_dashboard'),
+                    array(
+                        'total_mutes'   => $model->countByAttributes(array('type' => Comms::MUTE_TYPE)),
+                        'total_gags'    => $model->countByAttributes(array('type' => Comms::GAG_TYPE)),
+                    ),
+                    true
+                );
                 Yii::app()->clientScript->registerScript('admin_index_commsStats',
-                    '$(".table-stat>tbody>tr").eq(2).after("<tr>\
-                            <td class=\"value\" width=\"20%\">'. $total_mutes .'</td>\
-                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Mutes count', $total_mutes) . '</td>\
-                            <td class=\"value\" width=\"20%\">' . $total_gags . '</td>\
-                            <td width=\"30%\">' . Yii::t('CommsPlugin.main', 'Gags count', $total_gags) . '</td>\
-                        </tr>"
-                    );',
+                    '$("html>body#admin_index>div.container>div.row>div.span8>table.table.table-stat>tbody>tr").eq(2).after("' . CJavaScript::quote($script) . '");',
                     CClientScript::POS_READY);
                 break;
 
