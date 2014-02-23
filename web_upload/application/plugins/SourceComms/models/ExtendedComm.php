@@ -30,8 +30,8 @@
  */
 class ExtendedComm extends CActiveRecord
 {
-    const GAG_TYPE  = 2;
-    const MUTE_TYPE = 1;
+    const TYPE_GAG  = 2;
+    const TYPE_MUTE = 1;
     const COMM_TIME = 1;
     const COMM_PERM = 2;
 
@@ -109,10 +109,10 @@ class ExtendedComm extends CActiveRecord
     private function isValid($type)
     {
         return preg_match(SourceBans::PATTERN_STEAM, $this->steam_id)
-               && (     $type == self::GAG_TYPE
+               && (     $type == self::TYPE_GAG
                         && ($this->gag_type == self::COMM_TIME
                             || $this->gag_type == self::COMM_PERM)
-                    ||  $type == self::MUTE_TYPE
+                    ||  $type == self::TYPE_MUTE
                         && ($this->mute_type == self::COMM_TIME
                             || $this->mute_type == self::COMM_PERM)
                   );
@@ -134,10 +134,10 @@ class ExtendedComm extends CActiveRecord
     {
         switch ($type)
         {
-            case self::GAG_TYPE:
+            case self::TYPE_GAG:
                 $length = $this->gag_length;
                 break;
-            case self::MUTE_TYPE:
+            case self::TYPE_MUTE:
                 $length = $this->mute_length;
                 break;
             default:
@@ -161,9 +161,9 @@ class ExtendedComm extends CActiveRecord
     {
         switch ($type)
         {
-            case self::GAG_TYPE:
+            case self::TYPE_GAG:
                 return $this->gag_time;
-            case self::MUTE_TYPE:
+            case self::TYPE_MUTE:
                 return $this->mute_time;
             default:
                 return null;
@@ -178,9 +178,9 @@ class ExtendedComm extends CActiveRecord
     {
         switch ($type)
         {
-            case self::GAG_TYPE:
+            case self::TYPE_GAG:
                 return $this->gag_reason;
-            case self::MUTE_TYPE:
+            case self::TYPE_MUTE:
                 return $this->mute_reason;
             default:
                 return null;
@@ -235,12 +235,12 @@ class ExtendedComm extends CActiveRecord
     {
         return array(
             array(
-                'search' => $this->getAttributesForSearch(self::GAG_TYPE),
-                'save'   => $this->getAttributesForSave(self::GAG_TYPE),
+                'search' => $this->getAttributesForSearch(self::TYPE_GAG),
+                'save'   => $this->getAttributesForSave(self::TYPE_GAG),
             ),
             array(
-                'search' => $this->getAttributesForSearch(self::MUTE_TYPE),
-                'save'   => $this->getAttributesForSave(self::MUTE_TYPE),
+                'search' => $this->getAttributesForSearch(self::TYPE_MUTE),
+                'save'   => $this->getAttributesForSave(self::TYPE_MUTE),
             ),
         );
     }

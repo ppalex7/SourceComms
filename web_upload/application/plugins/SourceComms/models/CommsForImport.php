@@ -28,8 +28,8 @@
  */
 class CommsForImport extends CActiveRecord
 {
-    const GAG_TYPE  = 2;
-    const MUTE_TYPE = 1;
+    const TYPE_GAG  = 2;
+    const TYPE_MUTE = 1;
 
     /**
      * @var string - Name of table which is associated with model
@@ -118,8 +118,8 @@ class CommsForImport extends CActiveRecord
     private function isValid()
     {
         return $this->steam_account_id
-               && ($this->type == self::GAG_TYPE
-                   || $this->type == self::MUTE_TYPE
+               && ($this->type == self::TYPE_GAG
+                   || $this->type == self::TYPE_MUTE
                   );
     }
 

@@ -30,8 +30,8 @@
  */
 class OldComms extends CActiveRecord
 {
-    const GAG_TYPE  = 2;
-    const MUTE_TYPE = 1;
+    const TYPE_GAG  = 2;
+    const TYPE_MUTE = 1;
 
     const REMOVED_BY_ADMIN = 'U';
 
@@ -121,8 +121,8 @@ class OldComms extends CActiveRecord
     private function isValid()
     {
         return preg_match(SourceBans::PATTERN_STEAM, $this->authid)
-               && ($this->type == self::GAG_TYPE
-                   || $this->type == self::MUTE_TYPE
+               && ($this->type == self::TYPE_GAG
+                   || $this->type == self::TYPE_MUTE
                   );
     }
 

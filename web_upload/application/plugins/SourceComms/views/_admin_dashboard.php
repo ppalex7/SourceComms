@@ -1,6 +1,6 @@
 <?php
-/* @var $total_mutes Count of mutes in database */
-/* @var $total_gags Count of gags in database */
+/* @var $total_mutes integer Count of mutes in database */
+/* @var $total_gags integer Count of gags in database */
 ?>
 
 <tr>

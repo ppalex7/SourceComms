@@ -210,8 +210,8 @@ class CommsPlugin extends SBPlugin
                 $script = Yii::app()->controller->renderPartial(
                     $this->getViewFile('_admin_dashboard'),
                     array(
-                        'total_mutes'   => $model->countByAttributes(array('type' => Comms::MUTE_TYPE)),
-                        'total_gags'    => $model->countByAttributes(array('type' => Comms::GAG_TYPE)),
+                        'total_mutes'   => $model->countByAttributes(array('type' => Comms::TYPE_MUTE)),
+                        'total_gags'    => $model->countByAttributes(array('type' => Comms::TYPE_GAG)),
                     ),
                     true
                 );

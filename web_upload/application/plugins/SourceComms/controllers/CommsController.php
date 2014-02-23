@@ -189,10 +189,10 @@ class CommsController extends Controller
 
             if($model->save()) {
                 switch ($model->type) {
-                    case Comms::GAG_TYPE:
+                    case Comms::TYPE_GAG:
                         SourceBans::log('Gag added', 'Gag against ' . $model->nameForLog . ' was added', SBLog::TYPE_INFORMATION);
                         break;
-                    case Comms::MUTE_TYPE:
+                    case Comms::TYPE_MUTE:
                         SourceBans::log('Mute added', 'Mute against ' . $model->nameForLog . ' was added', SBLog::TYPE_INFORMATION);
                         break;
                     default:
@@ -223,10 +223,10 @@ class CommsController extends Controller
         $unbanned = $model->unban($reason);
         if ($unbanned) {
             switch ($model->type) {
-                case Comms::GAG_TYPE:
+                case Comms::TYPE_GAG:
                     SourceBans::log('Player ungagged', 'Player ' . $model->nameForLog . ' has been ungagged', SBLog::TYPE_INFORMATION);
                     break;
-                case Comms::MUTE_TYPE:
+                case Comms::TYPE_MUTE:
                     SourceBans::log('Player unmuted', 'Player ' . $model->nameForLog . ' has been unmuted', SBLog::TYPE_INFORMATION);
                     break;
                 default:
@@ -248,10 +248,10 @@ class CommsController extends Controller
         $model=$this->loadModel($id);
         if ($model->delete()) {
             switch ($model->type) {
-                case Comms::GAG_TYPE:
+                case Comms::TYPE_GAG:
                     SourceBans::log('Gag deleted', 'Gag against ' . $model->nameForLog . ' was deleted', SBLog::TYPE_WARNING);
                     break;
-                case Comms::MUTE_TYPE:
+                case Comms::TYPE_MUTE:
                     SourceBans::log('Mute deleted', 'Mute against ' . $model->nameForLog . ' was deleted', SBLog::TYPE_WARNING);
                     break;
                 default:
@@ -267,7 +267,6 @@ class CommsController extends Controller
 
     public function actionImport()
     {
-
         $tableName  = Yii::app()->request->getParam('table');
         $offset     = Yii::app()->request->getParam('offset');
 

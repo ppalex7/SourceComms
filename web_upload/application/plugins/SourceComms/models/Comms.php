@@ -40,8 +40,8 @@
  */
 class Comms extends CActiveRecord
 {
-    const GAG_TYPE  = 2;
-    const MUTE_TYPE = 1;
+    const TYPE_MUTE = 1;
+    const TYPE_GAG  = 2;
     const COMMENTS_TYPE = 'C';
 
     /**
@@ -53,8 +53,8 @@ class Comms extends CActiveRecord
      * @var array with icons for supported punishment types.
      */
     private static $_icons = array(
-        self::GAG_TYPE  => '/images/type_c.png',
-        self::MUTE_TYPE => '/images/type_v.png',
+        self::TYPE_MUTE => '/images/type_v.png',
+        self::TYPE_GAG  => '/images/type_c.png',
     );
 
     /**
@@ -70,8 +70,8 @@ class Comms extends CActiveRecord
     {
         if (self::$_types === null)
             self::$_types = array(
-                self::GAG_TYPE  => Yii::t('CommsPlugin.main', 'Gag'),
-                self::MUTE_TYPE => Yii::t('CommsPlugin.main', 'Mute'),
+                self::TYPE_MUTE => Yii::t('CommsPlugin.main', 'Mute'),
+                self::TYPE_GAG  => Yii::t('CommsPlugin.main', 'Gag'),
             );
 
         return self::$_types;
@@ -85,12 +85,12 @@ class Comms extends CActiveRecord
     {
         if (self::$_unban_translations === null)
             self::$_unban_translations = CJSON::encode(array(
-                self::GAG_TYPE => array(
+                self::TYPE_GAG => array(
                     'unban_reason'          => Yii::t('CommsPlugin.main', 'Ungag reason'),
                     'unban_confirmation'    => Yii::t('CommsPlugin.main', 'Please give a short comment, why you are going to ungag &laquo;__NAME__&raquo;:'),
                     'unban'                 => Yii::t('CommsPlugin.main', 'Ungag'),
                 ),
-                self::MUTE_TYPE => array(
+                self::TYPE_MUTE => array(
                     'unban_reason'          => Yii::t('CommsPlugin.main', 'Unmute reason'),
                     'unban_confirmation'    => Yii::t('CommsPlugin.main', 'Please give a short comment, why you are going to unmute &laquo;__NAME__&raquo;:'),
                     'unban'                 => Yii::t('CommsPlugin.main', 'Unmute'),
@@ -197,10 +197,10 @@ class Comms extends CActiveRecord
 
                 if (self::model()->exists($criteria)) {
                     switch ($this->type) {
-                        case self::GAG_TYPE:
+                        case self::TYPE_GAG:
                             $this->addError('steam', Yii::t('CommsPlugin.main', 'Already gagged'));
                             break;
-                        case self::MUTE_TYPE:
+                        case self::TYPE_MUTE:
                             $this->addError('steam', Yii::t('CommsPlugin.main', 'Already muted'));
                             break;
                         default:
