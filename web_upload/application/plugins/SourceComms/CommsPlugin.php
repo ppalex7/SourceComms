@@ -1,6 +1,12 @@
 <?php
 class CommsPlugin extends SBPlugin
 {
+    private static $_defaultSettings = array(
+       #'sourcebans__max__settings_length'
+        'sourcecomms_show_on_dashboard'     => 1,
+        'sourcecomms_use_immunity'          => 0,
+    );
+
     public function getName()
     {
         return 'SourceComms';
@@ -18,7 +24,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.888';
+        return '1.0.904';
     }
 
     public function getUrl()
@@ -150,6 +156,19 @@ class CommsPlugin extends SBPlugin
         SourceBans::app()->permissions->add('UNBAN_GROUP_COMMS',Yii::t('CommsPlugin.permissions', 'Unban group communication punishments'));
         SourceBans::app()->permissions->add('UNBAN_ALL_COMMS',  Yii::t('CommsPlugin.permissions', 'Unban all communication punishments'));
         SourceBans::app()->permissions->add('DELETE_COMMS',     Yii::t('CommsPlugin.permissions', 'Delete communication punishments'));
+
+        // Load plugin settings
+        foreach (self::$_defaultSettings as $name => $value) {
+            if (!SourceBans::app()->settings->contains($name)) {
+                $setting = new SBSetting();
+                $setting->name = $name;
+                $setting->value = $value;
+                if (!$setting->save())
+                    Yii::log('Error saving new Sourcecomms setting "' . $name . '"', CLogger::LEVEL_ERROR, 'Sourcecomms');
+                else
+                    Yii::log('Saved new Sourcecomms setting "' . $name . '" with value "' . $value . '"', CLogger::LEVEL_INFO, 'Sourcecomms');
+            }
+        }
     }
 
     public function onBeforeAction($action)
