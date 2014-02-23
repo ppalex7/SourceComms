@@ -272,7 +272,7 @@ class CommsController extends Controller
         $offset     = Yii::app()->request->getParam('offset');
 
         if (!$tableName || $offset === null || $offset < 0) {
-            Yii::log('Sourcecomms error 102: No table name or offset specified');
+            Yii::log('Sourcecomms error 102: No table name or offset specified', CLogger::LEVEL_WARNING, 'Sourcecomms');
             echo CJSON::encode(array('status' => 'error', 'code' => 102));
             Yii::app()->end();
         }
@@ -287,7 +287,7 @@ class CommsController extends Controller
 
         // No valid model
         if (!$modelName) {
-            Yii::log('Sourcecomms error 103: No valid model for specified table');
+            Yii::log('Sourcecomms error 103: No valid model for specified table', CLogger::LEVEL_WARNING, 'Sourcecomms');
             echo CJSON::encode(array('status' => 'error', 'code' => 103));
             Yii::app()->end();
         }

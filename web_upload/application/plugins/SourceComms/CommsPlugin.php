@@ -48,11 +48,11 @@ class CommsPlugin extends SBPlugin
         try {
             // Checks database for old/another table versions
             if (Yii::app()->db->createCommand()->setText("SHOW TABLES LIKE '{{comms}}'")->queryScalar() !== false) {
-                Yii::log('Founded old {{comms}} table in database');
+                Yii::log('Founded old {{comms}} table in database', CLogger::LEVEL_WARNING, 'Sourcecomms');
 
                 if (Yii::app()->db->createCommand()->select('*')->from('{{comms}}')->limit(1)->queryScalar() !== false) {
                     $new_table_name = 'old_comms_' . time();
-                    Yii::log('Old table contains data and will be renamed to ' . $new_table_name);
+                    Yii::log('Old table contains data and will be renamed to ' . $new_table_name, CLogger::LEVEL_WARNING, 'Sourcecomms');
                     Yii::app()->db->createCommand()->renameTable('{{comms}}', $new_table_name);
 
                     // If it was table of the same comms version - We can't create new table with the same foreign keys
@@ -62,7 +62,7 @@ class CommsPlugin extends SBPlugin
                         Yii::app()->db->createCommand()->dropForeignKey('comms_unban_admin', $new_table_name);
                     }
                 } else {
-                    Yii::log('Old table is empty and will be dropped');
+                    Yii::log('Old table is empty and will be dropped', CLogger::LEVEL_WARNING, 'Sourcecomms');
                     Yii::app()->db->createCommand()->dropTable('{{comms}}');
                 }
             }
@@ -95,8 +95,8 @@ class CommsPlugin extends SBPlugin
         }
 
         catch (Exception $e) {
-            Yii::log('Sourcecomms installation failed');
-            Yii::log($e->getMessage());
+            Yii::log('Sourcecomms installation failed', CLogger::LEVEL_ERROR, 'Sourcecomms');
+            Yii::log($e->getMessage(), CLogger::LEVEL_ERROR, 'Sourcecomms');
 
             $transaction->rollback();
             return false;
