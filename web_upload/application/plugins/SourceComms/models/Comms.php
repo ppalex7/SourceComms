@@ -321,6 +321,12 @@ class Comms extends CActiveRecord
             'unbanned'=>array(
                 'condition'=>$t.'.unban_time IS NOT NULL',
             ),
+            'mutes' => array(
+                'condition' => $t . '.type = ' . self::TYPE_MUTE,
+            ),
+            'gags' => array(
+                'condition' => $t . '.type = ' . self::TYPE_GAG,
+            ),
         );
     }
 

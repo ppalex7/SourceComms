@@ -1,11 +1,60 @@
 <?php
 class CommsPlugin extends SBPlugin
 {
+    const ITEMS_ON_DASHBOARD = 5;
+    /**
+     * @var array with default plugin settings
+     */
     private static $_defaultSettings = array(
        #'sourcebans__max__settings_length'
         'sourcecomms_show_on_dashboard'     => 1,
         'sourcecomms_use_immunity'          => 0,
     );
+
+    /**
+     * Adds common comms stats to sourcebans dashboard
+     */
+    private function _addStatsToDashBoard()
+    {
+        $comms = new Comms();
+
+        $mutes = Comms::model()->search();
+        $mutes->criteria->scopes = 'mutes';
+        $mutes->criteria->limit = self::ITEMS_ON_DASHBOARD;
+        $mutes->criteria->with = array('server', 'server.game');
+        $mutes->pagination = false;
+
+        $gags = Comms::model()->search();
+        $gags->criteria->scopes = 'gags';
+        $gags->criteria->limit = self::ITEMS_ON_DASHBOARD;
+        $gags->criteria->with = array('server', 'server.game');
+        $gags->pagination = false;
+
+        $script = Yii::app()->controller->renderPartial(
+            $this->getViewFile('_site_dashboard'),
+            array(
+                'total_mutes'   => $comms->countByAttributes(array('type' => Comms::TYPE_MUTE)),
+                'total_gags'    => $comms->countByAttributes(array('type' => Comms::TYPE_GAG)),
+                'Comms' => $comms,
+                'plugin'=> $this,
+                'mutes' => $mutes,
+                'gags'  => $gags,
+            ),
+            true
+        );
+
+        Yii::app()->clientScript->registerScript('site_index_commsStats',
+            '$("html>body#site_dashboard>div.container>div.row").eq(2).after("' . CJavaScript::quote($script) . '");',
+            CClientScript::POS_END);
+
+        // we can't apply YiiGridView function before rendering the appropriate table - let's swap actions
+        Yii::app()->getClientScript()->scripts[CClientScript::POS_READY]['CGridView#mutes-grid'] = Yii::app()->getClientScript()->scripts[CClientScript::POS_END]['CGridView#mutes-grid'];
+        Yii::app()->getClientScript()->scripts[CClientScript::POS_READY]['CGridView#gags-grid'] = Yii::app()->getClientScript()->scripts[CClientScript::POS_END]['CGridView#gags-grid'];
+        unset(Yii::app()->getClientScript()->scripts[CClientScript::POS_END]['CGridView#mutes-grid']);
+        unset(Yii::app()->getClientScript()->scripts[CClientScript::POS_END]['CGridView#gags-grid']);
+    }
+
+
 
     public function getName()
     {
@@ -24,7 +73,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.921';
+        return '1.0.990';
     }
 
     public function getUrl()
@@ -218,6 +267,15 @@ class CommsPlugin extends SBPlugin
                 Yii::app()->clientScript->registerScript('admin_index_commsStats',
                     '$("html>body#admin_index>div.container>div.row>div.span8>table.table.table-stat>tbody>tr").eq(2).after("' . CJavaScript::quote($script) . '");',
                     CClientScript::POS_READY);
+                break;
+
+            case 'site/dashboard':
+                $this->_addStatsToDashBoard();
+                break;
+
+            case 'site/index':
+                if (SourceBans::app()->settings->default_page == 'dashboard')
+                    $this->_addStatsToDashBoard();
                 break;
 
             case 'site/bans':
