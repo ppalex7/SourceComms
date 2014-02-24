@@ -16,6 +16,9 @@ class CommsPlugin extends SBPlugin
      */
     private function _addStatsToDashBoard()
     {
+        if (!SourceBans::app()->settings->sourcecomms_show_on_dashboard)
+            return;
+
         $comms = new Comms();
 
         $mutes = Comms::model()->search();
@@ -73,7 +76,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.995';
+        return '1.0.996';
     }
 
     public function getUrl()
