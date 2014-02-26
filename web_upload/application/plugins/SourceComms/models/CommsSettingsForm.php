@@ -18,6 +18,7 @@ class CommsSettingsForm extends CFormModel
     public static $defaultSettings = array(
        #'sourcebans__max__settings_length'
         'sourcecomms_show_on_dashboard'     => 1,
+        'sourcecomms_show_on_admin'         => 1,
         'sourcecomms_use_immunity'          => 0,
     );
 
@@ -49,7 +50,7 @@ class CommsSettingsForm extends CFormModel
     public function rules()
     {
         return array(
-            array('sourcecomms_show_on_dashboard, sourcecomms_use_immunity', 'boolean'),
+            array('sourcecomms_show_on_dashboard, sourcecomms_use_immunity, sourcecomms_show_on_admin', 'boolean'),
         );
     }
 
@@ -60,6 +61,7 @@ class CommsSettingsForm extends CFormModel
     {
         return array(
             'sourcecomms_show_on_dashboard' => Yii::t('CommsPlugin.settings', 'Show last punishments on the site dashboard.'),
+            'sourcecomms_show_on_admin'     => Yii::t('CommsPlugin.settings', 'Show plugin stats on the main administration page.'),
             'sourcecomms_use_immunity'      => Yii::t('CommsPlugin.settings', "Use administrators' immunity during checking rights."),
         );
     }

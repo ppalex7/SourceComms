@@ -12,7 +12,7 @@ class CommsPlugin extends SBPlugin
     const ITEMS_ON_DASHBOARD = 5;
 
     /**
-     * Adds common comms stats to sourcebans dashboard
+     * Adds last comms punishments to the sourcebans dashboard
      */
     private function _addStatsToDashBoard()
     {
@@ -57,6 +57,28 @@ class CommsPlugin extends SBPlugin
         unset(Yii::app()->getClientScript()->scripts[CClientScript::POS_END]['CGridView#gags-grid']);
     }
 
+    /**
+     * Adds plugins stats to sourcebans admin main page (admin dashboard)
+     */
+    private function _addStatsToAdmin()
+    {
+        if (!SourceBans::app()->settings->sourcecomms_show_on_admin)
+            return;
+
+        $model = new Comms;
+
+        $script = Yii::app()->controller->renderPartial(
+            $this->getViewFile('_admin_dashboard'),
+            array(
+                'total_mutes'   => $model->countByAttributes(array('type' => Comms::TYPE_MUTE)),
+                'total_gags'    => $model->countByAttributes(array('type' => Comms::TYPE_GAG)),
+            ),
+            true
+        );
+        Yii::app()->clientScript->registerScript('admin_index_commsStats',
+            '$("html>body#admin_index>div.container>div.row>div.span8>table.table.table-stat>tbody>tr").eq(2).after("' . CJavaScript::quote($script) . '");',
+            CClientScript::POS_READY);
+    }
 
 
     public function getName()
@@ -76,7 +98,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.1.26';
+        return '1.1.36';
     }
 
     public function getUrl()
@@ -199,7 +221,6 @@ class CommsPlugin extends SBPlugin
         );
     }
 
-
     public function onBeginRequest($event)
     {
         // Import plugin models
@@ -279,19 +300,7 @@ class CommsPlugin extends SBPlugin
                 }
 
                 // Add Comms stat to admin dashboard
-                $model = new Comms;
-
-                $script = Yii::app()->controller->renderPartial(
-                    $this->getViewFile('_admin_dashboard'),
-                    array(
-                        'total_mutes'   => $model->countByAttributes(array('type' => Comms::TYPE_MUTE)),
-                        'total_gags'    => $model->countByAttributes(array('type' => Comms::TYPE_GAG)),
-                    ),
-                    true
-                );
-                Yii::app()->clientScript->registerScript('admin_index_commsStats',
-                    '$("html>body#admin_index>div.container>div.row>div.span8>table.table.table-stat>tbody>tr").eq(2).after("' . CJavaScript::quote($script) . '");',
-                    CClientScript::POS_READY);
+                $this->_addStatsToAdmin();
                 break;
 
             case 'site/dashboard':

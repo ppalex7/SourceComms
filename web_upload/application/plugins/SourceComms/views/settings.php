@@ -36,6 +36,8 @@
     <div class="controls">
       <?php $checkbox = $form->checkBox($settings, 'sourcecomms_show_on_dashboard') . $settings->getAttributeLabel('sourcecomms_show_on_dashboard'); ?>
       <?php echo CHtml::label($checkbox, 'CommsSettingsForm_show_on_dashboard', array('class' => 'checkbox')); ?>
+      <?php $checkbox = $form->checkBox($settings, 'sourcecomms_show_on_admin') . $settings->getAttributeLabel('sourcecomms_show_on_admin'); ?>
+      <?php echo CHtml::label($checkbox, 'CommsSettingsForm_show_on_admin', array('class' => 'checkbox')); ?>
     </div>
   </div>
 </fieldset>

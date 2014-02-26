@@ -22,5 +22,6 @@
  */
 return array (
   'Show last punishments on the site dashboard.' => 'Показывать последние блокировки на странице &laquo;Обзор&raquo;.',
+  'Show plugin stats on the main administration page.' => 'Показывать статистику плагина на главной странице &laquo;Администрирования&raquo;',
   'Use administrators\' immunity during checking rights.' => 'Использовать иммунитет администраторов при проверке прав.',
 );

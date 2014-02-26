@@ -18,5 +18,6 @@
  */
 return array (
   'Show last punishments on the site dashboard.' => '',
+  'Show plugin stats on the main administration page.' => '',
   'Use administrators\' immunity during checking rights.' => '',
 );
