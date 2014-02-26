@@ -36,6 +36,7 @@ return array (
   'Imported from ExtendedComm' => '',
   'Imported from previous SourceComms version' => '',
   'Imported from same SourceComms version' => '',
+  'Interface' => '',
   'Invalid punishment type' => '',
   'Last gags' => '',
   'Last mutes' => '',

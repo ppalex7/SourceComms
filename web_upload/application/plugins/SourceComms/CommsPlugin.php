@@ -1,15 +1,15 @@
 <?php
+/**
+ * SourceComms plugin.
+ *
+ * @author Alex
+ * @copyright (C)2013-2014 Alexandr Duplishchev.
+ * @link https://github.com/d-ai/SourceComms
+ *
+ */
 class CommsPlugin extends SBPlugin
 {
     const ITEMS_ON_DASHBOARD = 5;
-    /**
-     * @var array with default plugin settings
-     */
-    private static $_defaultSettings = array(
-       #'sourcebans__max__settings_length'
-        'sourcecomms_show_on_dashboard'     => 1,
-        'sourcecomms_use_immunity'          => 0,
-    );
 
     /**
      * Adds common comms stats to sourcebans dashboard
@@ -76,7 +76,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.0.996';
+        return '1.1.26';
     }
 
     public function getUrl()
@@ -178,6 +178,28 @@ class CommsPlugin extends SBPlugin
         }
     }
 
+    public function runSettings()
+    {
+        $model = new CommsSettingsForm;
+
+        // if it is ajax validation request
+        if(isset($_POST['ajax']) && $_POST['ajax'] === 'comms-settings-form') {
+            echo CActiveForm::validate($model);
+            Yii::app()->end();
+        }
+
+        if(isset($_POST['CommsSettingsForm'])) {
+            $model->attributes = $_POST['CommsSettingsForm'];
+            if($model->validate() && $model->save())
+                Yii::app()->controller->redirect('SourceComms');
+        }
+
+        return array(
+            'settings' => $model,
+        );
+    }
+
+
     public function onBeginRequest($event)
     {
         // Import plugin models
@@ -210,7 +232,7 @@ class CommsPlugin extends SBPlugin
         SourceBans::app()->permissions->add('DELETE_COMMS',     Yii::t('CommsPlugin.permissions', 'Delete communication punishments'));
 
         // Load plugin settings
-        foreach (self::$_defaultSettings as $name => $value) {
+        foreach (CommsSettingsForm::$defaultSettings as $name => $value) {
             if (!SourceBans::app()->settings->contains($name)) {
                 $setting = new SBSetting();
                 $setting->name = $name;

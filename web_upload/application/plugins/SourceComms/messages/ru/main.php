@@ -40,6 +40,7 @@ return array (
   'Imported from ExtendedComm' => 'Импортировано из ExtendedComm',
   'Imported from previous SourceComms version' => 'Импортировано из SourceComms предыдущей версии',
   'Imported from same SourceComms version' => 'Импортировано из SourceComms аналогичной версии',
+  'Interface' => 'Интерфейс',
   'Invalid punishment type' => 'Неправильный тип блокировки',
   'Last gags' => 'Последние отключения чата',
   'Last mutes' => 'Последние отключения микрофона',
