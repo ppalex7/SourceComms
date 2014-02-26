@@ -65,19 +65,21 @@ class CommsSettingsForm extends CFormModel
     }
 
     /**
-     * Saves the application settings using the given values in the model.
+     * Saves the sourcecomms settings using the given values in the model.
      * @return boolean whether save is successful
      */
     public function save()
     {
-        $settings = SBSetting::model()->findAll(array('index' => 'name'));
+        $settings = SBSetting::model()->findAllByPk(array_keys(self::$defaultSettings), array('index' => 'name'));
 
-        foreach($this->_data as $name => $value)
-        {
-            $settings[$name]->value = trim($value);
-            $settings[$name]->save();
+        foreach ($this->_data as $name => $value){
+            if (SourceBans::app()->settings->$name != $value) {
+                $settings[$name]->value = trim($value);
+                $settings[$name]->save();
+            }
         }
 
         return true;
     }
 }
+
