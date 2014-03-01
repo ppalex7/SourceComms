@@ -235,7 +235,7 @@ class CommsController extends Controller
             }
         }
 
-        Yii::app()->end($unbanned);
+        Yii::app()->end(CJSON::encode($unbanned));
     }
 
     /**

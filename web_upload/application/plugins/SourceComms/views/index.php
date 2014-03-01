@@ -354,10 +354,10 @@
                 $.post("' . $this->createUrl('comms/unban', array("id" => "__ID__")) . '".replace("__ID__", $(this).prop("rel")), {
                   reason: $("#unban_reason").val()
                 }, function(result) {
-                  if(result == "true") {
+                  if(result === "true") {
                     $("#' . $grid->id . '").yiiGridView("update");
                   } else {
-                    $.alert("' . Yii::t('CommsPlugin.main', 'An error was occurred, code: {code}', array('code' => 101)) . '", "warning");
+                    $.alert("' . Yii::t('CommsPlugin.main', 'An error was occurred, code: {code}', array('{code}' => 101)) . '", "warning");
                   }
                 }).fail(function(jqXHR, textStatus) {
                   $.alert(jqXHR.responseText, "error");
