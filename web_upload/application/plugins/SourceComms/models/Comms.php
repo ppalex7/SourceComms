@@ -107,8 +107,9 @@ class Comms extends CActiveRecord
      */
     public static function getType($type)
     {
-        if (array_key_exists($type, self::getTypes()))
-            return self::getTypes()[$type];
+        $types = self::getTypes();
+        if (array_key_exists($type, $types))
+            return $types[$type];
         else
             return Yii::t("sourcebans", "Unknown");
     }
