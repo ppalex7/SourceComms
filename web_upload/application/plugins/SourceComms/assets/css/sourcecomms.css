@@ -1,3 +1,7 @@
+#gags-grid tr.expired td.length,
+#gags-grid tr.unbanned td.length,
+#mutes-grid tr.expired td.length,
+#mutes-grid tr.unbanned td.length,
 #comms-grid tr.expired td.length,
 #comms-grid tr.unbanned td.length {
   background-color: #dbf4d7;
