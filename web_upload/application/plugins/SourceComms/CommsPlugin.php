@@ -80,6 +80,24 @@ class CommsPlugin extends SBPlugin
             CClientScript::POS_READY);
     }
 
+    /**
+     * Adds plugin settings to database
+     */
+    private function _addNewSettings()
+    {
+        foreach (CommsSettingsForm::$defaultSettings as $name => $value) {
+            if (!SourceBans::app()->settings->contains($name)) {
+                $setting = new SBSetting();
+                $setting->name = $name;
+                $setting->value = $value;
+                if (!$setting->save())
+                    Yii::log('Error saving new Sourcecomms setting "' . $name . '"', CLogger::LEVEL_ERROR, 'Sourcecomms');
+                else
+                    Yii::log('Saved new Sourcecomms setting "' . $name . '" with value "' . $value . '"', CLogger::LEVEL_INFO, 'Sourcecomms');
+            }
+        }
+    }
+
 
     public function getName()
     {
@@ -98,7 +116,7 @@ class CommsPlugin extends SBPlugin
 
     public function getVersion()
     {
-        return '1.1.45';
+        return '1.1.47';
     }
 
     public function getUrl()
@@ -170,6 +188,9 @@ class CommsPlugin extends SBPlugin
                 'CONSTRAINT comms_unban_admin FOREIGN KEY (unban_admin_id) REFERENCES {{admins}} (id) ON DELETE SET NULL'
             ), 'ENGINE=InnoDB DEFAULT CHARSET=utf8');
 
+            // Save plugin settings
+            $this->_addNewSettings();
+
             $transaction->commit();
             return true;
         }
@@ -202,6 +223,9 @@ class CommsPlugin extends SBPlugin
 
     public function runSettings()
     {
+        // Import plugin models
+        Yii::import($this->getPathAlias('models.*'));
+
         $model = new CommsSettingsForm;
 
         // if it is ajax validation request
@@ -253,17 +277,7 @@ class CommsPlugin extends SBPlugin
         SourceBans::app()->permissions->add('DELETE_COMMS',     Yii::t('CommsPlugin.permissions', 'Delete communication punishments'));
 
         // Load plugin settings
-        foreach (CommsSettingsForm::$defaultSettings as $name => $value) {
-            if (!SourceBans::app()->settings->contains($name)) {
-                $setting = new SBSetting();
-                $setting->name = $name;
-                $setting->value = $value;
-                if (!$setting->save())
-                    Yii::log('Error saving new Sourcecomms setting "' . $name . '"', CLogger::LEVEL_ERROR, 'Sourcecomms');
-                else
-                    Yii::log('Saved new Sourcecomms setting "' . $name . '" with value "' . $value . '"', CLogger::LEVEL_INFO, 'Sourcecomms');
-            }
-        }
+        $this->_addNewSettings();
     }
 
     public function onBeforeAction($action)
