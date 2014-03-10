@@ -58,7 +58,7 @@ class CommsPlugin extends SBPlugin
     }
 
     /**
-     * Adds plugins stats to sourcebans admin main page (admin dashboard)
+     * Adds plugin stats to sourcebans admin main page (admin dashboard)
      */
     private function _addStatsToAdmin()
     {
@@ -270,7 +270,7 @@ class CommsPlugin extends SBPlugin
     {
         static $loaded;
 
-        if(!isset($loaded)) {
+        if (!isset($loaded)) {
             // Add header tab
             Yii::app()->controller->tabs[] = array(
                 'label' => Yii::t('CommsPlugin.main', 'Comms'),
