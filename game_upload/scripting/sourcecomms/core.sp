@@ -757,7 +757,7 @@ stock ProcessUnBlock(const _:admin, const _:targetId = 0, const _:iType, String:
 
             new Handle:hDataPack = CreateDataPack();
             WritePackCell(hDataPack, GetClientUserId2(admin));
-            SetPackPosition(hDataPack, 16);
+            WritePackCell(hDataPack, 0);    // skip AdminID
             WritePackCell(hDataPack, GetClientUserId(target));
             WritePackCell(hDataPack, iType);
             WritePackString(hDataPack, sReason);

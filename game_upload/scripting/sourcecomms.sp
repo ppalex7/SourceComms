@@ -22,7 +22,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "1.0.248"
+#define PLUGIN_VERSION "1.0.249"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://z.tf2news.ru/repo/sourcecomms-up.txt"
