@@ -1,5 +1,5 @@
 #Changelog
-* **1.0.249** - Fixed bug with unblocking several targets. Thanks to [Bubka3](https://github.com/Bubka3) for report.
+* **1.0.249** - Fixed [bug](https://github.com/d-ai/SourceComms/issues/59) with unblocking several targets. Thanks to [Bubka3](https://github.com/Bubka3) for report.
 * **1.0.248**
     * Now plugin works through sourcebans plugin.
     * Note: plugin uses new db schema and incompatible with `0.*` versions.
