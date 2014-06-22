@@ -163,8 +163,10 @@ class CommsController extends Controller
                 }
             }
         }
-        $gridDataProvider = new CArrayDataProvider($tables);
-        $gridDataProvider->pagination = false;
+        $gridDataProvider = new CArrayDataProvider($tables, array(
+            'pagination'    => false,
+            'keyField'      => false,
+        ));
 
         $this->render($this->_plugin->getViewFile('admin'),array(
             'comms' => $comms,
