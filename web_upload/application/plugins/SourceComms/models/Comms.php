@@ -431,7 +431,7 @@ class Comms extends CActiveRecord
         if (empty($this->steam_account_id))
             return null;
         else
-            return 0x0110000100000000 + $this->steam_account_id;
+            return sprintf('[U:1:%d]', $this->steam_account_id);
     }
 
     /**
