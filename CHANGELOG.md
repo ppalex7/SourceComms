@@ -1,7 +1,7 @@
 #Changelog
-* **0.9.262**
-    * Fixed plugin include file to prevent compiling errors when twice included.
-* **0.9.260** - Added Deutsch translation. Thank to [winter](http://steamcommunity.com/profiles/76561198012507628).
+* **0.9.263** - Fixed SourceComms_SetClientMute params description. Thanks to [Bara](https://github.com/Bara20).
+* **0.9.262** - Fixed plugin include file to prevent compiling errors when twice included.
+* **0.9.260** - Added Deutsch translation. Thanks to [winter](http://steamcommunity.com/profiles/76561198012507628).
 * **0.9.259** - Fixed bug with loading issuer admin's authid.
 * **0.9.257** - Fixed bug (creating unused file `%s is gagged from web` on server) with logging gags from web. Thanks to [reji](https://forums.alliedmods.net/member.php?u=235571).
 * **0.9.256**
