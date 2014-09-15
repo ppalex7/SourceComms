@@ -20,7 +20,7 @@
 	//--------------------------------------------------------------------------------
 	"Mute expired"
 	{
-		"en"			"Your mute expired."
+		"en"			"Your mute has expired."
 		"ru"			"Вам был включен микрофон (истек срок блокировки)."
 		"pl"			"Twoje wyciszenie wygasło."
 		"pt"			"Seu emudecimento expirou."
@@ -28,7 +28,7 @@
 	}
 	"Gag expired"
 	{
-		"en"			"Your gag expired."
+		"en"			"Your gag has expired."
 		"ru"			"Вам был включен чат (истек срок блокировки)."
 		"pl"			"Twój knebel wygasł."
 		"pt"			"Seu amordaçamento expirou."
@@ -37,7 +37,7 @@
 	//--------------------------------------------------------------------------------
 	"FWUnmute"
 	{
-		"en"			"Your mute removed."
+		"en"			"Your mute has been removed."
 		"ru"			"Вам был включен микрофон."
 		"pl"			"Twoje wyciszenie zostało usunięte."
 		"pt"			"Seu emudecimento foi removido."
@@ -45,7 +45,7 @@
 	}
 	"FWUngag"
 	{
-		"en"			"Your gag removed."
+		"en"			"Your gag has been removed."
 		"ru"			"Вам был включен чат."
 		"pl"			"Twój knebel został usunięty."
 		"pt"			"Seu amordaçamento foi removido."
@@ -237,7 +237,7 @@
 	"Temp unmuted player"
 	{
 		"#format"		"{1:t}"
-		"en"			"Temporary removed mute from {1}."
+		"en"			"Temporarily removed mute from {1}."
 		"ru"			"Игроку {1} временно включен микрофон."
 		"pl"			"Tymczasowo usunięto wyciszenie {1}."
 		"pt"			"Emudecimento de {1} foi temporariamente removido."
@@ -246,7 +246,7 @@
 	"Temp ungagged player"
 	{
 		"#format"		"{1:t}"
-		"en"			"Temporary removed gag from {1}."
+		"en"			"Temporarily removed gag from {1}."
 		"ru"			"Игроку {1} временно включен чат."
 		"pl"			"Tymczasowo usunięto knebel {1}."
 		"pt"			"Amordaçamento de {1} foi temporariamente removido."
@@ -255,7 +255,7 @@
 	"Temp unsilenced player"
 	{
 		"#format"		"{1:t}"
-		"en"			"Temporary removed silence from {1}."
+		"en"			"Temporarily removed silence from {1}."
 		"ru"			"Игроку {1} временно включен чат и микрофон."
 		"pl"			"Tymczasowo usunięto całkowite wyciszenie {1}."
 		"pt"			"Silenciamento de {1} foi temporariamente removido."
@@ -264,7 +264,7 @@
 	"Unblock Select Failed"
 	{
 		"#format"		"{1:s}"
-		"en"			"An error occurred during request blocks for {1} from DB."
+		"en"			"An error occurred while requesting blocks for {1} from DB."
 		"ru"			"Произошла ошибка при запросе блокировок для {1} из базы."
 		"pl"			"Wystąpił błąd podczas pobierania blokad {1} z bazy danych."
 		"pt"			"Ocorreu um erro no DB durante a pedido de bloqueio de {1}."
@@ -830,7 +830,7 @@
 	}
 	"CommandComms_nb"
 	{
-		"en"		"Your chat and voice hasn't blocked."
+		"en"		"Your chat and voice isn't blocked."
 		"ru"		"У вас не заблокированы чат и микрофон."
 		"pl"		"Nie zostałeś wyciszony ani zakneblowany."
 		"pt"		"Seu chat de texto e voz e não estão bloqueados."
