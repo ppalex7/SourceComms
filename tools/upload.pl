@@ -26,7 +26,7 @@ while (my $line = <$plugin_file>) {
 close $plugin_file;
 print "SourceComms version $plugin_version\n";
 
-open (my $update_file, '>:utf8', "$Bin/../sc-updatefile.txt") or die "Can't open update file: $!\n";
+open (my $update_file, '>:utf8', "$Bin/sc-updatefile.txt") or die "Can't open update file: $!\n";
 p q/"Updater"/;
 p q/{/;
 p qq/\t"Information"/;
@@ -52,7 +52,7 @@ p q/}/;
 close $update_file;
 print "Update-file draft builded\n";
 
-die "Uploading aborted!\n" if system ('vim /Users/alex/Code/SourceComms/sc-updatefile.txt') >> 8;
+die "Uploading aborted!\n" if system ("vim $Bin/sc-updatefile.txt") >> 8;
 print "Successfully edited update-file\n";
 
 
