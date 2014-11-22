@@ -72,7 +72,7 @@ system ("git tag -a '$plugin_version'") == 0 or die "An error occurred during ta
 system ('git push --all --follow-tags') == 0 or die "An error occurred during pushing to upstream\n";
 
 # switch back to develop branch
-system ('git checkout $develop') == 0 or die "Can't switch to $develop branch\n";
+system ("git checkout $develop") == 0 or die "Can't switch to $develop branch\n";
 
 chdir "$Bin/../" or die $!;
 print "All done\n";
