@@ -10,12 +10,12 @@ my $develop = '0.9-develop';
 
 chdir "$Bin/../" or die $!;
 
-# Проверим ветку и состояние рабочей копии
+# check current branch and status of working copy
 my @git_status = split /\n/, qx/git status/;
 die "You must be on branch '$develop'\n" unless $git_status[0] =~ m/^(?:# )?On branch $develop$/;
 die "You have changes in working copy. Exiting...\n" unless $git_status[3] =~ m/nothing to commit|Your branch is ahead of/;
 
-# Определим версию плагина
+# get plugin version
 open (my $plugin_file, '<', "$Bin/../game_upload/scripting/sourcecomms.sp") or die "Can't open plugin file: $!\n";
 my $plugin_version;
 while (my $line = <$plugin_file>) {
@@ -72,7 +72,7 @@ system ('zip -r ../sourcecomms-web.zip *') == 0 or die "An error occurred during
 print "Uploading files to hosting\n";
 system ('sftp -b /Users/alex/Code/SourceComms/tools/upload.batch web@vps') == 0 or die "An error occurred during uploading\n";
 
-# Переключаемся обратно на develop
+# switch back to develop branch
 system ('git checkout $develop') == 0 or die "Can't switch to $develop branch\n";
 
 chdir "$Bin/../" or die $!;
