@@ -1,0 +1,21 @@
+"Updater"
+{
+	"Information"
+	{
+		"Version"
+		{
+			"Latest"	"0.9.264"
+		}
+
+		"Notes"	"More info @ https://github.com/d-ai/SourceComms/blob/master/CHANGELOG.md or https://forums.alliedmods.net/showthread.php?t=207176 "
+		"Notes"	"Corrected some English translation."
+	}
+
+	"Files"
+	{
+		"Plugin"	"Path_SM/plugins/sourcecomms.smx"
+		"Plugin"	"Path_SM/scripting/sourcecomms.sp"
+		"Plugin"	"Path_SM/scripting/include/sourcecomms.inc"
+		"Plugin"	"Path_SM/translations/sourcecomms.phrases.txt"
+	}
+}

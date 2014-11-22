@@ -1,0 +1,22 @@
+#!/bin/sh
+# usage: ./prepare_build_directory <source_dir> <build_dir>
+
+set -e
+
+# check that source directory exists
+echo 'checking the existence of the source directory'
+[ "$1" != "" ]
+[ -d $1 ]
+# check that destination directory exists
+echo 'checking the existence of the destination directory'
+[ "$2" != "" ]
+[ -d $2 ]
+
+# create new directories
+mkdir -pv $2/plugins
+
+# copy files
+cp -Rv $1/game_upload/configs $2/
+cp -Rv $1/game_upload/scripting $2/
+cp -Rv $1/game_upload/translations $2/
+cp -v $1/tools/sc-updatefile.txt $2/
