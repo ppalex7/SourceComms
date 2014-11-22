@@ -25,6 +25,10 @@ while (my $line = <$plugin_file>) {
 close $plugin_file;
 print "SourceComms version $plugin_version\n";
 
+# get changes
+my $changelog_diff = qx/git diff --no-color -U0 master..HEAD CHANGELOG.md/;
+my @changes = map { s/"/'/r } map { s/^\+(?:\*\s+\*\*[0-9\.]+\*\*\s+-\s+|\s+\*\s+)//r } grep { m/^\+(?!\+)/ } split(qr/\n/, $changelog_diff);
+
 open (my $update_file, '>:utf8', "$Bin/sc-updatefile.txt") or die "Can't open update file: $!\n";
 sub p (@) {
     print {$update_file} @_, "\n";
@@ -39,8 +43,7 @@ p qq/\t\t\t"Latest"\t"$plugin_version"/;
 p qq/\t\t}/;
 p;
 p qq!\t\t"Notes"\t"More info @ https://github.com/d-ai/SourceComms/blob/master/CHANGELOG.md or https://forums.alliedmods.net/showthread.php?t=207176 "!;
-p qq/\t\t"Notes"\t" "/;
-p qq/\t\t"Notes"\t" "/;
+p qq/\t\t"Notes"\t"$_"/ for @changes;
 p qq/\t}/;
 p;
 p qq/\t"Files"/;
