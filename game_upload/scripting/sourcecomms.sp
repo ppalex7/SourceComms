@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.265"
+#define PLUGIN_VERSION "0.9.266"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://s.ppalex.com/updater/sourcecomms-0.9/sc-updatefile.txt"
