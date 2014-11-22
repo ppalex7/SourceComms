@@ -1,4 +1,5 @@
 #Changelog
+* **0.9.265** - Updater's url changed to the new domain.
 * **0.9.264** - Updated English translation. Thanks to [Nomy](https://github.com/Nomy).
 * **0.9.263** - Fixed SourceComms_SetClientMute params description. Thanks to [Bara](https://github.com/Bara20).
 * **0.9.262** - Fixed plugin include file to prevent compiling errors when twice included.
