@@ -63,15 +63,6 @@ system ("git tag -a '$plugin_version'") == 0 or die "An error occurred during ta
 system ('git push --all') == 0 or die "An error occurred during pushing branches\n";
 system ('git push --tags') == 0 or die "An error occurred during pushing tags\n";
 
-print "Let's make zip files\n";
-chdir "$Bin/../game_upload" or die $!;
-system ('zip -r ../sourcecomms-srv.zip *') == 0 or die "An error occurred during archiving game server files\n";
-chdir "$Bin/../web_upload" or die $!;
-system ('zip -r ../sourcecomms-web.zip *') == 0 or die "An error occurred during archiving web files\n";
-
-print "Uploading files to hosting\n";
-system ('sftp -b /Users/alex/Code/SourceComms/tools/upload.batch web@vps') == 0 or die "An error occurred during uploading\n";
-
 # switch back to develop branch
 system ('git checkout $develop') == 0 or die "Can't switch to $develop branch\n";
 
