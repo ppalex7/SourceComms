@@ -2,6 +2,10 @@
 SourceComms.sublime-project
 SourceComms.sublime-workspace
 
+# private tools
+tools/build.pl
+tools/upload-local.*
+
 ##########
 ## MacOS
 ##########
