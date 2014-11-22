@@ -4,7 +4,6 @@ use warnings;
 use strict;
 
 use FindBin qw/$Bin/;
-sub p;
 
 my $develop = '0.9-develop';
 
@@ -27,6 +26,9 @@ close $plugin_file;
 print "SourceComms version $plugin_version\n";
 
 open (my $update_file, '>:utf8', "$Bin/sc-updatefile.txt") or die "Can't open update file: $!\n";
+sub p (@) {
+    print {$update_file} @_, "\n";
+}
 p q/"Updater"/;
 p q/{/;
 p qq/\t"Information"/;
@@ -70,6 +72,3 @@ chdir "$Bin/../" or die $!;
 print "All done\n";
 exit;
 
-sub p {
-    print {$update_file} @_, "\n";
-}
