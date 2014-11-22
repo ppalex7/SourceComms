@@ -58,7 +58,7 @@ p q/}/;
 close $update_file;
 print "Update-file draft builded\n";
 
-die "Uploading aborted!\n" if system ("vim $Bin/sc-updatefile.txt") >> 8;
+die "Aborted!\n" if system ("vim $Bin/sc-updatefile.txt") >> 8;
 print "Successfully edited update-file\n";
 
 print "Commit updater file\n";
