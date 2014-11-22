@@ -17,10 +17,10 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.264"
+#define PLUGIN_VERSION "0.9.265"
 #define PREFIX "\x04[SourceComms]\x01 "
 
-#define UPDATE_URL "http://z.tf2news.ru/repo/sc-updatefile.txt"
+#define UPDATE_URL "http://s.ppalex.com/updater/sourcecomms-0.9/sc-updatefile.txt"
 
 #define MAX_TIME_MULTI 30       // maximum mass-target punishment length
 
