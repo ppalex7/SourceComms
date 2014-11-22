@@ -4,11 +4,12 @@
 	{
 		"Version"
 		{
-			"Latest"	"0.9.265"
+			"Latest"	"0.9.266"
 		}
 
 		"Notes"	"More info @ https://github.com/d-ai/SourceComms/blob/master/CHANGELOG.md or https://forums.alliedmods.net/showthread.php?t=207176 "
 		"Notes"	"Updater's url changed to the new domain."
+		"Notes"	"Added Spanish translation. Thanks to [Sarona](https://forums.alliedmods.net/member.php?u=187739)."
 	}
 
 	"Files"
