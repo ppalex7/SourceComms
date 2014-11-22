@@ -13,7 +13,7 @@ chdir "$Bin/../" or die $!;
 # check current branch and status of working copy
 my @git_status = split /\n/, qx/git status/;
 die "You must be on branch '$develop'\n" unless $git_status[0] =~ m/^(?:# )?On branch $develop$/;
-die "You have changes in working copy. Exiting...\n" unless $git_status[3] =~ m/nothing to commit|Your branch is ahead of/;
+die "You have changes in working copy. Exiting...\n" unless $git_status[-1] =~ m/nothing to commit/;
 
 # get plugin version
 open (my $plugin_file, '<', "$Bin/../game_upload/scripting/sourcecomms.sp") or die "Can't open plugin file: $!\n";
