@@ -60,6 +60,9 @@ print "Update-file draft builded\n";
 die "Uploading aborted!\n" if system ("vim $Bin/sc-updatefile.txt") >> 8;
 print "Successfully edited update-file\n";
 
+print "Commit updater file\n";
+system ("git add $Bin/sc-updatefile.txt") == 0 or die "Can't add updater file\n";
+system ("git commit -m 'update file for auto-updating'") == 0 or die "Can commit updater file\n";
 
 print "Let's do merge!\n";
 system ('git checkout master') == 0 or die "Can't switch to master branch\n";
