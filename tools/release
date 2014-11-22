@@ -65,8 +65,7 @@ print "Let's do merge!\n";
 system ('git checkout master') == 0 or die "Can't switch to master branch\n";
 system ("git merge $develop --no-ff --message 'Updated to version $plugin_version'") == 0 or die "An error occurred during merging\n";
 system ("git tag -a '$plugin_version'") == 0 or die "An error occurred during tag adding\n";
-system ('git push --all') == 0 or die "An error occurred during pushing branches\n";
-system ('git push --tags') == 0 or die "An error occurred during pushing tags\n";
+system ('git push --all --follow-tags') == 0 or die "An error occurred during pushing to upstream\n";
 
 # switch back to develop branch
 system ('git checkout $develop') == 0 or die "Can't switch to $develop branch\n";
