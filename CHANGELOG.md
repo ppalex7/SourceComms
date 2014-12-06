@@ -1,4 +1,5 @@
 #Changelog
+* **0.9.267** - Small code refactoring for easy disabling auto-updating.
 * **0.9.266** - Added Spanish translation. Thanks to [Sarona](https://forums.alliedmods.net/member.php?u=187739).
 * **0.9.265** - Updater's url changed to the new domain.
 * **0.9.264** - Updated English translation. Thanks to [Nomy](https://github.com/Nomy).

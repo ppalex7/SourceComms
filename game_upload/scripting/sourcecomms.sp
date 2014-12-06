@@ -17,7 +17,7 @@
 // Do not edit below this line //
 //-----------------------------//
 
-#define PLUGIN_VERSION "0.9.266"
+#define PLUGIN_VERSION "0.9.267"
 #define PREFIX "\x04[SourceComms]\x01 "
 
 #define UPDATE_URL "http://s.ppalex.com/updater/sourcecomms-0.9/sc-updatefile.txt"
@@ -203,18 +203,22 @@ public OnPluginStart()
 
     ServerInfo();
 
-    if (LibraryExists("updater"))
-    {
-        Updater_AddPlugin(UPDATE_URL);
-    }
+    #if defined UPDATE_URL
+        if (LibraryExists("updater"))
+        {
+            Updater_AddPlugin(UPDATE_URL);
+        }
+    #endif
 }
 
 public OnLibraryAdded(const String:name[])
 {
-    if (StrEqual(name, "updater"))
-    {
-        Updater_AddPlugin(UPDATE_URL);
-    }
+    #if defined UPDATE_URL
+        if (StrEqual(name, "updater"))
+        {
+            Updater_AddPlugin(UPDATE_URL);
+        }
+    #endif
 }
 
 public Updater_OnPluginUpdated()
